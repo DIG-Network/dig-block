@@ -1,0 +1,59 @@
+domain_id: state_validation
+normative: NORMATIVE.md
+verification: VERIFICATION.md
+items:
+  - id: STV-001
+    section: "7.5"
+    summary: "validate_state API"
+    status: gap
+    spec_ref: "SPEC Section 7.5"
+    tests: []
+    notes: ""
+
+  - id: STV-002
+    section: "7.5.1"
+    summary: "Coin Existence Checks"
+    status: gap
+    spec_ref: "SPEC Section 7.5.1"
+    tests: []
+    notes: ""
+
+  - id: STV-003
+    section: "7.5.2"
+    summary: "Puzzle Hash Cross-Check"
+    status: gap
+    spec_ref: "SPEC Section 7.5.2"
+    tests: []
+    notes: ""
+
+  - id: STV-004
+    section: "7.5.3"
+    summary: "Addition Non-Existence"
+    status: gap
+    spec_ref: "SPEC Section 7.5.3"
+    tests: []
+    notes: ""
+
+  - id: STV-005
+    section: "7.5.4"
+    summary: "Height/Time Lock Evaluation"
+    status: gap
+    spec_ref: "SPEC Section 7.5.4"
+    tests: []
+    notes: ""
+
+  - id: STV-006
+    section: "7.5.5"
+    summary: "Proposer Signature Verification"
+    status: gap
+    spec_ref: "SPEC Section 7.5.5"
+    tests: []
+    notes: ""
+
+  - id: STV-007
+    section: "7.5.6"
+    summary: "State Root Verification"
+    status: gap
+    spec_ref: "SPEC Section 7.5.6"
+    tests: []
+    notes: ""

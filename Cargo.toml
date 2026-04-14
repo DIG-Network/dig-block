@@ -1,0 +1,45 @@
+[package]
+name = "dig-block"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75.0"
+description = "DIG L2 block format, production, and validation"
+license = "MIT"
+authors = ["DIG Network"]
+repository = "https://github.com/DIG-Network/dig-block"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+# Chia protocol & consensus
+chia-protocol = "0.26"
+chia-bls = "0.26"
+chia-consensus = "0.26"
+chia-sha2 = "0.26"
+chia-traits = "0.26"
+clvm-utils = "0.26"
+clvmr = "0.14"
+
+# Chia SDK
+chia-sdk-types = "0.30"
+chia-sdk-signer = "0.30"
+
+# DIG ecosystem
+dig-clvm = "0.1"
+
+# Serialization
+bincode = "1"
+serde = { version = "1", features = ["derive"] }
+
+# Error handling
+thiserror = "2"
+
+[dev-dependencies]
+chia-sha2 = "0.26"
+hex-literal = "0.4"
+
+# BLK-005: dedicated integration test crate (nested path; see spec test plan).
+[[test]]
+name = "blk_005_protocol_constants"
+path = "tests/block_types/test_protocol_constants.rs"

@@ -1,0 +1,60 @@
+domain_id: hashing
+normative: ./NORMATIVE.md
+verification: ./VERIFICATION.md
+items:
+  - id: HSH-001
+    section: "3.1"
+    summary: "Block Header Hash"
+    status: gap
+    spec_ref: "SPEC.md#section-31"
+    tests: []
+    notes: ""
+  - id: HSH-002
+    section: "3.2"
+    summary: "Checkpoint Hash"
+    status: gap
+    spec_ref: "SPEC.md#section-32"
+    tests: []
+    notes: ""
+  - id: HSH-003
+    section: "3.3"
+    summary: "Spends Root Computation"
+    status: gap
+    spec_ref: "SPEC.md#section-33"
+    tests: []
+    notes: ""
+  - id: HSH-004
+    section: "3.4"
+    summary: "Additions Root Construction"
+    status: gap
+    spec_ref: "SPEC.md#section-34"
+    tests: []
+    notes: ""
+  - id: HSH-005
+    section: "3.5"
+    summary: "Removals Root Construction"
+    status: gap
+    spec_ref: "SPEC.md#section-35"
+    tests: []
+    notes: ""
+  - id: HSH-006
+    section: "3.6"
+    summary: "Filter Hash Construction"
+    status: gap
+    spec_ref: "SPEC.md#section-36"
+    tests: []
+    notes: ""
+  - id: HSH-007
+    section: "3.3"
+    summary: "Tagged Merkle Hashing"
+    status: gap
+    spec_ref: "SPEC.md#section-33"
+    tests: []
+    notes: ""
+  - id: HSH-008
+    section: "3.3"
+    summary: "Receipts Root Computation"
+    status: gap
+    spec_ref: "SPEC.md#section-33"
+    tests: []
+    notes: "MerkleTree over SHA-256 of bincode-serialized receipts. Used by ReceiptList::finalize()."

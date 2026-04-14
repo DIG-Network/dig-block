@@ -1,0 +1,70 @@
+domain_id: block_production
+normative: NORMATIVE.md
+verification: VERIFICATION.md
+items:
+  - id: BLD-001
+    section: "6.1, 6.2"
+    summary: BlockBuilder Struct and Constructor
+    status: Not Started
+    spec_ref: specs/BLD-001.md
+    tests: []
+    notes: >
+      BlockBuilder must contain all specified fields;
+      new() initializes with empty collections and zero totals.
+
+  - id: BLD-002
+    section: "6.3"
+    summary: add_spend_bundle with Budget Enforcement
+    status: Not Started
+    spec_ref: specs/BLD-002.md
+    tests: []
+    notes: >
+      Enforces cost and size budgets; extracts additions/removals;
+      updates running totals; remaining_cost() returns budget remainder.
+
+  - id: BLD-003
+    section: "6.3"
+    summary: add_slash_proposal with Limits
+    status: Not Started
+    spec_ref: specs/BLD-003.md
+    tests: []
+    notes: >
+      Enforces count and payload size limits for slash proposals.
+
+  - id: BLD-004
+    section: "6.3"
+    summary: Optional Setters
+    status: Not Started
+    spec_ref: specs/BLD-004.md
+    tests: []
+    notes: >
+      Three setter methods for L1 proofs, DFSP roots, and extension data.
+
+  - id: BLD-005
+    section: "6.4"
+    summary: Build Pipeline
+    status: Not Started
+    spec_ref: specs/BLD-005.md
+    tests: []
+    notes: >
+      Multi-step build pipeline computing roots, filter, version, timestamp,
+      size (two-pass), and signature. Rejects if DFSP roots missing when required.
+
+  - id: BLD-006
+    section: "6.4 Step 6"
+    summary: BlockSigner Trait Integration
+    status: Not Started
+    spec_ref: specs/BLD-006.md
+    tests: []
+    notes: >
+      Calls signer.sign_block() and maps failure to BuilderError::SigningFailed.
+
+  - id: BLD-007
+    section: "1.1, 12.2"
+    summary: Builder Structural Validity Guarantee
+    status: Not Started
+    spec_ref: specs/BLD-007.md
+    tests: []
+    notes: >
+      Any block produced by build() must pass validate_structure().
+      Embodies the "build correct, validate everything" design principle.

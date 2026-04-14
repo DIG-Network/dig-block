@@ -1,0 +1,126 @@
+schema_version: 1
+
+status_values:
+  active: "Requirements in use for dig-block implementation"
+  planned: "Scoped; not yet verified"
+
+domains:
+  - id: crate_structure
+    title: "Crate Structure"
+    summary: "Crate layout, Cargo.toml with chia/DIG crate dependencies, module hierarchy, CoinLookup and BlockSigner trait definitions, public re-exports, test infrastructure."
+    status: planned
+    paths:
+      normative: domains/crate_structure/NORMATIVE.md
+      verification: domains/crate_structure/VERIFICATION.md
+      tracking: domains/crate_structure/TRACKING.yaml
+      requirement_specs: domains/crate_structure
+
+  - id: block_types
+    title: "Block Types"
+    summary: "L2BlockHeader struct with all field groups (core identity, state commitments, L1 anchor, metadata, L1 proofs, slash proposals, DFSP roots), L2Block struct with body, constructors (new, new_with_collateral, new_with_l1_proofs, genesis), block helpers (all_additions, all_removals, has_duplicate_outputs, has_double_spends), protocol constants (EMPTY_ROOT, ZERO_HASH, MAX_BLOCK_SIZE, MAX_COST_PER_BLOCK), version auto-detection."
+    status: planned
+    paths:
+      normative: domains/block_types/NORMATIVE.md
+      verification: domains/block_types/VERIFICATION.md
+      tracking: domains/block_types/TRACKING.yaml
+      requirement_specs: domains/block_types
+
+  - id: attestation
+    title: "Attestation & Status"
+    summary: "AttestedBlock struct wrapping L2Block with signer bitmap and aggregate signature, BlockStatus enum (Pending/Validated/SoftFinalized/HardFinalized/Orphaned/Rejected), SignerBitmap (compact bitmap up to 65536 validators, merge, signer_indices, threshold checks)."
+    status: planned
+    paths:
+      normative: domains/attestation/NORMATIVE.md
+      verification: domains/attestation/VERIFICATION.md
+      tracking: domains/attestation/TRACKING.yaml
+      requirement_specs: domains/attestation
+
+  - id: checkpoint
+    title: "Checkpoint"
+    summary: "Checkpoint struct (epoch summary for L1 finality), CheckpointSubmission (signed checkpoint with score and submitter), CheckpointStatus enum, checkpoint score computation, CheckpointBuilder (accumulate blocks, compute block_root and withdrawals_root)."
+    status: planned
+    paths:
+      normative: domains/checkpoint/NORMATIVE.md
+      verification: domains/checkpoint/VERIFICATION.md
+      tracking: domains/checkpoint/TRACKING.yaml
+      requirement_specs: domains/checkpoint
+
+  - id: receipt
+    title: "Receipt"
+    summary: "ReceiptStatus enum (Success/InsufficientBalance/InvalidNonce/InvalidSignature/AccountNotFound/Failed), Receipt struct (per-SpendBundle execution result), ReceiptList with Merkle root computation, aggregate methods (success_count, failure_count, total_fees)."
+    status: planned
+    paths:
+      normative: domains/receipt/NORMATIVE.md
+      verification: domains/receipt/VERIFICATION.md
+      tracking: domains/receipt/TRACKING.yaml
+      requirement_specs: domains/receipt
+
+  - id: hashing
+    title: "Hashing"
+    summary: "Block header hash (SHA-256 over 626 bytes fixed-order concatenation), checkpoint hash (160 bytes), spends root (MerkleTree of SpendBundle hashes), additions root (chia-consensus compute_merkle_set_root grouped by puzzle_hash), removals root (Merkle set of coin IDs), BIP158 filter hash, tagged Merkle hashing (0x01/0x02 domain separation), receipts root (MerkleTree of receipt hashes)."
+    status: planned
+    paths:
+      normative: domains/hashing/NORMATIVE.md
+      verification: domains/hashing/VERIFICATION.md
+      tracking: domains/hashing/TRACKING.yaml
+      requirement_specs: domains/hashing
+
+  - id: error_types
+    title: "Error Types"
+    summary: "BlockError enum (26+ variants for structural, execution, and state validation), CheckpointError enum, BuilderError enum, SignerBitmapError enum, ReceiptError enum. All using thiserror derivation with Chia parity references."
+    status: planned
+    paths:
+      normative: domains/error_types/NORMATIVE.md
+      verification: domains/error_types/VERIFICATION.md
+      tracking: domains/error_types/TRACKING.yaml
+      requirement_specs: domains/error_types
+
+  - id: structural_validation
+    title: "Structural Validation"
+    summary: "Tier 1 validation requiring no external state. Header validation (version check, DFSP root pre-activation, cost/size limits, timestamp future bound). Full block structural validation (count agreement, Merkle root recomputation, duplicate output and double-spend detection, slash proposal limits)."
+    status: planned
+    paths:
+      normative: domains/structural_validation/NORMATIVE.md
+      verification: domains/structural_validation/VERIFICATION.md
+      tracking: domains/structural_validation/TRACKING.yaml
+      requirement_specs: domains/structural_validation
+
+  - id: block_production
+    title: "Block Production"
+    summary: "BlockBuilder struct and lifecycle (new, add_spend_bundle with cost/size limits, add_slash_proposal, set_l1_proofs, set_dfsp_roots, build). Build pipeline (Merkle root computation, count derivation, version auto-detection, block_size computation, signing via BlockSigner trait). Builder produces structurally valid blocks by construction."
+    status: planned
+    paths:
+      normative: domains/block_production/NORMATIVE.md
+      verification: domains/block_production/VERIFICATION.md
+      tracking: domains/block_production/TRACKING.yaml
+      requirement_specs: domains/block_production
+
+  - id: execution_validation
+    title: "Execution Validation"
+    summary: "Tier 2 validation requiring clvmr::Allocator. validate_execution() API. Per-SpendBundle pipeline: puzzle hash verification (clvm-utils::tree_hash), CLVM execution (dig-clvm::validate_spend_bundle), condition parsing and assertion checking (including ASSERT_EPHEMERAL), BLS aggregate signature verification, coin conservation, fee/cost consistency. ExecutionResult output type. PendingAssertion type definition (AssertionKind enum with 8 height/time lock variants)."
+    status: planned
+    paths:
+      normative: domains/execution_validation/NORMATIVE.md
+      verification: domains/execution_validation/VERIFICATION.md
+      tracking: domains/execution_validation/TRACKING.yaml
+      requirement_specs: domains/execution_validation
+
+  - id: state_validation
+    title: "State Validation"
+    summary: "Tier 3 validation requiring CoinLookup implementation. validate_state() API. Coin existence checks (removals must exist and be unspent, or be ephemeral). Puzzle hash cross-check. Addition non-existence. Height/time lock evaluation (8 assertion types). Proposer signature verification. State root verification."
+    status: planned
+    paths:
+      normative: domains/state_validation/NORMATIVE.md
+      verification: domains/state_validation/VERIFICATION.md
+      tracking: domains/state_validation/TRACKING.yaml
+      requirement_specs: domains/state_validation
+
+  - id: serialization
+    title: "Serialization"
+    summary: "Bincode serialization for all block and supporting types (L2BlockHeader, L2Block, AttestedBlock, Checkpoint, CheckpointSubmission, SignerBitmap, Receipt, ReceiptList, BlockStatus, CheckpointStatus, ExecutionResult, PendingAssertion). to_bytes() infallible, from_bytes() fallible. Genesis block construction. Serde default attributes for backwards compatibility. Serialization round-trip integrity."
+    status: planned
+    paths:
+      normative: domains/serialization/NORMATIVE.md
+      verification: domains/serialization/VERIFICATION.md
+      tracking: domains/serialization/TRACKING.yaml
+      requirement_specs: domains/serialization

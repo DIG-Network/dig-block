@@ -1,0 +1,43 @@
+domain_id: attestation
+normative: NORMATIVE.md
+verification: VERIFICATION.md
+items:
+  - id: ATT-001
+    section: "AttestedBlock Struct and Constructor"
+    summary: "AttestedBlock struct fields and new() constructor with empty bitmap, Pending status, proposer signature"
+    status: pending
+    spec_ref: "Section 2.4"
+    tests: []
+    notes: ""
+
+  - id: ATT-002
+    section: "AttestedBlock Methods"
+    summary: "signing_percentage(), has_soft_finality(), hash() delegation"
+    status: pending
+    spec_ref: "Section 2.4"
+    tests: []
+    notes: ""
+
+  - id: ATT-003
+    section: "BlockStatus Enum"
+    summary: "Pending/Validated/SoftFinalized/HardFinalized/Orphaned/Rejected with is_finalized() and is_canonical()"
+    status: pending
+    spec_ref: "Section 2.5"
+    tests: []
+    notes: ""
+
+  - id: ATT-004
+    section: "SignerBitmap Core Methods"
+    summary: "Bitmap with bits/validator_count, MAX_VALIDATORS=65536, new/from_bytes/has_signed/set_signed/signer_count/signing_percentage/has_threshold/as_bytes"
+    status: pending
+    spec_ref: "Section 2.10"
+    tests: []
+    notes: ""
+
+  - id: ATT-005
+    section: "SignerBitmap Merge and Indices"
+    summary: "merge() bitwise OR with mismatched rejection, signer_indices() ordered list"
+    status: pending
+    spec_ref: "Section 2.10"
+    tests: []
+    notes: ""

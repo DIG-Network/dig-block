@@ -1,0 +1,35 @@
+domain_id: receipt
+normative: NORMATIVE.md
+verification: VERIFICATION.md
+items:
+  - id: RCP-001
+    section: "ReceiptStatus Enum"
+    summary: "Success=0, InsufficientBalance=1, InvalidNonce=2, InvalidSignature=3, AccountNotFound=4, Failed=255 with numeric repr"
+    status: pending
+    spec_ref: "Section 2.9"
+    tests: []
+    notes: ""
+
+  - id: RCP-002
+    section: "Receipt Struct"
+    summary: "Receipt with tx_id, block_height, tx_index, status, fee_charged, post_state_root, cumulative_fees"
+    status: pending
+    spec_ref: "Section 2.9"
+    tests: []
+    notes: ""
+
+  - id: RCP-003
+    section: "ReceiptList Methods"
+    summary: "ReceiptList with receipts/root, new() with EMPTY_ROOT, from_receipts() Merkle root, push(), finalize(), get(), get_by_tx_id()"
+    status: pending
+    spec_ref: "Section 2.9"
+    tests: []
+    notes: ""
+
+  - id: RCP-004
+    section: "ReceiptList Aggregates"
+    summary: "len(), success_count(), failure_count(), total_fees() aggregate methods"
+    status: pending
+    spec_ref: "Section 2.9"
+    tests: []
+    notes: ""

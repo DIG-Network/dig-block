@@ -1,0 +1,51 @@
+domain_id: checkpoint
+normative: NORMATIVE.md
+verification: VERIFICATION.md
+items:
+  - id: CKP-001
+    section: "Checkpoint Struct"
+    summary: "Checkpoint struct with epoch, state_root, block_root, block_count, tx_count, total_fees, prev_checkpoint, withdrawals_root, withdrawal_count and new() constructor"
+    status: pending
+    spec_ref: "Section 2.6"
+    tests: []
+    notes: ""
+
+  - id: CKP-002
+    section: "CheckpointSubmission Struct"
+    summary: "CheckpointSubmission struct with checkpoint, signer_bitmap, aggregate_signature, aggregate_pubkey, score, submitter, submission_height, submission_coin; new() with no L1 submission"
+    status: pending
+    spec_ref: "Section 2.7"
+    tests: []
+    notes: ""
+
+  - id: CKP-003
+    section: "CheckpointStatus Enum"
+    summary: "Pending, Collecting, WinnerSelected{winner_hash, winner_score}, Finalized{winner_hash, l1_height}, Failed"
+    status: pending
+    spec_ref: "Section 2.8"
+    tests: []
+    notes: ""
+
+  - id: CKP-004
+    section: "Checkpoint Score Computation"
+    summary: "compute_score(stake_percentage) returns stake_percentage * block_count"
+    status: pending
+    spec_ref: "Section 2.6"
+    tests: []
+    notes: ""
+
+  - id: CKP-005
+    section: "CheckpointSubmission Methods"
+    summary: "hash(), epoch(), signing_percentage(), meets_threshold(), record_submission(), is_submitted()"
+    status: pending
+    spec_ref: "Section 2.7"
+    tests: []
+    notes: ""
+
+  - id: CKP-006
+    section: "CheckpointBuilder"
+    summary: "Builder with new(), add_block(), set_state_root(), add_withdrawal(), build() computing Merkle roots"
+    status: pending
+    spec_ref: "Section 6.6"
+    tests: []
+    notes: ""

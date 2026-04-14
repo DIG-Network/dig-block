@@ -1,0 +1,63 @@
+domain_id: structural_validation
+normative: NORMATIVE.md
+verification: VERIFICATION.md
+items:
+  - id: SVL-001
+    section: "5.1 Step 1"
+    summary: Header Version Check
+    status: Not Started
+    spec_ref: specs/SVL-001.md
+    tests: []
+    notes: >
+      Compute expected_version from height vs DFSP_ACTIVATION_HEIGHT;
+      reject with BlockError::InvalidVersion on mismatch.
+
+  - id: SVL-002
+    section: "5.1 Step 2"
+    summary: Header DFSP Root Pre-Activation Check
+    status: Not Started
+    spec_ref: specs/SVL-002.md
+    tests: []
+    notes: >
+      All five DFSP roots must equal EMPTY_ROOT when height < DFSP_ACTIVATION_HEIGHT;
+      reject with BlockError::InvalidData otherwise.
+
+  - id: SVL-003
+    section: "5.1 Steps 3-4"
+    summary: Header Cost and Size Checks
+    status: Not Started
+    spec_ref: specs/SVL-003.md
+    tests: []
+    notes: >
+      Reject with CostExceeded if total_cost > MAX_COST_PER_BLOCK;
+      reject with TooLarge if block_size > MAX_BLOCK_SIZE.
+
+  - id: SVL-004
+    section: "5.1 Step 5"
+    summary: Header Timestamp Future Bound
+    status: Not Started
+    spec_ref: specs/SVL-004.md
+    tests: []
+    notes: >
+      Reject with TimestampTooFarInFuture if timestamp > now() + 300s.
+      Adopted from Chia block_header_validation.py Check 26a.
+
+  - id: SVL-005
+    section: "5.2 Steps 2, 4, 5, 13"
+    summary: Block Count Agreement
+    status: Not Started
+    spec_ref: specs/SVL-005.md
+    tests: []
+    notes: >
+      Four count fields in header must match actual block contents;
+      each mismatch produces a distinct error variant.
+
+  - id: SVL-006
+    section: "5.2 Steps 3, 6-15"
+    summary: Block Merkle Root and Integrity Checks
+    status: Not Started
+    spec_ref: specs/SVL-006.md
+    tests: []
+    notes: >
+      Ten sub-checks covering Merkle roots, duplicate outputs,
+      double spends, slash proposal limits, filter hash, and size.

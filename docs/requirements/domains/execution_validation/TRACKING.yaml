@@ -1,0 +1,75 @@
+domain_id: execution_validation
+normative: NORMATIVE.md
+verification: VERIFICATION.md
+items:
+  - id: EXE-001
+    section: "7.4"
+    summary: "validate_execution API"
+    status: gap
+    spec_ref: "SPEC Section 7.4"
+    tests: []
+    notes: ""
+
+  - id: EXE-002
+    section: "7.4.2"
+    summary: "Puzzle Hash Verification"
+    status: gap
+    spec_ref: "SPEC Section 7.4.2"
+    tests: []
+    notes: ""
+
+  - id: EXE-003
+    section: "7.4.3"
+    summary: "CLVM Execution via dig-clvm"
+    status: gap
+    spec_ref: "SPEC Section 7.4.3"
+    tests: []
+    notes: ""
+
+  - id: EXE-004
+    section: "7.4.4"
+    summary: "Condition Parsing and Assertion Checking"
+    status: gap
+    spec_ref: "SPEC Section 7.4.4"
+    tests: []
+    notes: ""
+
+  - id: EXE-005
+    section: "7.4.5"
+    summary: "BLS Aggregate Signature Verification"
+    status: gap
+    spec_ref: "SPEC Section 7.4.5"
+    tests: []
+    notes: ""
+
+  - id: EXE-006
+    section: "7.4.6"
+    summary: "Coin Conservation and Fee Consistency"
+    status: gap
+    spec_ref: "SPEC Section 7.4.6"
+    tests: []
+    notes: ""
+
+  - id: EXE-007
+    section: "7.4.6"
+    summary: "Cost Consistency Verification"
+    status: gap
+    spec_ref: "SPEC Section 7.4.6"
+    tests: []
+    notes: ""
+
+  - id: EXE-008
+    section: "7.4.7"
+    summary: "ExecutionResult Output Type"
+    status: gap
+    spec_ref: "SPEC Section 7.4.7"
+    tests: []
+    notes: ""
+
+  - id: EXE-009
+    section: "7.4.4, 7.4.7, 7.5.4"
+    summary: "PendingAssertion Type Definition"
+    status: gap
+    spec_ref: "SPEC Sections 7.4.4, 7.4.7, 7.5.4"
+    tests: []
+    notes: "Defines AssertionKind enum (8 variants) and PendingAssertion struct used by EXE-008 and STV-005"

@@ -1,0 +1,26 @@
+/target
+Cargo.lock
+*.swp
+*.swo
+.repomix/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# GitNexus index (local only)
+.gitnexus/
+
+# SocratiCode (Docker-managed, local only)
+.socraticode/
+
+# Claude Code local settings & worktrees
+.claude/settings.local.json
+.claude/worktrees/
+
+# Transient prompt notes (local only)
+docs/prompt/chat.md

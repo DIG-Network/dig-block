@@ -1,0 +1,25 @@
+---
+description: Comments and test documentation standards for code and tests (LLM-friendly, requirement-linked).
+alwaysApply: true
+---
+
+# Documentation and test commentary
+
+## Tests
+
+- Every test (module, helper, and case where it adds clarity) must include **comprehensive comments** that state:
+  - **What** behavior or property is under test.
+  - **How** the assertions and setup demonstrate that a **requirement** (or spec section) is satisfied — cite requirement IDs or doc paths when the project uses them (e.g. `docs/requirements/...`, spec IDs in `docs/resources/SPEC.md`).
+
+## Production and library code
+
+- All **written code** must include **high-signal, LLM-friendly** comments that cover:
+  - **Usage** — how callers or integrators should use the API, invariants, and error/edge expectations where non-obvious.
+  - **Rationale** — why this approach exists (trade-offs, rejected alternatives when helpful).
+  - **Decisions** — design choices that would surprise a reader or that constrain future changes.
+  - **Context** — assumptions, protocol or domain constraints, and links to related behavior elsewhere.
+- Where helpful, add **semantic links** in comments:
+  - Paths to authoritative docs (e.g. requirements specs, `docs/resources/SPEC.md`).
+  - References to related types, functions, or modules (`see crate::...`, `// Related: path/to/file.rs`).
+
+Prefer comments that explain **intent and proof obligations** over restating what the code literally does line-by-line.
