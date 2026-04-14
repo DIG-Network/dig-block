@@ -51,7 +51,7 @@ After completing a requirement: write tests, verify they pass, update TRACKING.y
 - [x] ERR-002 — BlockError execution and state validation variants (Tier 2 and 3)
 - [x] ERR-003 — CheckpointError enum
 - [x] ERR-004 — BuilderError enum
-- [ ] ERR-005 — SignerBitmapError and ReceiptError enums
+- [x] ERR-005 — SignerBitmapError and ReceiptError enums
 
 ## Phase 5: Hashing
 

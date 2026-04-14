@@ -95,7 +95,10 @@ impl SignerBitmap {
     /// Sets the bit for `index`. **Error** if `index >= validator_count` ([`SignerBitmapError::IndexOutOfBounds`]).
     pub fn set_signed(&mut self, index: u32) -> Result<(), SignerBitmapError> {
         if index >= self.validator_count {
-            return Err(SignerBitmapError::IndexOutOfBounds);
+            return Err(SignerBitmapError::IndexOutOfBounds {
+                index,
+                max: self.validator_count,
+            });
         }
         let byte_index = (index / 8) as usize;
         let bit_index = index % 8;
@@ -156,7 +159,10 @@ impl SignerBitmap {
     /// well-formed bitmaps.
     pub fn merge(&mut self, other: &SignerBitmap) -> Result<(), SignerBitmapError> {
         if self.validator_count != other.validator_count {
-            return Err(SignerBitmapError::ValidatorCountMismatch);
+            return Err(SignerBitmapError::ValidatorCountMismatch {
+                expected: self.validator_count,
+                got: other.validator_count,
+            });
         }
         let n = (self.validator_count as usize).div_ceil(8);
         self.bits.resize(n, 0);

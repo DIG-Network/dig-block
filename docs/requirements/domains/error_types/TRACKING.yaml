@@ -37,7 +37,9 @@ items:
   - id: ERR-005
     section: "4.3"
     summary: "SignerBitmapError and ReceiptError Enums"
-    status: gap
+    status: implemented
     spec_ref: "SPEC.md#section-43"
-    tests: []
+    tests:
+      - tests/test_signer_bitmap_error.rs
+      - tests/test_receipt_error.rs
     notes: ""

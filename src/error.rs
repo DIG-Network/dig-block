@@ -4,6 +4,7 @@
 //! - **Tier 2 /3 [`BlockError`]** (execution / state): [ERR-002](docs/requirements/domains/error_types/specs/ERR-002.md), [NORMATIVE § ERR-002](docs/requirements/domains/error_types/NORMATIVE.md).
 //! - **[`CheckpointError`]** (checkpoints): [ERR-003](docs/requirements/domains/error_types/specs/ERR-003.md), [SPEC §4.2](docs/resources/SPEC.md).
 //! - **[`BuilderError`]** (block construction): [ERR-004](docs/requirements/domains/error_types/specs/ERR-004.md), [SPEC §6.5](docs/resources/SPEC.md).
+//! - **[`SignerBitmapError`] / [`ReceiptError`]**: [ERR-005](docs/requirements/domains/error_types/specs/ERR-005.md), [SPEC §4.3–4.4](docs/resources/SPEC.md).
 //! - **Crate spec:** [SPEC §4.1–4.2](docs/resources/SPEC.md) — error taxonomy and validator layering.
 
 use crate::primitives::Bytes32;
@@ -280,29 +281,50 @@ pub enum BuilderError {
     MissingDfspRoots,
 }
 
-/// Errors from SignerBitmap operations.
+/// Signer bitmap subsystem failures: index bounds, wire length, and validator-set cardinality ([ERR-005](docs/requirements/domains/error_types/specs/ERR-005.md)).
 ///
-/// - **ATT-004:** [`SignerBitmapError::IndexOutOfBounds`] — [`crate::SignerBitmap::set_signed`] when `index >= validator_count`.
-/// - **ATT-005:** [`SignerBitmapError::ValidatorCountMismatch`] — [`crate::SignerBitmap::merge`] when counts differ.
+/// **Usage:** [`crate::SignerBitmap::set_signed`] returns [`SignerBitmapError::IndexOutOfBounds`] when `index >= validator_count`;
+/// [`crate::SignerBitmap::merge`] returns [`SignerBitmapError::ValidatorCountMismatch`] when operands were sized for different sets
+/// ([ATT-004](docs/requirements/domains/attestation/specs/ATT-004.md), [ATT-005](docs/requirements/domains/attestation/specs/ATT-005.md)).
 ///
-/// Further variants: [ERR-005](docs/requirements/domains/error_types/specs/ERR-005.md).
-#[derive(Debug, Error, PartialEq, Eq)]
+/// **Rationale:** `TooManyValidators` and `InvalidLength` support deserialization / policy checks where the byte vector or declared
+/// count disagrees with protocol limits ([ERR-005 implementation notes](docs/requirements/domains/error_types/specs/ERR-005.md#implementation-notes));
+/// production paths may grow into these without changing the public enum shape again.
+///
+/// **Derivation:** `Debug` + `Clone` + `thiserror::Error`; `PartialEq` + `Eq` retained so ATT-004/ATT-005 integration tests can
+/// compare structured errors without string parsing.
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
 pub enum SignerBitmapError {
-    /// Validator index is not in `[0, validator_count)`.
-    #[error("validator index out of bounds for this bitmap")]
-    IndexOutOfBounds,
-    /// [`crate::SignerBitmap::merge`] requires both operands to use the same `validator_count`.
-    #[error("signer bitmap validator_count mismatch")]
-    ValidatorCountMismatch,
-    /// Placeholder — variants will be expanded in ERR-005.
-    #[error("signer bitmap error: {0}")]
-    Other(String),
+    /// `index` is not a valid signer slot; `max` is the bitmap's [`crate::SignerBitmap::validator_count`] (valid indices: `0..max`).
+    #[error("index out of bounds: index={index}, max={max}")]
+    IndexOutOfBounds { index: u32, max: u32 },
+
+    /// Validator set size exceeds what the protocol or deployment allows (see [`crate::MAX_VALIDATORS`](crate::MAX_VALIDATORS)).
+    #[error("too many validators: {0}")]
+    TooManyValidators(usize),
+
+    /// Byte length of a serialized bitmap does not match `ceil(validator_count / 8)` (or caller’s expected width).
+    #[error("invalid bitmap length: expected={expected}, got={got}")]
+    InvalidLength { expected: usize, got: usize },
+
+    /// Two bitmap operands do not share the same [`crate::SignerBitmap::validator_count`] ([`crate::SignerBitmap::merge`]).
+    #[error("validator count mismatch: expected={expected}, got={got}")]
+    ValidatorCountMismatch { expected: u32, got: u32 },
 }
 
-/// Errors from Receipt operations.
-#[derive(Debug, Error)]
+/// Receipt list / indexer failures for execution receipts ([ERR-005](docs/requirements/domains/error_types/specs/ERR-005.md), [SPEC §4.4](docs/resources/SPEC.md)).
+///
+/// **Usage:** Serialization or field validation maps to [`ReceiptError::InvalidData`]; lookup by receipt or tx id uses [`ReceiptError::NotFound`]
+/// when the key is absent ([RCP domain](docs/requirements/domains/receipt/NORMATIVE.md) — future RCP helpers).
+///
+/// **Derivation:** `Debug` + `Clone` + `thiserror::Error`; `PartialEq` + `Eq` for testability ([`Bytes32`] is compared by value).
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
 pub enum ReceiptError {
-    /// Placeholder — variants will be added in ERR-005.
-    #[error("receipt error: {0}")]
-    Other(String),
+    /// Opaque parse or semantic failure (e.g. bincode, bad status byte).
+    #[error("invalid receipt data: {0}")]
+    InvalidData(String),
+
+    /// No receipt recorded for the given id / hash.
+    #[error("receipt not found: {0}")]
+    NotFound(Bytes32),
 }
