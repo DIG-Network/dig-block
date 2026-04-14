@@ -5,9 +5,10 @@ items:
   - id: ERR-001
     section: "4.1"
     summary: "BlockError Structural Variants"
-    status: gap
+    status: implemented
     spec_ref: "SPEC.md#section-41"
-    tests: []
+    tests:
+      - tests/error_types/test_block_error_structural.rs
     notes: ""
   - id: ERR-002
     section: "4.1"

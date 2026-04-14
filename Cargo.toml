@@ -154,3 +154,8 @@ path = "tests/checkpoint/test_checkpoint_submission_methods.rs"
 [[test]]
 name = "ckp_006_checkpoint_builder"
 path = "tests/checkpoint/test_checkpoint_builder.rs"
+
+# ERR-001: BlockError structural (Tier 1) variants.
+[[test]]
+name = "err_001_block_error_structural"
+path = "tests/error_types/test_block_error_structural.rs"

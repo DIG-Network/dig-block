@@ -131,5 +131,6 @@ fn compile_check_module_graph_resolves() {
     use dig_block::error;
 
     let _ = constants::EMPTY_ROOT;
-    let _ = error::BlockError::Other(String::new());
+    // ERR-001: use a concrete Tier-1 variant so the module graph stays tied to real APIs.
+    let _ = error::BlockError::InvalidData(String::new());
 }
