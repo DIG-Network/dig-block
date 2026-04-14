@@ -91,7 +91,7 @@ fn test_header_height() {
 
 #[test]
 fn test_block_valid() {
-    // test_block() returns a valid (stub) L2Block.
+    // test_block() returns a structurally populated L2Block (BLK-003).
     let block = test_block();
     let _ = format!("{:?}", block);
 }
