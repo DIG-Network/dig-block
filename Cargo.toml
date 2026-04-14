@@ -172,6 +172,11 @@ path = "tests/test_block_error_execution_state.rs"
 name = "err_003_checkpoint_error"
 path = "tests/test_checkpoint_error.rs"
 
+# ERR-004: BuilderError enum.
+[[test]]
+name = "err_004_builder_error"
+path = "tests/test_builder_error.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"
