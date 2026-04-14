@@ -4,18 +4,25 @@
 //!
 //! - **[RCP-001](docs/requirements/domains/receipt/specs/RCP-001.md)** — [`ReceiptStatus`] discriminants `0..=4` and `255`.
 //! - **[RCP-002](docs/requirements/domains/receipt/specs/RCP-002.md)** — [`Receipt`] field layout (tx id, height, index, status, fees, state).
-//! - **[NORMATIVE](docs/requirements/domains/receipt/NORMATIVE.md)** — RCP-001 / RCP-002 obligations.
+//! - **[NORMATIVE](docs/requirements/domains/receipt/NORMATIVE.md)** — receipt domain obligations.
+//! - **[RCP-003](docs/requirements/domains/receipt/specs/RCP-003.md)** — [`ReceiptList`]: storage, Merkle [`ReceiptList::root`], accessors.
+//! - **[RCP-004](docs/requirements/domains/receipt/specs/RCP-004.md)** (next) — aggregate helpers on [`ReceiptList`].
 //! - **[SPEC §2.9](docs/resources/SPEC.md)** — receipt payload context.
-//! - **RCP-003 — RCP-004:** [`ReceiptList`] storage and aggregates land in later specs.
+//! - **[HSH-008](docs/requirements/domains/hashing/specs/HSH-008.md)** — receipts Merkle algorithm (same as this module’s root helper; see note below).
 //!
 //! ## Rationale
 //!
 //! - **`#[repr(u8)]`:** Stable single-byte tags for bincode payloads and receipt Merkle leaves ([RCP-001](docs/requirements/domains/receipt/specs/RCP-001.md) implementation notes).
 //! - **`Failed = 255`:** Leaves `5..=254` for future specific failure codes without renumbering existing wire values.
 //! - **`ReceiptStatus::from_u8`:** Unknown bytes map to [`ReceiptStatus::Failed`] so forward-compatible decoders never panic (RCP-001 implementation notes).
+//! - **`ReceiptList::push` without immediate root update:** Batch amortization per [RCP-003](docs/requirements/domains/receipt/specs/RCP-003.md); callers must [`ReceiptList::finalize`] (or use [`ReceiptList::from_receipts`]).
+//! - **`compute_receipts_root` location:** Implemented privately in this file to match [HSH-008](docs/requirements/domains/hashing/specs/HSH-008.md) while avoiding a `crate::hash` ↔ `types::receipt` import cycle. [HSH-008](docs/requirements/domains/hashing/specs/HSH-008.md) may relocate the symbol to [`crate::hash`](crate::hash) when that module owns root helpers.
 
+use chia_sdk_types::MerkleTree;
+use chia_sha2::Sha256;
 use serde::{Deserialize, Serialize};
 
+use crate::constants::EMPTY_ROOT;
 use crate::primitives::Bytes32;
 
 /// Outcome of applying one transaction in a block ([SPEC §2.9](docs/resources/SPEC.md), RCP-001).
@@ -121,11 +128,83 @@ impl Receipt {
     }
 }
 
-/// Ordered list of receipts with a Merkle root.
+/// Merkle root over ordered receipts: SHA-256(bincode(`Receipt`)) per leaf, then [`MerkleTree`] ([HSH-008](docs/requirements/domains/hashing/specs/HSH-008.md)).
 ///
-/// **ATT-001:** [`Default`] yields an empty placeholder so [`crate::AttestedBlock::new`] can be tested before
-/// [RCP-003](docs/requirements/domains/receipt/specs/RCP-003.md) fills in real storage APIs.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+/// **Empty list:** [`EMPTY_ROOT`] ([BLK-005](docs/requirements/domains/block_types/specs/BLK-005.md)).
+///
+/// **Tagged hashing:** [`MerkleTree`] applies leaf/node domain separation per [HSH-007](docs/requirements/domains/hashing/specs/HSH-007.md) (inherited from `chia-sdk-types`).
+fn compute_receipts_root(receipts: &[Receipt]) -> Bytes32 {
+    if receipts.is_empty() {
+        return EMPTY_ROOT;
+    }
+    let hashes: Vec<Bytes32> = receipts
+        .iter()
+        .map(|r| {
+            let bytes =
+                bincode::serialize(r).expect("Receipt bincode serialization should not fail");
+            let mut hasher = Sha256::new();
+            hasher.update(&bytes);
+            Bytes32::new(hasher.finalize())
+        })
+        .collect();
+    MerkleTree::new(&hashes).root()
+}
+
+/// Ordered block receipts with a commitments root ([RCP-003](docs/requirements/domains/receipt/specs/RCP-003.md), SPEC §2.9).
+///
+/// **Wire:** [`Serialize`] / [`Deserialize`] include both `receipts` and `root`; consumers should re-validate or
+/// call [`Self::finalize`] after deserializing if they distrust the stored root.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReceiptList {
-    _placeholder: (),
+    /// Receipts in **block order** (must align with `tx_index` / execution order).
+    pub receipts: Vec<Receipt>,
+    /// Merkle root over [`Self::receipts`] — see [`Self::finalize`].
+    pub root: Bytes32,
+}
+
+impl Default for ReceiptList {
+    /// Same as [`Self::new`] — keeps [`crate::AttestedBlock::new`] and tests working with [`Default::default`].
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ReceiptList {
+    /// Empty list, root = [`EMPTY_ROOT`] ([RCP-003](docs/requirements/domains/receipt/specs/RCP-003.md) `new()`).
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            receipts: Vec::new(),
+            root: EMPTY_ROOT,
+        }
+    }
+
+    /// Take ownership of `receipts` and set [`Self::root`] via [`compute_receipts_root`].
+    #[must_use]
+    pub fn from_receipts(receipts: Vec<Receipt>) -> Self {
+        let root = compute_receipts_root(&receipts);
+        Self { receipts, root }
+    }
+
+    /// Append a receipt **without** updating [`Self::root`] — call [`Self::finalize`] when done ([RCP-003](docs/requirements/domains/receipt/specs/RCP-003.md)).
+    pub fn push(&mut self, receipt: Receipt) {
+        self.receipts.push(receipt);
+    }
+
+    /// Recompute [`Self::root`] from the current [`Self::receipts`] vector.
+    pub fn finalize(&mut self) {
+        self.root = compute_receipts_root(&self.receipts);
+    }
+
+    /// Borrow receipt at `index`, or `None` if out of bounds.
+    #[must_use]
+    pub fn get(&self, index: usize) -> Option<&Receipt> {
+        self.receipts.get(index)
+    }
+
+    /// First receipt whose [`Receipt::tx_id`] matches, or `None` ([RCP-003](docs/requirements/domains/receipt/specs/RCP-003.md) — linear scan).
+    #[must_use]
+    pub fn get_by_tx_id(&self, tx_id: Bytes32) -> Option<&Receipt> {
+        self.receipts.iter().find(|r| r.tx_id == tx_id)
+    }
 }
