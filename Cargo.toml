@@ -94,3 +94,8 @@ path = "tests/attestation/test_signer_bitmap_core.rs"
 [[test]]
 name = "att_005_signer_bitmap_merge"
 path = "tests/attestation/test_signer_bitmap_merge.rs"
+
+# ATT-001: AttestedBlock struct and constructor.
+[[test]]
+name = "att_001_attested_block_constructor"
+path = "tests/attestation/test_attested_block_constructor.rs"

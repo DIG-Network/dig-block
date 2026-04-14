@@ -21,7 +21,10 @@ pub struct Receipt {
 }
 
 /// Ordered list of receipts with a Merkle root.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+///
+/// **ATT-001:** [`Default`] yields an empty placeholder so [`crate::AttestedBlock::new`] can be tested before
+/// [RCP-003](docs/requirements/domains/receipt/specs/RCP-003.md) fills in real storage APIs.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReceiptList {
     _placeholder: (),
 }

@@ -5,9 +5,10 @@ items:
   - id: ATT-001
     section: "AttestedBlock Struct and Constructor"
     summary: "AttestedBlock struct fields and new() constructor with empty bitmap, Pending status, proposer signature"
-    status: pending
+    status: implemented
     spec_ref: "Section 2.4"
-    tests: []
+    tests:
+      - tests/attestation/test_attested_block_constructor.rs
     notes: ""
 
   - id: ATT-002
