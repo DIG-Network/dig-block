@@ -21,9 +21,10 @@ items:
   - id: CKP-003
     section: "CheckpointStatus Enum"
     summary: "Pending, Collecting, WinnerSelected{winner_hash, winner_score}, Finalized{winner_hash, l1_height}, Failed"
-    status: pending
+    status: implemented
     spec_ref: "Section 2.8"
-    tests: []
+    tests:
+      - tests/checkpoint/test_checkpoint_status.rs
     notes: ""
 
   - id: CKP-004

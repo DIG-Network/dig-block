@@ -4,21 +4,27 @@
 //! [NORMATIVE § ATT-003](docs/requirements/domains/attestation/NORMATIVE.md) /
 //! [SPEC §2.5](docs/resources/SPEC.md).
 //!
+//! **CKP-003 — [`CheckpointStatus`]:** [CKP-003](docs/requirements/domains/checkpoint/specs/CKP-003.md) /
+//! [NORMATIVE § CKP-003](docs/requirements/domains/checkpoint/NORMATIVE.md) /
+//! [SPEC §2.8](docs/resources/SPEC.md).
+//!
 //! ## Usage
 //!
 //! Consensus / chain layers assign and transition status; this crate only defines the **labels** and
-//! **read-only predicates** (`is_finalized`, `is_canonical`). State-machine enforcement lives outside
-//! dig-block ([SPEC design note](docs/resources/SPEC.md) — status transitions are not encoded as a type-level FSM here).
+//! (for [`BlockStatus`]) **read-only predicates** (`is_finalized`, `is_canonical`). State-machine enforcement
+//! lives outside dig-block ([SPEC design note](docs/resources/SPEC.md) — transitions are not a type-level FSM here).
+//! [`CheckpointStatus`] carries winner identity in [`CheckpointStatus::WinnerSelected`] / [`CheckpointStatus::Finalized`].
 //!
 //! ## Rationale
 //!
 //! - **Bincode:** Both enums derive [`Serialize`] / [`Deserialize`] ([SER-001](docs/requirements/domains/serialization/specs/SER-001.md))
 //!   for `AttestedBlock` / checkpoint payloads.
-//! - **Copy + Eq:** Small enums used in hot paths and equality checks; [`Hash`] supports bitmap/set keyed by status if needed.
-//!
-//! **CKP-003** will extend [`CheckpointStatus`] documentation when that requirement is implemented.
+//! - **Copy + Eq:** [`BlockStatus`] and [`CheckpointStatus`] use [`Copy`] where all payloads are [`Copy`] ([`crate::primitives::Bytes32`]).
+//! - **Checkpoint ladder (informal):** Typical progression `Pending` → `Collecting` → `WinnerSelected` → `Finalized`, or terminal `Failed` ([CKP-003](docs/requirements/domains/checkpoint/specs/CKP-003.md) implementation notes).
 
 use serde::{Deserialize, Serialize};
+
+use crate::primitives::Bytes32;
 
 /// Lifecycle status of an attested block ([SPEC §2.5](docs/resources/SPEC.md)).
 ///
@@ -61,11 +67,31 @@ impl BlockStatus {
     }
 }
 
-/// Lifecycle status of a checkpoint submitted toward L1 (placeholder for CKP-003).
+/// L2 checkpoint **epoch** lifecycle ([SPEC §2.8](docs/resources/SPEC.md), [CKP-003](docs/requirements/domains/checkpoint/specs/CKP-003.md)).
+///
+/// **Variants:** Three unit variants (`Pending`, `Collecting`, `Failed`) and two struct variants that pin the
+/// winning checkpoint hash (`winner_hash`) — first with off-chain `winner_score`, then with on-chain `l1_height`
+/// after L1 inclusion.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum CheckpointStatus {
+    /// Epoch has not yet started checkpoint collection.
     Pending,
-    Submitted,
-    Confirmed,
+    /// Validators are submitting checkpoint proposals for the epoch.
+    Collecting,
+    /// Winning checkpoint chosen off-chain / in L2 consensus; not yet L1-confirmed.
+    WinnerSelected {
+        /// Identity (hash) of the winning checkpoint proposal.
+        winner_hash: Bytes32,
+        /// Score used for comparison during winner selection ([CKP-004](docs/requirements/domains/checkpoint/specs/CKP-004.md) will define computation).
+        winner_score: u64,
+    },
+    /// Winning checkpoint confirmed on L1 at `l1_height`.
+    Finalized {
+        /// Same logical winner as in [`Self::WinnerSelected`] once finalized.
+        winner_hash: Bytes32,
+        /// L1 block height at which inclusion was observed.
+        l1_height: u32,
+    },
+    /// Epoch checkpointing failed (e.g. insufficient participation).
     Failed,
 }
