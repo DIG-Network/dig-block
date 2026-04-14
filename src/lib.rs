@@ -2,6 +2,7 @@ pub mod builder;
 pub mod constants;
 pub mod error;
 pub mod hash;
+pub mod primitives;
 pub mod traits;
 pub mod types;
 pub mod validation;
@@ -22,7 +23,10 @@ pub use types::status::{BlockStatus, CheckpointStatus};
 // Error types
 pub use error::{BlockError, BuilderError, CheckpointError, ReceiptError, SignerBitmapError};
 
-// Constants
+// Primitive types & Chia re-exports (BLK-006)
+pub use primitives::{Bytes32, Cost, PublicKey, Signature, VERSION_V1, VERSION_V2};
+
+// Constants (BLK-005); uses [`Cost`] / [`Bytes32`] from [`primitives`]
 pub use constants::*;
 
 // Traits

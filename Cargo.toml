@@ -43,3 +43,8 @@ hex-literal = "0.4"
 [[test]]
 name = "blk_005_protocol_constants"
 path = "tests/block_types/test_protocol_constants.rs"
+
+# BLK-006: primitive types & re-exports.
+[[test]]
+name = "blk_006_primitive_types"
+path = "tests/block_types/test_primitive_types.rs"

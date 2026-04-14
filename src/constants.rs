@@ -9,9 +9,9 @@
 //! block work (cost, size) and slash-proposal abuse while staying aligned with mainnet-style CLVM budgets.
 //!
 //! **Types:** Numeric limits use the widths required by BLK-005 (`u32` for byte/count caps, `u64` for
-//! height/timestamp/cost). [`Cost`] is a `u64` alias (full primitive surface is completed in BLK-006).
+//! height/timestamp fields). [`Cost`] and [`Bytes32`] are defined in [`crate::primitives`] (BLK-006).
 
-use chia_protocol::Bytes32;
+use crate::primitives::{Bytes32, Cost};
 
 /// Digest of the empty byte string, i.e. SHA-256 of `""`.
 ///
@@ -75,6 +75,3 @@ pub const HASH_LEAF_PREFIX: u8 = 0x01;
 
 /// Domain-separation prefix for Merkle internal nodes (0x02).
 pub const HASH_TREE_PREFIX: u8 = 0x02;
-
-/// CLVM / block cost unit (matches BLK-006).
-pub type Cost = u64;
