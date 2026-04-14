@@ -3,9 +3,10 @@
 //! ## Requirements trace
 //!
 //! - **[RCP-001](docs/requirements/domains/receipt/specs/RCP-001.md)** — [`ReceiptStatus`] discriminants `0..=4` and `255`.
-//! - **[NORMATIVE § RCP-001](docs/requirements/domains/receipt/NORMATIVE.md)** — numeric representation for wire / Merkle.
+//! - **[RCP-002](docs/requirements/domains/receipt/specs/RCP-002.md)** — [`Receipt`] field layout (tx id, height, index, status, fees, state).
+//! - **[NORMATIVE](docs/requirements/domains/receipt/NORMATIVE.md)** — RCP-001 / RCP-002 obligations.
 //! - **[SPEC §2.9](docs/resources/SPEC.md)** — receipt payload context.
-//! - **RCP-002 — RCP-004:** [`Receipt`] / [`ReceiptList`] behavior is specified in later requirements; placeholders remain until then.
+//! - **RCP-003 — RCP-004:** [`ReceiptList`] storage and aggregates land in later specs.
 //!
 //! ## Rationale
 //!
@@ -14,6 +15,8 @@
 //! - **`ReceiptStatus::from_u8`:** Unknown bytes map to [`ReceiptStatus::Failed`] so forward-compatible decoders never panic (RCP-001 implementation notes).
 
 use serde::{Deserialize, Serialize};
+
+use crate::primitives::Bytes32;
 
 /// Outcome of applying one transaction in a block ([SPEC §2.9](docs/resources/SPEC.md), RCP-001).
 ///
@@ -63,10 +66,59 @@ impl ReceiptStatus {
     }
 }
 
-/// Individual transaction receipt.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Result of executing one transaction inside a block ([RCP-002](docs/requirements/domains/receipt/specs/RCP-002.md), SPEC §2.9).
+///
+/// ## Field semantics
+///
+/// - **`tx_id`:** Transaction hash this receipt attests to (often spend-bundle / tx commitment — exact preimage in HSH-*).
+/// - **`tx_index`:** Zero-based position in block body (RCP-002 implementation notes).
+/// - **`post_state_root`:** State trie root **after** this tx; enables per-tx light-client checkpoints.
+/// - **`cumulative_fees`:** Running sum of `fee_charged` for receipts `0..=tx_index` in the same block; execution must keep this
+///   consistent when appending receipts ([RCP-002](docs/requirements/domains/receipt/specs/RCP-002.md) implementation notes).
+///
+/// **Serialization:** [`Serialize`] / [`Deserialize`] for bincode ([SER-001](docs/requirements/domains/serialization/specs/SER-001.md)).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Receipt {
-    _placeholder: (),
+    /// Hash identifying the executed transaction.
+    pub tx_id: Bytes32,
+    /// Block height containing this transaction.
+    pub block_height: u64,
+    /// Zero-based transaction index within the block.
+    pub tx_index: u32,
+    /// Execution outcome ([`ReceiptStatus`], RCP-001).
+    pub status: ReceiptStatus,
+    /// Fee debited for this transaction.
+    pub fee_charged: u64,
+    /// State root after applying this transaction.
+    pub post_state_root: Bytes32,
+    /// Sum of `fee_charged` for all receipts up to and including this one in the block.
+    pub cumulative_fees: u64,
+}
+
+impl Receipt {
+    /// Construct a receipt with all NORMATIVE fields ([RCP-002](docs/requirements/domains/receipt/specs/RCP-002.md)).
+    ///
+    /// **Note:** Callers must ensure `cumulative_fees` matches the monotonic fee aggregate for the block; this crate does not
+    /// recompute it here (single-receipt constructor only).
+    pub fn new(
+        tx_id: Bytes32,
+        block_height: u64,
+        tx_index: u32,
+        status: ReceiptStatus,
+        fee_charged: u64,
+        post_state_root: Bytes32,
+        cumulative_fees: u64,
+    ) -> Self {
+        Self {
+            tx_id,
+            block_height,
+            tx_index,
+            status,
+            fee_charged,
+            post_state_root,
+            cumulative_fees,
+        }
+    }
 }
 
 /// Ordered list of receipts with a Merkle root.
