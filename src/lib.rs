@@ -20,7 +20,7 @@ pub use types::header::L2BlockHeader;
 
 // Status and supporting types
 pub use types::receipt::{Receipt, ReceiptList, ReceiptStatus};
-pub use types::signer_bitmap::SignerBitmap;
+pub use types::signer_bitmap::{SignerBitmap, MAX_VALIDATORS};
 pub use types::status::{BlockStatus, CheckpointStatus};
 
 // Error types

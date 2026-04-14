@@ -30,9 +30,10 @@ items:
   - id: ATT-004
     section: "SignerBitmap Core Methods"
     summary: "Bitmap with bits/validator_count, MAX_VALIDATORS=65536, new/from_bytes/has_signed/set_signed/signer_count/signing_percentage/has_threshold/as_bytes"
-    status: pending
+    status: implemented
     spec_ref: "Section 2.10"
-    tests: []
+    tests:
+      - tests/attestation/test_signer_bitmap_core.rs
     notes: ""
 
   - id: ATT-005
