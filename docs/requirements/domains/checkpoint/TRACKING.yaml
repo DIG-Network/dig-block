@@ -14,9 +14,10 @@ items:
   - id: CKP-002
     section: "CheckpointSubmission Struct"
     summary: "CheckpointSubmission struct with checkpoint, signer_bitmap, aggregate_signature, aggregate_pubkey, score, submitter, submission_height, submission_coin; new() with no L1 submission"
-    status: pending
+    status: implemented
     spec_ref: "Section 2.7"
-    tests: []
+    tests:
+      - tests/checkpoint/test_checkpoint_submission_struct.rs
     notes: ""
 
   - id: CKP-003

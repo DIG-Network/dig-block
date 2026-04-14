@@ -134,3 +134,8 @@ path = "tests/checkpoint/test_checkpoint_status.rs"
 [[test]]
 name = "ckp_001_checkpoint_struct"
 path = "tests/checkpoint/test_checkpoint_struct.rs"
+
+# CKP-002: CheckpointSubmission struct and new().
+[[test]]
+name = "ckp_002_checkpoint_submission_struct"
+path = "tests/checkpoint/test_checkpoint_submission_struct.rs"
