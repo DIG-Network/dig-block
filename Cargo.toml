@@ -119,3 +119,8 @@ path = "tests/receipt/test_receipt_struct.rs"
 [[test]]
 name = "rcp_003_receipt_list_methods"
 path = "tests/receipt/test_receipt_list_methods.rs"
+
+# RCP-004: ReceiptList aggregate methods.
+[[test]]
+name = "rcp_004_receipt_list_aggregates"
+path = "tests/receipt/test_receipt_list_aggregates.rs"
