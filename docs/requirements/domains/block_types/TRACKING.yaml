@@ -41,9 +41,10 @@ items:
   - id: BLK-006
     section: "2.1"
     summary: "Primitive Types"
-    status: gap
+    status: implemented
     spec_ref: "SPEC.md#section-21"
-    tests: []
+    tests:
+      - tests/block_types/test_primitive_types.rs
     notes: ""
   - id: BLK-007
     section: "2.2"

@@ -94,6 +94,10 @@ fn glob_import_all_public_types() {
 
 #[test]
 fn constants_accessible_from_root() {
+    use dig_block::Bytes32;
+    use dig_block::Cost;
+    use dig_block::PublicKey;
+    use dig_block::Signature;
     use dig_block::DFSP_ACTIVATION_HEIGHT;
     use dig_block::EMPTY_ROOT;
     use dig_block::HASH_LEAF_PREFIX;
@@ -103,7 +107,16 @@ fn constants_accessible_from_root() {
     use dig_block::MAX_FUTURE_TIMESTAMP_SECONDS;
     use dig_block::MAX_SLASH_PROPOSALS_PER_BLOCK;
     use dig_block::MAX_SLASH_PROPOSAL_PAYLOAD_BYTES;
+    use dig_block::VERSION_V1;
+    use dig_block::VERSION_V2;
     use dig_block::ZERO_HASH;
+
+    let _: Cost = 0_u64;
+    assert_eq!(VERSION_V1, 1);
+    assert_eq!(VERSION_V2, 2);
+    let _ = Bytes32::default();
+    let _ = Signature::default();
+    let _ = PublicKey::default();
 
     assert_eq!(MAX_BLOCK_SIZE, 10_000_000);
     assert_eq!(MAX_COST_PER_BLOCK, 550_000_000_000);

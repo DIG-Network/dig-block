@@ -18,7 +18,7 @@ After completing a requirement: write tests, verify they pass, update TRACKING.y
 ## Phase 1: Constants & Primitive Types
 
 - [x] BLK-005 — Protocol constants (EMPTY_ROOT, ZERO_HASH, MAX_BLOCK_SIZE, MAX_COST_PER_BLOCK, etc.)
-- [ ] BLK-006 — Primitive types (Cost alias, version constants, DFSP_ACTIVATION_HEIGHT)
+- [x] BLK-006 — Primitive types (Cost alias, version constants, DFSP_ACTIVATION_HEIGHT)
 
 ## Phase 2: Core Block Types
 

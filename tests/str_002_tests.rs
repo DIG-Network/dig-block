@@ -9,13 +9,14 @@ fn src_dir() -> std::path::PathBuf {
 }
 
 #[test]
-fn file_existence_all_18_source_files_present() {
+fn file_existence_all_required_source_files_present() {
     let src = src_dir();
 
     let required_files = [
         // Top-level modules
         "lib.rs",
         "constants.rs",
+        "primitives.rs",
         "error.rs",
         "hash.rs",
         "traits.rs",
@@ -99,11 +100,12 @@ fn mod_declarations_builder_mod_rs() {
 }
 
 #[test]
-fn lib_modules_all_7_top_level_declared() {
+fn lib_modules_all_top_level_declared() {
     let content = std::fs::read_to_string(src_dir().join("lib.rs")).expect("Failed to read lib.rs");
 
     let expected_modules = [
         "constants",
+        "primitives",
         "error",
         "hash",
         "traits",
