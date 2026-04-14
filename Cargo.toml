@@ -124,3 +124,8 @@ path = "tests/receipt/test_receipt_list_methods.rs"
 [[test]]
 name = "rcp_004_receipt_list_aggregates"
 path = "tests/receipt/test_receipt_list_aggregates.rs"
+
+# CKP-003: CheckpointStatus enum (epoch lifecycle).
+[[test]]
+name = "ckp_003_checkpoint_status"
+path = "tests/checkpoint/test_checkpoint_status.rs"
