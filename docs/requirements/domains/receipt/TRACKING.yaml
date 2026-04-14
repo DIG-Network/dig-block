@@ -14,9 +14,10 @@ items:
   - id: RCP-002
     section: "Receipt Struct"
     summary: "Receipt with tx_id, block_height, tx_index, status, fee_charged, post_state_root, cumulative_fees"
-    status: pending
+    status: implemented
     spec_ref: "Section 2.9"
-    tests: []
+    tests:
+      - tests/receipt/test_receipt_struct.rs
     notes: ""
 
   - id: RCP-003

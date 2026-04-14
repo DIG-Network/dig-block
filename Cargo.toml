@@ -109,3 +109,8 @@ path = "tests/attestation/test_attested_block_methods.rs"
 [[test]]
 name = "rcp_001_receipt_status"
 path = "tests/receipt/test_receipt_status.rs"
+
+# RCP-002: Receipt struct (seven fields).
+[[test]]
+name = "rcp_002_receipt_struct"
+path = "tests/receipt/test_receipt_struct.rs"

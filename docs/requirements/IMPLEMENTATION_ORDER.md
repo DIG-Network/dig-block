@@ -36,7 +36,7 @@ After completing a requirement: write tests, verify they pass, update TRACKING.y
 - [x] ATT-001 — AttestedBlock struct and constructor
 - [x] ATT-002 — AttestedBlock methods (signing_percentage, has_soft_finality)
 - [x] RCP-001 — ReceiptStatus enum
-- [ ] RCP-002 — Receipt struct
+- [x] RCP-002 — Receipt struct
 - [ ] RCP-003 — ReceiptList struct and methods (new, from_receipts, push, finalize, get, get_by_tx_id)
 - [ ] RCP-004 — ReceiptList aggregate methods (len, success_count, failure_count, total_fees)
 - [ ] CKP-003 — CheckpointStatus enum
