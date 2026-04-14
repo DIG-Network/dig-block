@@ -84,3 +84,8 @@ path = "tests/block_types/test_l2_block_helpers.rs"
 [[test]]
 name = "att_003_block_status"
 path = "tests/attestation/test_block_status.rs"
+
+# ATT-004: SignerBitmap core methods.
+[[test]]
+name = "att_004_signer_bitmap_core"
+path = "tests/attestation/test_signer_bitmap_core.rs"
