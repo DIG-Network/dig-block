@@ -39,7 +39,8 @@ items:
   - id: ATT-005
     section: "SignerBitmap Merge and Indices"
     summary: "merge() bitwise OR with mismatched rejection, signer_indices() ordered list"
-    status: pending
+    status: implemented
     spec_ref: "Section 2.10"
-    tests: []
+    tests:
+      - tests/attestation/test_signer_bitmap_merge.rs
     notes: ""

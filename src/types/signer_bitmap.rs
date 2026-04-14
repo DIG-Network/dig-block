@@ -4,8 +4,9 @@
 //!
 //! - **[ATT-004](docs/requirements/domains/attestation/specs/ATT-004.md)** — struct shape, `MAX_VALIDATORS`,
 //!   `new` / `from_bytes` / bit accessors / counts / thresholds / `as_bytes`.
-//! - **[NORMATIVE § ATT-004](docs/requirements/domains/attestation/NORMATIVE.md)** — normative API surface.
-//! - **[ATT-005](docs/requirements/domains/attestation/specs/ATT-005.md)** (next) — `merge`, `signer_indices`.
+//! - **[ATT-005](docs/requirements/domains/attestation/specs/ATT-005.md)** — [`Self::merge`], [`Self::signer_indices`]
+//!   (bitwise OR aggregation + sorted index list).
+//! - **[NORMATIVE](docs/requirements/domains/attestation/NORMATIVE.md)** — ATT-004 / ATT-005 API obligations.
 //!
 //! ## Encoding
 //!
@@ -16,8 +17,9 @@
 //! ## Usage
 //!
 //! Construct with [`Self::new`], mark signers with [`Self::set_signed`], query with [`Self::has_signed`],
-//! [`Self::signer_count`], [`Self::signing_percentage`], and [`Self::has_threshold`]. Raw wire bytes are
-//! exposed via [`Self::as_bytes`] / [`Self::from_bytes`] for bincode payloads ([SER-001](docs/requirements/domains/serialization/specs/SER-001.md)).
+//! [`Self::signer_count`], [`Self::signing_percentage`], and [`Self::has_threshold`]. Combine peer views with
+//! [`Self::merge`] and enumerate participants in order via [`Self::signer_indices`]. Raw wire bytes are exposed
+//! through [`Self::as_bytes`] / [`Self::from_bytes`] for bincode payloads ([SER-001](docs/requirements/domains/serialization/specs/SER-001.md)).
 //!
 //! ## Safety / limits
 //!
@@ -139,5 +141,40 @@ impl SignerBitmap {
     #[must_use]
     pub fn validator_count(&self) -> u32 {
         self.validator_count
+    }
+
+    /// Bitwise OR of `other` into `self` (union of signer sets).
+    ///
+    /// **ATT-005:** [`Self::validator_count`] MUST match on both operands; otherwise [`SignerBitmapError::ValidatorCountMismatch`].
+    ///
+    /// ## Rationale (vs. spec pseudocode)
+    ///
+    /// The ATT-005 snippet zips byte vectors; if `self.bits` is shorter than `other.bits` (e.g. odd
+    /// [`Self::from_bytes`] layouts), zip would **drop** trailing OR contributions. This implementation resizes
+    /// `self.bits` to the canonical `ceil(validator_count / 8)` length, then ORs each index `i` with
+    /// `other.bits.get(i).unwrap_or(0)`, matching “combine all signers” intent while staying commutative on
+    /// well-formed bitmaps.
+    pub fn merge(&mut self, other: &SignerBitmap) -> Result<(), SignerBitmapError> {
+        if self.validator_count != other.validator_count {
+            return Err(SignerBitmapError::ValidatorCountMismatch);
+        }
+        let n = (self.validator_count as usize).div_ceil(8);
+        self.bits.resize(n, 0);
+        for i in 0..n {
+            let ob = other.bits.get(i).copied().unwrap_or(0);
+            self.bits[i] |= ob;
+        }
+        Ok(())
+    }
+
+    /// All validator indices with a set bit, in **ascending** order (`0 .. validator_count` scan).
+    ///
+    /// **ATT-005:** Order follows the spec loop (`i` increasing); callers rely on this for deterministic
+    /// serialization, tests, and UX (e.g. display). Empty bitmap → empty [`Vec`].
+    #[must_use]
+    pub fn signer_indices(&self) -> Vec<u32> {
+        (0..self.validator_count)
+            .filter(|&i| self.has_signed(i))
+            .collect()
     }
 }

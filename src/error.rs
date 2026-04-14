@@ -26,13 +26,18 @@ pub enum BuilderError {
 
 /// Errors from SignerBitmap operations.
 ///
-/// **ATT-004:** [`SignerBitmapError::IndexOutOfBounds`] is returned by [`crate::SignerBitmap::set_signed`]
-/// when `index >= validator_count`. Additional variants land in [ERR-005](docs/requirements/domains/error_types/specs/ERR-005.md).
+/// - **ATT-004:** [`SignerBitmapError::IndexOutOfBounds`] — [`crate::SignerBitmap::set_signed`] when `index >= validator_count`.
+/// - **ATT-005:** [`SignerBitmapError::ValidatorCountMismatch`] — [`crate::SignerBitmap::merge`] when counts differ.
+///
+/// Further variants: [ERR-005](docs/requirements/domains/error_types/specs/ERR-005.md).
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum SignerBitmapError {
     /// Validator index is not in `[0, validator_count)`.
     #[error("validator index out of bounds for this bitmap")]
     IndexOutOfBounds,
+    /// [`crate::SignerBitmap::merge`] requires both operands to use the same `validator_count`.
+    #[error("signer bitmap validator_count mismatch")]
+    ValidatorCountMismatch,
     /// Placeholder — variants will be expanded in ERR-005.
     #[error("signer bitmap error: {0}")]
     Other(String),
