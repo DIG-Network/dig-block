@@ -40,7 +40,7 @@ After completing a requirement: write tests, verify they pass, update TRACKING.y
 - [x] RCP-003 — ReceiptList struct and methods (new, from_receipts, push, finalize, get, get_by_tx_id)
 - [x] RCP-004 — ReceiptList aggregate methods (len, success_count, failure_count, total_fees)
 - [x] CKP-003 — CheckpointStatus enum
-- [ ] CKP-001 — Checkpoint struct and constructor
+- [x] CKP-001 — Checkpoint struct and constructor
 - [ ] CKP-002 — CheckpointSubmission struct and constructor
 - [ ] CKP-004 — Checkpoint score computation
 - [ ] CKP-005 — CheckpointSubmission methods (signing_percentage, meets_threshold, record_submission, is_submitted)

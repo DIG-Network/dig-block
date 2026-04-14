@@ -9,7 +9,7 @@
 
 | ID      | Status  | Summary                        | Verification Approach                                                                          |
 |---------|---------|--------------------------------|-----------------------------------------------------------------------------------------------|
-| CKP-001 | Pending | Checkpoint Struct              | Unit test struct fields and types; verify new() constructor creates valid default instance      |
+| CKP-001 | Done    | Checkpoint Struct              | Unit test struct fields and types; verify new() constructor creates valid default instance (`tests/checkpoint/test_checkpoint_struct.rs`) |
 | CKP-002 | Pending | CheckpointSubmission Struct    | Unit test struct fields; verify new() sets submission_height and submission_coin to None        |
 | CKP-003 | Done    | CheckpointStatus Enum          | Unit test all variant patterns including data-carrying variants WinnerSelected and Finalized (`tests/checkpoint/test_checkpoint_status.rs`) |
 | CKP-004 | Pending | Checkpoint Score Computation   | Unit test compute_score with various stake_percentage and block_count values                    |

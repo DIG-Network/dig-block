@@ -5,9 +5,10 @@ items:
   - id: CKP-001
     section: "Checkpoint Struct"
     summary: "Checkpoint struct with epoch, state_root, block_root, block_count, tx_count, total_fees, prev_checkpoint, withdrawals_root, withdrawal_count and new() constructor"
-    status: pending
+    status: implemented
     spec_ref: "Section 2.6"
-    tests: []
+    tests:
+      - tests/checkpoint/test_checkpoint_struct.rs
     notes: ""
 
   - id: CKP-002
