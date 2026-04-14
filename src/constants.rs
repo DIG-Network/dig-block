@@ -70,8 +70,12 @@ pub const MAX_FUTURE_TIMESTAMP_SECONDS: u64 = 300;
 /// Domain-separation prefix for Merkle leaf nodes (0x01).
 ///
 /// **Rationale:** Prefixing leaf and internal node hashes prevents second-preimage ambiguity between
-/// leaf-level data and hashed pairs; see HSH-007 and BLK-005 implementation notes.
+/// leaf-level data and hashed pairs; see [HSH-007](docs/requirements/domains/hashing/specs/HSH-007.md) and BLK-005.
+///
+/// **Wire formula:** [`crate::hash::hash_leaf`] — production trees use [`chia_sdk_types::MerkleTree`] with the same byte.
 pub const HASH_LEAF_PREFIX: u8 = 0x01;
 
 /// Domain-separation prefix for Merkle internal nodes (0x02).
+///
+/// **Wire formula:** [`crate::hash::hash_node`]; [`chia_sdk_types::MerkleTree`] uses the same prefix for parent nodes.
 pub const HASH_TREE_PREFIX: u8 = 0x02;

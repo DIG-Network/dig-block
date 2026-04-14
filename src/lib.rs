@@ -32,6 +32,9 @@ pub use primitives::{Bytes32, Cost, PublicKey, Signature, VERSION_V1, VERSION_V2
 // Constants (BLK-005); uses [`Cost`] / [`Bytes32`] from [`primitives`]
 pub use constants::*;
 
+// Tagged Merkle (HSH-007); [`hash`] module also documents scope vs `merkle_set`.
+pub use hash::{hash_leaf, hash_node};
+
 // Traits
 pub use traits::{BlockSigner, CoinLookup};
 

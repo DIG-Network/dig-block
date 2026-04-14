@@ -47,9 +47,10 @@ items:
   - id: HSH-007
     section: "3.3"
     summary: "Tagged Merkle Hashing"
-    status: gap
+    status: implemented
     spec_ref: "SPEC.md#section-33"
-    tests: []
+    tests:
+      - tests/test_hsh_007_tagged_merkle.rs
     notes: ""
   - id: HSH-008
     section: "3.3"

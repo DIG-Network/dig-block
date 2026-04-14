@@ -3,6 +3,9 @@
 //! **Spec:** [SPEC §3.3–§3.6](docs/resources/SPEC.md). Uses `chia-consensus` Merkle sets, `chia-sdk-types`
 //! binary Merkle trees, `chia-sha2`, and `bitcoin::bip158::GcsFilterWriter` (BIP-158 parameters `M`, `P`
 //! matching Bitcoin Core / [`bitcoin::bip158`](https://docs.rs/bitcoin/latest/bitcoin/bip158/index.html)).
+//!
+//! **HSH-007 nuance:** [`MerkleTree`] leaves/nodes use `0x01`/`0x02` tagging ([`crate::hash`]); [`compute_merkle_set_root`] is a
+//! **different** radix-tree hash (see `chia_consensus::merkle_set`) for sorted coin-id sets — do not mix the two formulas.
 
 use bitcoin::bip158::GcsFilterWriter;
 use chia_consensus::merkle_set::compute_merkle_set_root;

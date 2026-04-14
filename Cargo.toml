@@ -187,6 +187,11 @@ path = "tests/test_signer_bitmap_error.rs"
 name = "err_005_receipt_error"
 path = "tests/test_receipt_error.rs"
 
+# HSH-007: tagged Merkle hashing (0x01 leaf, 0x02 node) vs chia-sdk-types MerkleTree.
+[[test]]
+name = "hsh_007_tagged_merkle"
+path = "tests/test_hsh_007_tagged_merkle.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"
