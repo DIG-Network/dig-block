@@ -23,9 +23,10 @@ items:
   - id: RCP-003
     section: "ReceiptList Methods"
     summary: "ReceiptList with receipts/root, new() with EMPTY_ROOT, from_receipts() Merkle root, push(), finalize(), get(), get_by_tx_id()"
-    status: pending
+    status: implemented
     spec_ref: "Section 2.9"
-    tests: []
+    tests:
+      - tests/receipt/test_receipt_list_methods.rs
     notes: ""
 
   - id: RCP-004

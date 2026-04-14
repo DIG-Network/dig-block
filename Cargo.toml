@@ -114,3 +114,8 @@ path = "tests/receipt/test_receipt_status.rs"
 [[test]]
 name = "rcp_002_receipt_struct"
 path = "tests/receipt/test_receipt_struct.rs"
+
+# RCP-003: ReceiptList methods and Merkle root.
+[[test]]
+name = "rcp_003_receipt_list_methods"
+path = "tests/receipt/test_receipt_list_methods.rs"
