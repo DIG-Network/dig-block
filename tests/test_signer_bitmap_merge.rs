@@ -54,7 +54,13 @@ fn test_merge_rejects_validator_count_mismatch() {
     let mut a = SignerBitmap::new(10);
     let b = SignerBitmap::new(20);
     let err = a.merge(&b).unwrap_err();
-    assert_eq!(err, SignerBitmapError::ValidatorCountMismatch);
+    assert_eq!(
+        err,
+        SignerBitmapError::ValidatorCountMismatch {
+            expected: 10,
+            got: 20
+        }
+    );
 }
 
 /// **Test plan:** “Signer indices empty bitmap” — no bits set → empty vec (not an error).

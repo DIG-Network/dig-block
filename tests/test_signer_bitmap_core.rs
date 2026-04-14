@@ -45,7 +45,10 @@ fn test_has_signed_false_when_bit_clear() {
 fn test_set_signed_rejects_index_equal_to_validator_count() {
     let mut bm = SignerBitmap::new(10);
     let err = bm.set_signed(10).unwrap_err();
-    assert_eq!(err, SignerBitmapError::IndexOutOfBounds);
+    assert_eq!(
+        err,
+        SignerBitmapError::IndexOutOfBounds { index: 10, max: 10 }
+    );
 }
 
 /// **Test plan:** “Signer count accuracy” — five distinct indices raised → popcount 5.

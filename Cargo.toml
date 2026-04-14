@@ -177,6 +177,16 @@ path = "tests/test_checkpoint_error.rs"
 name = "err_004_builder_error"
 path = "tests/test_builder_error.rs"
 
+# ERR-005: SignerBitmapError enum.
+[[test]]
+name = "err_005_signer_bitmap_error"
+path = "tests/test_signer_bitmap_error.rs"
+
+# ERR-005: ReceiptError enum.
+[[test]]
+name = "err_005_receipt_error"
+path = "tests/test_receipt_error.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"
