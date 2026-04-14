@@ -89,3 +89,8 @@ path = "tests/attestation/test_block_status.rs"
 [[test]]
 name = "att_004_signer_bitmap_core"
 path = "tests/attestation/test_signer_bitmap_core.rs"
+
+# ATT-005: SignerBitmap merge and signer_indices.
+[[test]]
+name = "att_005_signer_bitmap_merge"
+path = "tests/attestation/test_signer_bitmap_merge.rs"
