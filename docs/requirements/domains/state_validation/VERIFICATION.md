@@ -1,0 +1,16 @@
+# State Validation - Verification Matrix
+
+- **Domain:** state_validation
+- **Prefix:** STV
+- **Spec:** DIG L2 Block Specification
+- **Total Requirements:** 7
+
+| ID | Status | Summary | Verification Approach |
+|----|--------|---------|----------------------|
+| STV-001 | gap | validate_state API | Unit test: call validate_state with valid ExecutionResult and CoinLookup, verify Ok(Bytes32). Integration test: validate_full() combines all 3 tiers successfully. Negative test: each tier failure propagates correctly. |
+| STV-002 | gap | Coin Existence Checks | Unit test: coin exists and unspent passes. Coin missing returns CoinNotFound. Already-spent coin returns CoinAlreadySpent. Ephemeral coin (in additions) passes even without CoinLookup entry. |
+| STV-003 | gap | Puzzle Hash Cross-Check | Unit test: matching puzzle_hash passes. Mismatched puzzle_hash returns PuzzleHashMismatch. Verify comparison uses coin_state.coin.puzzle_hash from CoinLookup. |
+| STV-004 | gap | Addition Non-Existence | Unit test: new coin (not in CoinLookup) passes. Existing coin returns CoinAlreadyExists. Ephemeral coin created and spent in same block is allowed. |
+| STV-005 | gap | Height/Time Lock Evaluation | Unit test per assertion type: ASSERT_HEIGHT_ABSOLUTE, ASSERT_HEIGHT_RELATIVE, ASSERT_SECONDS_ABSOLUTE, ASSERT_SECONDS_RELATIVE, BEFORE_HEIGHT_ABSOLUTE, BEFORE_HEIGHT_RELATIVE, BEFORE_SECONDS_ABSOLUTE, BEFORE_SECONDS_RELATIVE. Each with passing and failing conditions. |
+| STV-006 | gap | Proposer Signature Verification | Unit test: valid proposer signature passes. Invalid signature returns InvalidProposerSignature. Wrong pubkey returns InvalidProposerSignature. |
+| STV-007 | gap | State Root Verification | Unit test: correct state root after additions/removals matches header. Tampered state_root in header returns InvalidStateRoot. Verify Merkle root computation with known test vectors. |

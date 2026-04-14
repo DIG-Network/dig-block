@@ -1,0 +1,54 @@
+domain_id: block_types
+normative: ./NORMATIVE.md
+verification: ./VERIFICATION.md
+items:
+  - id: BLK-001
+    section: "2.2"
+    summary: "L2BlockHeader Struct"
+    status: gap
+    spec_ref: "SPEC.md#section-22"
+    tests: []
+    notes: ""
+  - id: BLK-002
+    section: "2.2"
+    summary: "L2BlockHeader Constructors"
+    status: gap
+    spec_ref: "SPEC.md#section-22"
+    tests: []
+    notes: ""
+  - id: BLK-003
+    section: "2.3"
+    summary: "L2Block Struct"
+    status: gap
+    spec_ref: "SPEC.md#section-23"
+    tests: []
+    notes: ""
+  - id: BLK-004
+    section: "2.3"
+    summary: "L2Block Helper Methods"
+    status: gap
+    spec_ref: "SPEC.md#section-23"
+    tests: []
+    notes: ""
+  - id: BLK-005
+    section: "2.11"
+    summary: "Protocol Constants"
+    status: implemented
+    spec_ref: "SPEC.md#section-211"
+    tests:
+      - tests/block_types/test_protocol_constants.rs
+    notes: ""
+  - id: BLK-006
+    section: "2.1"
+    summary: "Primitive Types"
+    status: gap
+    spec_ref: "SPEC.md#section-21"
+    tests: []
+    notes: ""
+  - id: BLK-007
+    section: "2.2"
+    summary: "Version Auto-Detection"
+    status: gap
+    spec_ref: "SPEC.md#section-22"
+    tests: []
+    notes: ""

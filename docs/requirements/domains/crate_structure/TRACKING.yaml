@@ -1,0 +1,73 @@
+domain_id: crate_structure
+normative: ./NORMATIVE.md
+verification: ./VERIFICATION.md
+items:
+  - id: STR-001
+    section: "1.2"
+    summary: "Cargo.toml Dependencies"
+    status: verified
+    spec_ref: "SPEC.md#section-12-dependencies"
+    tests:
+      - tests/str_001_tests.rs::dep_presence_all_13_dependencies_listed
+      - tests/str_001_tests.rs::dep_versions_chia_ecosystem_at_minimum
+      - tests/str_001_tests.rs::serde_derive_feature_present
+      - tests/str_001_tests.rs::cargo_check_imports_resolve
+    notes: "All 13 deps present at specified versions. cargo check passes."
+  - id: STR-002
+    section: "11"
+    summary: "Module Hierarchy"
+    status: verified
+    spec_ref: "SPEC.md#section-11-crate-boundaries"
+    tests:
+      - tests/str_002_tests.rs::file_existence_all_18_source_files_present
+      - tests/str_002_tests.rs::mod_declarations_types_mod_rs
+      - tests/str_002_tests.rs::mod_declarations_validation_mod_rs
+      - tests/str_002_tests.rs::mod_declarations_builder_mod_rs
+      - tests/str_002_tests.rs::lib_modules_all_7_top_level_declared
+      - tests/str_002_tests.rs::compile_check_module_graph_resolves
+    notes: "All 20 source files present. Module graph compiles cleanly."
+  - id: STR-003
+    section: "10"
+    summary: "Public Re-exports in lib.rs"
+    status: verified
+    spec_ref: "SPEC.md#section-10-public-api"
+    tests:
+      - tests/str_003_tests.rs::block_type_imports
+      - tests/str_003_tests.rs::status_type_imports
+      - tests/str_003_tests.rs::error_type_imports
+      - tests/str_003_tests.rs::trait_imports
+      - tests/str_003_tests.rs::builder_imports
+      - tests/str_003_tests.rs::execution_result_import
+      - tests/str_003_tests.rs::glob_import_all_public_types
+      - tests/str_003_tests.rs::constants_accessible_from_root
+    notes: "All types accessible from crate root. Glob import works."
+  - id: STR-004
+    section: "7.2"
+    summary: "CoinLookup and BlockSigner Trait Definitions"
+    status: verified
+    spec_ref: "SPEC.md#section-72-traits"
+    tests:
+      - tests/str_004_tests.rs::coin_lookup_defined
+      - tests/str_004_tests.rs::block_signer_defined
+      - tests/str_004_tests.rs::coin_lookup_object_safe
+      - tests/str_004_tests.rs::block_signer_object_safe
+      - tests/str_004_tests.rs::uses_chia_coinstate
+      - tests/str_004_tests.rs::mock_implements_traits
+    notes: "Both traits defined, object-safe, uses chia_protocol::CoinState directly."
+  - id: STR-005
+    section: "12"
+    summary: "Test Infrastructure"
+    status: verified
+    spec_ref: "SPEC.md#section-12-testing"
+    tests:
+      - tests/str_005_tests.rs::mock_coin_lookup_basic
+      - tests/str_005_tests.rs::mock_coin_lookup_missing
+      - tests/str_005_tests.rs::mock_coin_lookup_height
+      - tests/str_005_tests.rs::mock_coin_lookup_timestamp
+      - tests/str_005_tests.rs::mock_block_signer_sign
+      - tests/str_005_tests.rs::mock_block_signer_verify
+      - tests/str_005_tests.rs::test_header_valid
+      - tests/str_005_tests.rs::test_header_height
+      - tests/str_005_tests.rs::test_block_valid
+      - tests/str_005_tests.rs::test_spend_bundle_valid
+    notes: "MockCoinLookup, MockBlockSigner, test helpers all functional. Type helpers return stubs until BLK-001/BLK-003."

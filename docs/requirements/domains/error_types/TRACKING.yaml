@@ -1,0 +1,39 @@
+domain_id: error_types
+normative: ./NORMATIVE.md
+verification: ./VERIFICATION.md
+items:
+  - id: ERR-001
+    section: "4.1"
+    summary: "BlockError Structural Variants"
+    status: gap
+    spec_ref: "SPEC.md#section-41"
+    tests: []
+    notes: ""
+  - id: ERR-002
+    section: "4.1"
+    summary: "BlockError Execution and State Variants"
+    status: gap
+    spec_ref: "SPEC.md#section-41"
+    tests: []
+    notes: ""
+  - id: ERR-003
+    section: "4.2"
+    summary: "CheckpointError Enum"
+    status: gap
+    spec_ref: "SPEC.md#section-42"
+    tests: []
+    notes: ""
+  - id: ERR-004
+    section: "6.5"
+    summary: "BuilderError Enum"
+    status: gap
+    spec_ref: "SPEC.md#section-65"
+    tests: []
+    notes: ""
+  - id: ERR-005
+    section: "4.3"
+    summary: "SignerBitmapError and ReceiptError Enums"
+    status: gap
+    spec_ref: "SPEC.md#section-43"
+    tests: []
+    notes: ""

@@ -1,0 +1,43 @@
+domain_id: serialization
+normative: NORMATIVE.md
+verification: VERIFICATION.md
+items:
+  - id: SER-001
+    section: "8.1"
+    summary: "Bincode Serialization for All Types"
+    status: gap
+    spec_ref: "SPEC Section 8.1"
+    tests: []
+    notes: ""
+
+  - id: SER-002
+    section: "8.2"
+    summary: "to_bytes and from_bytes Conventions"
+    status: gap
+    spec_ref: "SPEC Section 8.2"
+    tests: []
+    notes: ""
+
+  - id: SER-003
+    section: "8.3"
+    summary: "Genesis Block Construction"
+    status: gap
+    spec_ref: "SPEC Section 8.3"
+    tests: []
+    notes: ""
+
+  - id: SER-004
+    section: "8.2"
+    summary: "Serde Default Attributes"
+    status: gap
+    spec_ref: "SPEC Section 8.2"
+    tests: []
+    notes: ""
+
+  - id: SER-005
+    section: "12.1"
+    summary: "Serialization Round-Trip Integrity"
+    status: gap
+    spec_ref: "SPEC Section 12.1, 12.5"
+    tests: []
+    notes: ""
