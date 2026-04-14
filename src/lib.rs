@@ -2,6 +2,7 @@ pub mod builder;
 pub mod constants;
 pub mod error;
 pub mod hash;
+mod merkle_util;
 pub mod primitives;
 pub mod traits;
 pub mod types;
@@ -12,6 +13,8 @@ pub mod validation;
 // Block types
 pub use types::attested::AttestedBlock;
 pub use types::block::L2Block;
+#[doc(hidden)]
+pub use types::block::__blk004_first_duplicate_addition_coin_id;
 pub use types::checkpoint::{Checkpoint, CheckpointSubmission};
 pub use types::header::L2BlockHeader;
 
