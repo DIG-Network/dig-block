@@ -30,7 +30,7 @@ After completing a requirement: write tests, verify they pass, update TRACKING.y
 
 ## Phase 3: Supporting Types
 
-- [ ] ATT-003 — BlockStatus enum (Pending, Validated, SoftFinalized, HardFinalized, Orphaned, Rejected)
+- [x] ATT-003 — BlockStatus enum (Pending, Validated, SoftFinalized, HardFinalized, Orphaned, Rejected)
 - [ ] ATT-004 — SignerBitmap struct and core methods (new, has_signed, set_signed, signer_count, signing_percentage)
 - [ ] ATT-005 — SignerBitmap merge and signer_indices
 - [ ] ATT-001 — AttestedBlock struct and constructor

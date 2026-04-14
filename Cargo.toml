@@ -79,3 +79,8 @@ path = "tests/block_types/test_l2_block_struct.rs"
 [[test]]
 name = "blk_004_l2_block_helpers"
 path = "tests/block_types/test_l2_block_helpers.rs"
+
+# ATT-003: BlockStatus enum and predicates.
+[[test]]
+name = "att_003_block_status"
+path = "tests/attestation/test_block_status.rs"
