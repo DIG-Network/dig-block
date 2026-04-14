@@ -32,12 +32,17 @@ dig-clvm = "0.1"
 bincode = "1"
 serde = { version = "1", features = ["derive"] }
 
+# Merkle / BIP158 (BLK-004): Bitcoin-compatible GCS filter writer, ordered puzzle_hash groups
+bitcoin = { version = "0.32", default-features = false, features = ["std"] }
+indexmap = "2"
+
 # Error handling
 thiserror = "2"
 
 [dev-dependencies]
 bincode = "1"
 chia-sha2 = "0.26"
+hex = "0.4.3"
 hex-literal = "0.4"
 
 # BLK-005: dedicated integration test crate (nested path; see spec test plan).
@@ -69,3 +74,8 @@ path = "tests/block_types/test_version_auto_detection.rs"
 [[test]]
 name = "blk_003_l2_block_struct"
 path = "tests/block_types/test_l2_block_struct.rs"
+
+# BLK-004: L2Block helper methods (Merkle roots, filter, integrity).
+[[test]]
+name = "blk_004_l2_block_helpers"
+path = "tests/block_types/test_l2_block_helpers.rs"

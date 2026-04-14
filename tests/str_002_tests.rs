@@ -19,6 +19,7 @@ fn file_existence_all_required_source_files_present() {
         "primitives.rs",
         "error.rs",
         "hash.rs",
+        "merkle_util.rs",
         "traits.rs",
         // types/ module
         "types/mod.rs",

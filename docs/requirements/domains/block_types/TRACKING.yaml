@@ -29,10 +29,11 @@ items:
   - id: BLK-004
     section: "2.3"
     summary: "L2Block Helper Methods"
-    status: gap
+    status: implemented
     spec_ref: "SPEC.md#section-23"
-    tests: []
-    notes: ""
+    tests:
+      - tests/block_types/test_l2_block_helpers.rs
+    notes: "BIP158 via bitcoin 0.32 GcsFilterWriter; duplicate-output scan uses __blk004_first_duplicate_addition_coin_id in tests (CLVM double-CREATE fixtures deferred)."
   - id: BLK-005
     section: "2.11"
     summary: "Protocol Constants"
