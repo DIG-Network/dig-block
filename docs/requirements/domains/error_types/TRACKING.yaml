@@ -21,9 +21,10 @@ items:
   - id: ERR-003
     section: "4.2"
     summary: "CheckpointError Enum"
-    status: gap
+    status: implemented
     spec_ref: "SPEC.md#section-42"
-    tests: []
+    tests:
+      - tests/test_checkpoint_error.rs
     notes: ""
   - id: ERR-004
     section: "6.5"
