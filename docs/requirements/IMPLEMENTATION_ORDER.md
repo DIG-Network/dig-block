@@ -55,7 +55,7 @@ After completing a requirement: write tests, verify they pass, update TRACKING.y
 
 ## Phase 5: Hashing
 
-- [ ] HSH-007 — Tagged Merkle hashing (0x01 leaf prefix, 0x02 node prefix domain separation)
+- [x] HSH-007 — Tagged Merkle hashing (0x01 leaf prefix, 0x02 node prefix domain separation)
 - [ ] HSH-001 — Block header hash (SHA-256, fixed-order, 626 bytes)
 - [ ] HSH-002 — Checkpoint hash (SHA-256, fixed-order, 160 bytes)
 - [ ] HSH-003 — Spends root computation (MerkleTree of SpendBundle hashes)

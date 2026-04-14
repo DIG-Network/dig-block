@@ -94,6 +94,8 @@ fn glob_import_all_public_types() {
     let _ = MAX_BLOCK_SIZE;
     let _: Option<BlockBuilder> = None;
     let _: Option<ExecutionResult> = None;
+    // HSH-007: tagged Merkle helpers re-exported from crate root.
+    let _ = hash_leaf(EMPTY_ROOT.as_ref());
 }
 
 #[test]
