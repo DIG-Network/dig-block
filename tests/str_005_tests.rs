@@ -78,18 +78,15 @@ fn mock_block_signer_verify() {
 
 #[test]
 fn test_header_valid() {
-    // test_header() returns a valid (stub) L2BlockHeader.
     let header = test_header();
-    // Just verify it compiles and returns something.
-    let _ = format!("{:?}", header);
+    assert_eq!(header.height, 1);
+    assert_eq!(header.version, dig_block::VERSION_V1);
 }
 
 #[test]
 fn test_header_height() {
-    // test_header_at_height(42) returns a header.
-    // Height check will be meaningful once L2BlockHeader has a height field.
     let header = test_header_at_height(42);
-    let _ = format!("{:?}", header);
+    assert_eq!(header.height, 42);
 }
 
 #[test]
