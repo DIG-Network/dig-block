@@ -6,7 +6,7 @@
 //! - **[RCP-002](docs/requirements/domains/receipt/specs/RCP-002.md)** — [`Receipt`] field layout (tx id, height, index, status, fees, state).
 //! - **[NORMATIVE](docs/requirements/domains/receipt/NORMATIVE.md)** — receipt domain obligations.
 //! - **[RCP-003](docs/requirements/domains/receipt/specs/RCP-003.md)** — [`ReceiptList`]: storage, Merkle [`ReceiptList::root`], accessors.
-//! - **[RCP-004](docs/requirements/domains/receipt/specs/RCP-004.md)** (next) — aggregate helpers on [`ReceiptList`].
+//! - **[RCP-004](docs/requirements/domains/receipt/specs/RCP-004.md)** — [`ReceiptList::len`], success/failure counts, [`ReceiptList::total_fees`].
 //! - **[SPEC §2.9](docs/resources/SPEC.md)** — receipt payload context.
 //! - **[HSH-008](docs/requirements/domains/hashing/specs/HSH-008.md)** — receipts Merkle algorithm (same as this module’s root helper; see note below).
 //!
@@ -17,6 +17,7 @@
 //! - **`ReceiptStatus::from_u8`:** Unknown bytes map to [`ReceiptStatus::Failed`] so forward-compatible decoders never panic (RCP-001 implementation notes).
 //! - **`ReceiptList::push` without immediate root update:** Batch amortization per [RCP-003](docs/requirements/domains/receipt/specs/RCP-003.md); callers must [`ReceiptList::finalize`] (or use [`ReceiptList::from_receipts`]).
 //! - **`compute_receipts_root` location:** Implemented privately in this file to match [HSH-008](docs/requirements/domains/hashing/specs/HSH-008.md) while avoiding a `crate::hash` ↔ `types::receipt` import cycle. [HSH-008](docs/requirements/domains/hashing/specs/HSH-008.md) may relocate the symbol to [`crate::hash`](crate::hash) when that module owns root helpers.
+//! - **Aggregates ([RCP-004](docs/requirements/domains/receipt/specs/RCP-004.md)):** `failure_count` is any status other than [`ReceiptStatus::Success`]; [`ReceiptList::total_fees`] sums [`Receipt::fee_charged`] for all rows (fees still charged on failed execution per spec notes). Used by checkpoint / epoch summaries ([CKP-006](docs/requirements/domains/checkpoint/specs/CKP-006.md) when implemented).
 
 use chia_sdk_types::MerkleTree;
 use chia_sha2::Sha256;
@@ -152,6 +153,8 @@ fn compute_receipts_root(receipts: &[Receipt]) -> Bytes32 {
 
 /// Ordered block receipts with a commitments root ([RCP-003](docs/requirements/domains/receipt/specs/RCP-003.md), SPEC §2.9).
 ///
+/// **Aggregates:** [`Self::len`], [`Self::success_count`], [`Self::failure_count`], [`Self::total_fees`] ([RCP-004](docs/requirements/domains/receipt/specs/RCP-004.md)).
+///
 /// **Wire:** [`Serialize`] / [`Deserialize`] include both `receipts` and `root`; consumers should re-validate or
 /// call [`Self::finalize`] after deserializing if they distrust the stored root.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -206,5 +209,47 @@ impl ReceiptList {
     #[must_use]
     pub fn get_by_tx_id(&self, tx_id: Bytes32) -> Option<&Receipt> {
         self.receipts.iter().find(|r| r.tx_id == tx_id)
+    }
+
+    /// Number of receipts in this list ([RCP-004](docs/requirements/domains/receipt/specs/RCP-004.md)).
+    #[inline]
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.receipts.len()
+    }
+
+    /// `true` when there are no receipts (same as `len() == 0`).
+    #[inline]
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.receipts.is_empty()
+    }
+
+    /// Count of receipts whose [`Receipt::status`] is exactly [`ReceiptStatus::Success`].
+    ///
+    /// **RCP-004:** Complement is [`Self::failure_count`]; together they sum to [`Self::len`].
+    #[must_use]
+    pub fn success_count(&self) -> usize {
+        self.receipts
+            .iter()
+            .filter(|r| matches!(r.status, ReceiptStatus::Success))
+            .count()
+    }
+
+    /// Count of receipts with any **non-success** status (all variants except [`ReceiptStatus::Success`]).
+    ///
+    /// **Rationale:** Checkpoint and metrics code treat “failure” as “not Success” ([RCP-004](docs/requirements/domains/receipt/specs/RCP-004.md) implementation notes).
+    #[must_use]
+    pub fn failure_count(&self) -> usize {
+        self.receipts
+            .iter()
+            .filter(|r| !matches!(r.status, ReceiptStatus::Success))
+            .count()
+    }
+
+    /// Sum of [`Receipt::fee_charged`] over every receipt (success and failure — fees may still be levied).
+    #[must_use]
+    pub fn total_fees(&self) -> u64 {
+        self.receipts.iter().map(|r| r.fee_charged).sum()
     }
 }
