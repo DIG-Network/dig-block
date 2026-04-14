@@ -43,7 +43,7 @@ After completing a requirement: write tests, verify they pass, update TRACKING.y
 - [x] CKP-001 — Checkpoint struct and constructor
 - [x] CKP-002 — CheckpointSubmission struct and constructor
 - [x] CKP-004 — Checkpoint score computation
-- [ ] CKP-005 — CheckpointSubmission methods (signing_percentage, meets_threshold, record_submission, is_submitted)
+- [x] CKP-005 — CheckpointSubmission methods (signing_percentage, meets_threshold, record_submission, is_submitted)
 
 ## Phase 4: Error Types
 
