@@ -7,6 +7,8 @@ description = "DIG L2 block format, production, and validation"
 license = "MIT"
 authors = ["DIG Network"]
 repository = "https://github.com/DIG-Network/dig-block"
+# Only explicit `[[test]]` targets run as integration tests; `tests/common.rs` is a submodule (not its own crate).
+autotests = false
 
 [lib]
 path = "src/lib.rs"
@@ -45,117 +47,143 @@ chia-sha2 = "0.26"
 hex = "0.4.3"
 hex-literal = "0.4"
 
-# BLK-005: dedicated integration test crate (nested path; see spec test plan).
+# BLK-005: dedicated integration test crate (flat `tests/` path; see spec test plan).
 [[test]]
 name = "blk_005_protocol_constants"
-path = "tests/block_types/test_protocol_constants.rs"
+path = "tests/test_protocol_constants.rs"
 
 # BLK-006: primitive types & re-exports.
 [[test]]
 name = "blk_006_primitive_types"
-path = "tests/block_types/test_primitive_types.rs"
+path = "tests/test_primitive_types.rs"
 
 # BLK-001: L2BlockHeader struct & derives.
 [[test]]
 name = "blk_001_l2_block_header_struct"
-path = "tests/block_types/test_l2_block_header_struct.rs"
+path = "tests/test_l2_block_header_struct.rs"
 
 # BLK-002: L2BlockHeader constructors.
 [[test]]
 name = "blk_002_l2_block_header_constructors"
-path = "tests/block_types/test_l2_block_header_constructors.rs"
+path = "tests/test_l2_block_header_constructors.rs"
 
 # BLK-007: version auto-detection.
 [[test]]
 name = "blk_007_version_auto_detection"
-path = "tests/block_types/test_version_auto_detection.rs"
+path = "tests/test_version_auto_detection.rs"
 
 # BLK-003: L2Block struct (header + body + signature).
 [[test]]
 name = "blk_003_l2_block_struct"
-path = "tests/block_types/test_l2_block_struct.rs"
+path = "tests/test_l2_block_struct.rs"
 
 # BLK-004: L2Block helper methods (Merkle roots, filter, integrity).
 [[test]]
 name = "blk_004_l2_block_helpers"
-path = "tests/block_types/test_l2_block_helpers.rs"
+path = "tests/test_l2_block_helpers.rs"
 
 # ATT-003: BlockStatus enum and predicates.
 [[test]]
 name = "att_003_block_status"
-path = "tests/attestation/test_block_status.rs"
+path = "tests/test_block_status.rs"
 
 # ATT-004: SignerBitmap core methods.
 [[test]]
 name = "att_004_signer_bitmap_core"
-path = "tests/attestation/test_signer_bitmap_core.rs"
+path = "tests/test_signer_bitmap_core.rs"
 
 # ATT-005: SignerBitmap merge and signer_indices.
 [[test]]
 name = "att_005_signer_bitmap_merge"
-path = "tests/attestation/test_signer_bitmap_merge.rs"
+path = "tests/test_signer_bitmap_merge.rs"
 
 # ATT-001: AttestedBlock struct and constructor.
 [[test]]
 name = "att_001_attested_block_constructor"
-path = "tests/attestation/test_attested_block_constructor.rs"
+path = "tests/test_attested_block_constructor.rs"
 
 # ATT-002: AttestedBlock methods (signing_percentage, has_soft_finality, hash).
 [[test]]
 name = "att_002_attested_block_methods"
-path = "tests/attestation/test_attested_block_methods.rs"
+path = "tests/test_attested_block_methods.rs"
 
 # RCP-001: ReceiptStatus enum (repr u8, discriminants).
 [[test]]
 name = "rcp_001_receipt_status"
-path = "tests/receipt/test_receipt_status.rs"
+path = "tests/test_receipt_status.rs"
 
 # RCP-002: Receipt struct (seven fields).
 [[test]]
 name = "rcp_002_receipt_struct"
-path = "tests/receipt/test_receipt_struct.rs"
+path = "tests/test_receipt_struct.rs"
 
 # RCP-003: ReceiptList methods and Merkle root.
 [[test]]
 name = "rcp_003_receipt_list_methods"
-path = "tests/receipt/test_receipt_list_methods.rs"
+path = "tests/test_receipt_list_methods.rs"
 
 # RCP-004: ReceiptList aggregate methods.
 [[test]]
 name = "rcp_004_receipt_list_aggregates"
-path = "tests/receipt/test_receipt_list_aggregates.rs"
+path = "tests/test_receipt_list_aggregates.rs"
 
 # CKP-003: CheckpointStatus enum (epoch lifecycle).
 [[test]]
 name = "ckp_003_checkpoint_status"
-path = "tests/checkpoint/test_checkpoint_status.rs"
+path = "tests/test_checkpoint_status.rs"
 
 # CKP-001: Checkpoint struct and new().
 [[test]]
 name = "ckp_001_checkpoint_struct"
-path = "tests/checkpoint/test_checkpoint_struct.rs"
+path = "tests/test_checkpoint_struct.rs"
 
 # CKP-002: CheckpointSubmission struct and new().
 [[test]]
 name = "ckp_002_checkpoint_submission_struct"
-path = "tests/checkpoint/test_checkpoint_submission_struct.rs"
+path = "tests/test_checkpoint_submission_struct.rs"
 
 # CKP-004: Checkpoint::compute_score.
 [[test]]
 name = "ckp_004_checkpoint_score"
-path = "tests/checkpoint/test_checkpoint_score.rs"
+path = "tests/test_checkpoint_score.rs"
 
 # CKP-005: CheckpointSubmission methods (hash, epoch, threshold, L1 record).
 [[test]]
 name = "ckp_005_checkpoint_submission_methods"
-path = "tests/checkpoint/test_checkpoint_submission_methods.rs"
+path = "tests/test_checkpoint_submission_methods.rs"
 
 # CKP-006: CheckpointBuilder (epoch summary accumulation + Merkle roots).
 [[test]]
 name = "ckp_006_checkpoint_builder"
-path = "tests/checkpoint/test_checkpoint_builder.rs"
+path = "tests/test_checkpoint_builder.rs"
 
 # ERR-001: BlockError structural (Tier 1) variants.
 [[test]]
 name = "err_001_block_error_structural"
-path = "tests/error_types/test_block_error_structural.rs"
+path = "tests/test_block_error_structural.rs"
+
+# ERR-002: BlockError execution (Tier 2) and state (Tier 3) variants.
+[[test]]
+name = "err_002_block_error_execution_state"
+path = "tests/test_block_error_execution_state.rs"
+
+# STR-*: crate structure / re-exports / traits / mocks (`autotests = false` requires explicit listing).
+[[test]]
+name = "str_001_tests"
+path = "tests/str_001_tests.rs"
+
+[[test]]
+name = "str_002_tests"
+path = "tests/str_002_tests.rs"
+
+[[test]]
+name = "str_003_tests"
+path = "tests/str_003_tests.rs"
+
+[[test]]
+name = "str_004_tests"
+path = "tests/str_004_tests.rs"
+
+[[test]]
+name = "str_005_tests"
+path = "tests/str_005_tests.rs"

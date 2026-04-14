@@ -1,0 +1,15 @@
+---
+description: dig-block integration tests live in a flat tests/ tree
+alwaysApply: true
+---
+
+# dig-block — integration test layout
+
+## Flat `tests/` directory
+
+- **One dedicated `*.rs` file per requirement** (or STR suite), all directly under **`tests/`** — do **not** create subdomain folders such as `tests/block_types/`, `tests/error_types/`, `tests/attestation/`, etc.
+- **Shared helpers:** only **`tests/common.rs`**, included with `mod common;` from integration crates that need mocks/fixtures. Do **not** add `[[test]]` for `common.rs`.
+- **`Cargo.toml`:** keep **`autotests = false`** and register **every** integration binary with an explicit **`[[test]]`** `path = "tests/<file>.rs"`. This prevents `common.rs` from becoming a standalone empty test crate.
+- **Tracking / specs:** reference paths as `tests/test_<name>.rs` (flat).
+
+**Guard:** `str_002_tests::integration_tests_directory_is_flat` fails if subdirectories appear under `tests/`.

@@ -1,21 +1,25 @@
 //! Error enums for dig-block.
 //!
 //! - **Tier 1 [`BlockError`]** (structural): [ERR-001](docs/requirements/domains/error_types/specs/ERR-001.md), [NORMATIVE § ERR-001](docs/requirements/domains/error_types/NORMATIVE.md).
-//! - **Tier 2 /3 [`BlockError`]** (execution / state): deferred to [ERR-002](docs/requirements/domains/error_types/specs/ERR-002.md) — keep this file in sync when those variants land.
+//! - **Tier 2 /3 [`BlockError`]** (execution / state): [ERR-002](docs/requirements/domains/error_types/specs/ERR-002.md), [NORMATIVE § ERR-002](docs/requirements/domains/error_types/NORMATIVE.md).
 //! - **Crate spec:** [SPEC §4.1](docs/resources/SPEC.md) — error taxonomy and validator layering.
 
 use crate::primitives::Bytes32;
 use thiserror::Error;
 
-/// Block validation failures: Tier 1 (structural) variants per [ERR-001](docs/requirements/domains/error_types/specs/ERR-001.md).
+/// Block validation failures across three tiers on one enum ([ERR-001](docs/requirements/domains/error_types/specs/ERR-001.md), [ERR-002](docs/requirements/domains/error_types/specs/ERR-002.md)).
 ///
-/// **Design:** Structural checks run before CLVM or coin-state lookups ([structural_validation NORMATIVE](docs/requirements/domains/structural_validation/NORMATIVE.md)).
-/// Each variant carries enough context for SVL-* validators to return actionable diagnostics without stringly-typed ad hoc errors.
+/// **Tier 1 — structural:** cheapest checks first on [`crate::L2BlockHeader`] / [`crate::L2Block`] (SVL-*); no CLVM, no [`CoinLookup`].
 ///
-/// **Derivation:** `Debug` + `Clone` allow logging, test fixtures, and cheap duplication; `thiserror::Error` supplies [`std::fmt::Display`] and [`std::error::Error`]
-/// ([ERR-001 acceptance](docs/requirements/domains/error_types/specs/ERR-001.md#acceptance-criteria)).
+/// **Tier 2 — execution:** CLVM / puzzle / signature / fee invariants for `validate_execution` (EXE-*;
+/// [execution_validation NORMATIVE](docs/requirements/domains/execution_validation/NORMATIVE.md)). Prefer mapping `dig-clvm` errors into these variants rather than [`BlockError::InvalidData`].
 ///
-/// **Semantic links:** Serialization maps decode failures to [`BlockError::InvalidData`] ([SER-001](docs/requirements/domains/serialization/specs/SER-001.md)).
+/// **Tier 3 — state:** coin set and proposer checks in `validate_state` (STV-*;
+/// [state_validation NORMATIVE](docs/requirements/domains/state_validation/NORMATIVE.md)).
+///
+/// **Derivation:** `Debug` + `Clone` + `thiserror::Error` — same rationale as ERR-001 ([acceptance criteria](docs/requirements/domains/error_types/specs/ERR-002.md#acceptance-criteria)).
+///
+/// **Semantic links:** Serialization still uses [`BlockError::InvalidData`] for decode failures ([SER-001](docs/requirements/domains/serialization/specs/SER-001.md)).
 #[derive(Debug, Clone, Error)]
 pub enum BlockError {
     // --- Tier 1: Structural validation (ERR-001) ---
@@ -104,6 +108,83 @@ pub enum BlockError {
     /// Block timestamp too far ahead of local wall clock ([SVL-004](docs/requirements/domains/structural_validation/specs/SVL-004.md)).
     #[error("timestamp too far in future: {timestamp} exceeds max_allowed {max_allowed}")]
     TimestampTooFarInFuture { timestamp: u64, max_allowed: u64 },
+
+    // --- Tier 2: Execution validation (ERR-002) ---
+    /// On-chain puzzle hash does not match hash of serialized puzzle revealed in the spend ([EXE NORMATIVE](docs/requirements/domains/execution_validation/NORMATIVE.md)).
+    #[error("puzzle hash mismatch for coin {coin_id}: expected={expected}, computed={computed}")]
+    PuzzleHashMismatch {
+        coin_id: Bytes32,
+        expected: Bytes32,
+        computed: Bytes32,
+    },
+
+    /// `dig-clvm` / CLVM runtime rejected the spend; `reason` preserves the engine diagnostic ([start.md](docs/prompt/start.md) — use dig-clvm, not raw `chia-consensus` entrypoints).
+    #[error("CLVM execution failed for coin {coin_id}: {reason}")]
+    ClvmExecutionFailed { coin_id: Bytes32, reason: String },
+
+    /// Single spend exceeded the remaining per-block CLVM budget after prior spends.
+    #[error("CLVM cost exceeded for coin {coin_id}: cost={cost}, remaining={remaining}")]
+    ClvmCostExceeded {
+        coin_id: Bytes32,
+        cost: u64,
+        remaining: u64,
+    },
+
+    /// ASSERT_* or concurrent-spend assertion failed; `condition` names the opcode class, `reason` is validator-local detail ([ERR-002 notes](docs/requirements/domains/error_types/specs/ERR-002.md#implementation-notes)).
+    #[error("assertion failed: condition={condition}, reason={reason}")]
+    AssertionFailed { condition: String, reason: String },
+
+    /// Spend expected an announcement that was not present in the ephemeral announcement set.
+    #[error("announcement not found: {announcement_hash}")]
+    AnnouncementNotFound { announcement_hash: Bytes32 },
+
+    /// Aggregate or AGG_SIG verification failed for the spend bundle at `bundle_index`.
+    #[error("signature verification failed for bundle index {bundle_index}")]
+    SignatureFailed { bundle_index: u32 },
+
+    /// Value conservation failure: outputs (`added`) exceed destroyed value (`removed`) without minting authority ([ERR-002 notes](docs/requirements/domains/error_types/specs/ERR-002.md#implementation-notes)).
+    #[error("coin minting: removed={removed}, added={added}")]
+    CoinMinting { removed: u64, added: u64 },
+
+    /// Header `total_fees` does not match summed fees from execution / receipts.
+    #[error("fees mismatch: header={header}, computed={computed}")]
+    FeesMismatch { header: u64, computed: u64 },
+
+    /// Reserve-fee condition not satisfied by available fees in the bundle.
+    #[error("reserve fee failed: required={required}, actual={actual}")]
+    ReserveFeeFailed { required: u64, actual: u64 },
+
+    /// Header `total_cost` does not match summed CLVM costs from spends.
+    #[error("cost mismatch: header={header}, computed={computed}")]
+    CostMismatch { header: u64, computed: u64 },
+
+    // --- Tier 3: State validation (ERR-002) ---
+    /// Proposer BLS signature over the block hash did not verify ([STV-006](docs/requirements/domains/state_validation/specs/STV-006.md)).
+    #[error("invalid proposer signature")]
+    InvalidProposerSignature,
+
+    /// Looked up a block by hash (e.g. parent) that is not in the local view ([ERR-002 notes](docs/requirements/domains/error_types/specs/ERR-002.md#implementation-notes)).
+    #[error("block not found: {0}")]
+    NotFound(Bytes32),
+
+    /// State transition Merkle root after applying removals/additions does not match header `state_root` ([STV-007](docs/requirements/domains/state_validation/specs/STV-007.md)).
+    #[error("invalid state root: expected={expected}, computed={computed}")]
+    InvalidStateRoot {
+        expected: Bytes32,
+        computed: Bytes32,
+    },
+
+    /// Removal references a coin id absent from [`CoinLookup`] and not ephemeral in-block ([STV-002](docs/requirements/domains/state_validation/specs/STV-002.md)).
+    #[error("coin not found: {coin_id}")]
+    CoinNotFound { coin_id: Bytes32 },
+
+    /// Removal targets a coin already marked spent at `spent_height`.
+    #[error("coin already spent: {coin_id} at height {spent_height}")]
+    CoinAlreadySpent { coin_id: Bytes32, spent_height: u64 },
+
+    /// Addition would create a coin id that already exists in the live coin set ([STV NORMATIVE](docs/requirements/domains/state_validation/NORMATIVE.md)).
+    #[error("coin already exists: {coin_id}")]
+    CoinAlreadyExists { coin_id: Bytes32 },
 }
 
 /// Errors from checkpoint operations.
