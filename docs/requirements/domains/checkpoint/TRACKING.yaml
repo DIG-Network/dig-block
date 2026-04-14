@@ -32,9 +32,10 @@ items:
   - id: CKP-004
     section: "Checkpoint Score Computation"
     summary: "compute_score(stake_percentage) returns stake_percentage * block_count"
-    status: pending
+    status: implemented
     spec_ref: "Section 2.6"
-    tests: []
+    tests:
+      - tests/checkpoint/test_checkpoint_score.rs
     notes: ""
 
   - id: CKP-005

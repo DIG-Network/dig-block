@@ -6,7 +6,7 @@
 //! - **[CKP-002](docs/requirements/domains/checkpoint/specs/CKP-002.md)** — [`CheckpointSubmission`]: checkpoint + [`crate::SignerBitmap`] + aggregate BLS + score + submitter + L1 tracking options.
 //! - **[NORMATIVE § CKP-001 / CKP-002](docs/requirements/domains/checkpoint/NORMATIVE.md)** — checkpoint + submission field layouts and constructors.
 //! - **[SPEC §2.6](docs/resources/SPEC.md)** — checkpoint as epoch summary anchored toward L1.
-//! - **[CKP-004](docs/requirements/domains/checkpoint/specs/CKP-004.md)** (future) — [`Checkpoint::compute_score`] will use `block_count` × stake.
+//! - **[CKP-004](docs/requirements/domains/checkpoint/specs/CKP-004.md)** — [`Checkpoint::compute_score`]: `stake_percentage * block_count` (epoch competition score).
 //! - **[CKP-006](docs/requirements/domains/checkpoint/specs/CKP-006.md)** (future) — [`crate::builder::checkpoint_builder::CheckpointBuilder`] will populate `block_root` / `withdrawals_root` as Merkle roots over the epoch.
 //! - **[HSH-002](docs/requirements/domains/hashing/specs/HSH-002.md)** (future) — fixed-order SHA-256 over the nine fields (160 bytes LE + hashes).
 //! - **[SER-001](docs/requirements/domains/serialization/specs/SER-001.md)** — bincode via [`Serialize`] / [`Deserialize`] on wire-bearing structs.
@@ -30,7 +30,7 @@ use crate::primitives::{Bytes32, PublicKey, Signature};
 /// - **`epoch`:** Monotonic epoch id this summary closes.
 /// - **`state_root`:** Post-epoch L2 state commitment.
 /// - **`block_root`:** Merkle root over block hashes in the epoch ([CKP-006](docs/requirements/domains/checkpoint/specs/CKP-006.md) will define construction).
-/// - **`block_count` / `tx_count` / `total_fees`:** Scalar aggregates for light verification and scoring ([CKP-004](docs/requirements/domains/checkpoint/specs/CKP-004.md)).
+/// - **`block_count` / `tx_count` / `total_fees`:** Scalar aggregates for light verification and scoring; `block_count` is the block factor in [`compute_score`](Checkpoint::compute_score) ([CKP-004](docs/requirements/domains/checkpoint/specs/CKP-004.md)).
 /// - **`prev_checkpoint`:** Hash / identity of the prior checkpoint header for chained verification ([CKP-001](docs/requirements/domains/checkpoint/specs/CKP-001.md) implementation notes).
 /// - **`withdrawals_root` / `withdrawal_count`:** Merkle root and count over withdrawal records in the epoch.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -73,6 +73,22 @@ impl Checkpoint {
             withdrawal_count: 0,
         }
     }
+
+    /// Competition score: `stake_percentage * block_count` ([CKP-004](docs/requirements/domains/checkpoint/specs/CKP-004.md), [NORMATIVE § CKP-004](docs/requirements/domains/checkpoint/NORMATIVE.md)).
+    ///
+    /// ## Parameters
+    ///
+    /// - **`stake_percentage`:** Integer stake share for the submitter, typically `0..=100` ([CKP-004](docs/requirements/domains/checkpoint/specs/CKP-004.md) implementation notes). The type is `u64` so callers can scale fixed-point stake if needed without API churn.
+    ///
+    /// ## Returns
+    ///
+    /// Product in `u64`. Favors checkpoints with more blocks and higher backing stake. **Overflow:** Uses ordinary
+    /// `u64` multiplication (wraps on overflow; debug builds may panic on overflow — keep inputs within protocol bounds,
+    /// e.g. epoch length ×100).
+    #[must_use]
+    pub fn compute_score(&self, stake_percentage: u64) -> u64 {
+        stake_percentage * u64::from(self.block_count)
+    }
 }
 
 impl Default for Checkpoint {
@@ -88,7 +104,7 @@ impl Default for Checkpoint {
 /// - **`checkpoint`:** The [`Checkpoint`] being proposed for L1 anchoring (CKP-001).
 /// - **`signer_bitmap` / `aggregate_signature` / `aggregate_pubkey`:** Who attested and the aggregated BLS proof
 ///   over the checkpoint preimage (exact signing protocol is outside this crate; types match ATT-001 / ATT-004 patterns).
-/// - **`score`:** Competition score, typically from `Checkpoint::compute_score` once [CKP-004](docs/requirements/domains/checkpoint/specs/CKP-004.md) lands.
+/// - **`score`:** Competition score, often populated from [`Checkpoint::compute_score`](Checkpoint::compute_score) ([CKP-004](docs/requirements/domains/checkpoint/specs/CKP-004.md)).
 /// - **`submitter`:** Validator **index** in the epoch set who published this submission ([CKP-002](docs/requirements/domains/checkpoint/specs/CKP-002.md) implementation notes).
 /// - **`submission_height` / `submission_coin`:** L1 observation metadata; [`None`] until CKP-005 `record_submission` runs.
 ///
