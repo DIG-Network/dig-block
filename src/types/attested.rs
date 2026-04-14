@@ -3,8 +3,9 @@
 //! ## Requirements trace
 //!
 //! - **[ATT-001](docs/requirements/domains/attestation/specs/ATT-001.md)** — struct fields + [`AttestedBlock::new`].
-//! - **[ATT-002](docs/requirements/domains/attestation/specs/ATT-002.md)** (next) — `signing_percentage`, `has_soft_finality`, `hash` delegation.
-//! - **[NORMATIVE § ATT-001](docs/requirements/domains/attestation/NORMATIVE.md)** — field types and constructor invariants.
+//! - **[ATT-002](docs/requirements/domains/attestation/specs/ATT-002.md)** — [`AttestedBlock::signing_percentage`],
+//!   [`AttestedBlock::has_soft_finality`], [`AttestedBlock::hash`] (delegate to [`SignerBitmap`] / [`L2Block::hash`]).
+//! - **[NORMATIVE § ATT-001 / ATT-002](docs/requirements/domains/attestation/NORMATIVE.md)** — constructor + query API.
 //! - **[SPEC §2.4](docs/resources/SPEC.md)** — wire / semantic context for attested payloads.
 //!
 //! ## Usage
@@ -13,7 +14,8 @@
 //! seeds [`Self::aggregate_signature`] with the **proposer** signature ([`L2Block::proposer_signature`]) before
 //! validators aggregate their BLS shares (implementation notes in ATT-001). [`Self::signer_bitmap`] starts
 //! empty; consensus layers record attestations via [`SignerBitmap::set_signed`](crate::SignerBitmap::set_signed)
-//! / [`SignerBitmap::merge`](crate::SignerBitmap::merge) (ATT-004 / ATT-005).
+//! / [`SignerBitmap::merge`](crate::SignerBitmap::merge) (ATT-004 / ATT-005). Use [`Self::signing_percentage`] and
+//! [`Self::has_soft_finality`] for quorum checks; [`Self::hash`] is the same [`Bytes32`] as [`L2Block::hash`] (ATT-002).
 //!
 //! ## Rationale
 //!
@@ -28,7 +30,7 @@ use super::block::L2Block;
 use super::receipt::ReceiptList;
 use super::signer_bitmap::SignerBitmap;
 use super::status::BlockStatus;
-use crate::primitives::Signature;
+use crate::primitives::{Bytes32, Signature};
 
 /// L2 block wrapped with attestation state: who signed, aggregate BLS signature, receipts, lifecycle status.
 ///
@@ -66,5 +68,35 @@ impl AttestedBlock {
             block,
             receipts,
         }
+    }
+
+    /// Integer signing progress `0..=100` — thin wrapper over [`SignerBitmap::signing_percentage`].
+    ///
+    /// **ATT-002:** Keeps quorum logic on one type (`SignerBitmap` math in ATT-004) while exposing a stable
+    /// [`AttestedBlock`] surface for consensus code ([NORMATIVE § ATT-002](docs/requirements/domains/attestation/NORMATIVE.md)).
+    #[inline]
+    #[must_use]
+    pub fn signing_percentage(&self) -> u64 {
+        self.signer_bitmap.signing_percentage()
+    }
+
+    /// `true` iff [`Self::signing_percentage`] `>= threshold_pct` (soft-finality / stake-threshold gate).
+    ///
+    /// **ATT-002:** Delegates to [`SignerBitmap::has_threshold`] so boundary behavior matches ATT-004 tests
+    /// (integer division, `validator_count == 0` → `0%`).
+    #[inline]
+    #[must_use]
+    pub fn has_soft_finality(&self, threshold_pct: u64) -> bool {
+        self.signer_bitmap.has_threshold(threshold_pct)
+    }
+
+    /// Block identity: SHA-256 header preimage hash ([`L2Block::hash`], HSH-001 / SPEC §2.3).
+    ///
+    /// **ATT-002 / NORMATIVE:** MUST equal `self.block.hash()` so attested and raw blocks share one id in indices,
+    /// checkpoints, and P2P — no second hash domain for the attestation wrapper.
+    #[inline]
+    #[must_use]
+    pub fn hash(&self) -> Bytes32 {
+        self.block.hash()
     }
 }

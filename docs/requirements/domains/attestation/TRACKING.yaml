@@ -14,9 +14,10 @@ items:
   - id: ATT-002
     section: "AttestedBlock Methods"
     summary: "signing_percentage(), has_soft_finality(), hash() delegation"
-    status: pending
+    status: implemented
     spec_ref: "Section 2.4"
-    tests: []
+    tests:
+      - tests/attestation/test_attested_block_methods.rs
     notes: ""
 
   - id: ATT-003

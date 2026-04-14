@@ -99,3 +99,8 @@ path = "tests/attestation/test_signer_bitmap_merge.rs"
 [[test]]
 name = "att_001_attested_block_constructor"
 path = "tests/attestation/test_attested_block_constructor.rs"
+
+# ATT-002: AttestedBlock methods (signing_percentage, has_soft_finality, hash).
+[[test]]
+name = "att_002_attested_block_methods"
+path = "tests/attestation/test_attested_block_methods.rs"
