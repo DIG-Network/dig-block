@@ -2,7 +2,8 @@
 //!
 //! - **Tier 1 [`BlockError`]** (structural): [ERR-001](docs/requirements/domains/error_types/specs/ERR-001.md), [NORMATIVE § ERR-001](docs/requirements/domains/error_types/NORMATIVE.md).
 //! - **Tier 2 /3 [`BlockError`]** (execution / state): [ERR-002](docs/requirements/domains/error_types/specs/ERR-002.md), [NORMATIVE § ERR-002](docs/requirements/domains/error_types/NORMATIVE.md).
-//! - **Crate spec:** [SPEC §4.1](docs/resources/SPEC.md) — error taxonomy and validator layering.
+//! - **[`CheckpointError`]** (checkpoints): [ERR-003](docs/requirements/domains/error_types/specs/ERR-003.md), [SPEC §4.2](docs/resources/SPEC.md).
+//! - **Crate spec:** [SPEC §4.1–4.2](docs/resources/SPEC.md) — error taxonomy and validator layering.
 
 use crate::primitives::Bytes32;
 use thiserror::Error;
@@ -187,12 +188,44 @@ pub enum BlockError {
     CoinAlreadyExists { coin_id: Bytes32 },
 }
 
-/// Errors from checkpoint operations.
-#[derive(Debug, Error)]
+/// Checkpoint lifecycle failures: submission, scoring, epoch alignment, and finalization ([ERR-003](docs/requirements/domains/error_types/specs/ERR-003.md)).
+///
+/// **Design:** Checkpoints aggregate L2 state for an epoch and bridge to L1; errors here are orthogonal to per-block [`BlockError`]
+/// ([ERR-003 implementation notes](docs/requirements/domains/error_types/specs/ERR-003.md#implementation-notes)).
+///
+/// **Usage:** Serialization failures should map to [`CheckpointError::InvalidData`] ([SER-002](docs/requirements/domains/serialization/specs/SER-002.md));
+/// validation layers return structured variants (`ScoreNotHigher`, `EpochMismatch`, etc.) per [checkpoint NORMATIVE](docs/requirements/domains/checkpoint/NORMATIVE.md).
+///
+/// **Derivation:** `Debug` + `Clone` + `thiserror::Error` — same ergonomics as [`BlockError`] ([SPEC §4.2](docs/resources/SPEC.md)).
+#[derive(Debug, Clone, Error)]
 pub enum CheckpointError {
-    /// Placeholder — variants will be added in ERR-003.
-    #[error("checkpoint error: {0}")]
-    Other(String),
+    /// Bincode or field-level parse failure; also used for generic “bad checkpoint bytes” ([SER NORMATIVE](docs/requirements/domains/serialization/NORMATIVE.md)).
+    #[error("invalid checkpoint data: {0}")]
+    InvalidData(String),
+
+    /// No checkpoint record for the given epoch (sync / indexer gap).
+    #[error("checkpoint not found for epoch {0}")]
+    NotFound(u64),
+
+    /// Checkpoint failed semantic validation (Merkle root, signature set, etc.).
+    #[error("invalid checkpoint: {0}")]
+    Invalid(String),
+
+    /// New submission does not beat the incumbent score ([ERR-003 notes](docs/requirements/domains/error_types/specs/ERR-003.md#implementation-notes)).
+    #[error("score not higher: current={current}, submitted={submitted}")]
+    ScoreNotHigher { current: u64, submitted: u64 },
+
+    /// Submission epoch does not match the expected collecting epoch.
+    #[error("epoch mismatch: expected={expected}, got={got}")]
+    EpochMismatch { expected: u64, got: u64 },
+
+    /// Checkpoint already committed; immutable ([ERR-003 notes](docs/requirements/domains/error_types/specs/ERR-003.md#implementation-notes)).
+    #[error("checkpoint already finalized")]
+    AlreadyFinalized,
+
+    /// Finalize or query called before the epoch checkpoint process began.
+    #[error("checkpoint process not started")]
+    NotStarted,
 }
 
 /// Errors from block/checkpoint builder operations.
