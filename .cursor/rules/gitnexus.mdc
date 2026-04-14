@@ -6,15 +6,21 @@ alwaysApply: true
 
 Upstream: [nxpatterns/gitnexus](https://github.com/nxpatterns/gitnexus). From **this repository root**: `npx gitnexus …`.
 
+## Before ANY code change (mandatory)
+
+1. Run **`npx gitnexus status`**. If the index is **missing**, for a **different commit than HEAD**, or otherwise stale, run **`npx gitnexus analyze`** first — **do not edit `src/` or `tests/` until the graph matches the tree you are changing.**
+2. For edits that **add, remove, or alter a named Rust symbol** (type, trait item, `fn`, `const`, enum variant) in `src/`, run **`npx gitnexus impact <SymbolName> --repo dig-block --direction upstream --include-tests`** (or the MCP `gitnexus_impact` equivalent), report **risk**, and do not ignore HIGH/CRITICAL without explicit user consent.
+3. For **test-only** or **doc-only** refactors that do not touch `src/` symbols, step 2 may be omitted after step 1, unless you are adjusting tests that assert on internal APIs (then impact the underlying symbol).
+
 ## Before trusting the graph
 
 1. Run **`npx gitnexus status`** (or read `gitnexus://repo/<this-folder-name>/context` if GitNexus MCP is connected).
 2. If the index is **missing or stale**, run **`npx gitnexus analyze`** (add `--force` for a full rebuild when needed). Only then use GitNexus MCP tools for decisions.
 3. Do **not** rely on `gitnexus_query` / `gitnexus_impact` / `gitnexus_context` for edit decisions until step 2 passes.
 
-## Before changing code
+## Before changing production symbols
 
-For edits that touch a **named symbol** (function, type, method, or exported value):
+For edits that touch a **named symbol** (function, type, method, or exported value) in **`src/`** (in addition to **Before ANY code change** above):
 
 1. **`gitnexus_impact`** on that symbol (`direction: upstream` unless exploring callees).
 2. If impact is **high/critical** or blast radius is unclear, add **`gitnexus_context`** and/or **`gitnexus_query`** before editing.

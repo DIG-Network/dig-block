@@ -8,7 +8,7 @@ Upstream: [yamadashy/repomix](https://github.com/yamadashy/repomix). CLI: **`npx
 
 ## Before code changes (required)
 
-1. **Pick scope** — the smallest set of paths that covers **every** file you will add or edit in this change (typically `src/`, `tests/`, and/or `docs/requirements/` or a single domain under `docs/requirements/domains/`).
+1. **Pick scope** — the smallest set of paths that covers **every** file you will add or edit in this change (typically `src/`, **`tests/`** — flat `tests/*.rs`; see **`tests-layout.mdc`** — and/or `docs/requirements/` or a single domain under `docs/requirements/domains/`).
 2. **Pack** — always pass **`-o`** under **`.repomix/`** with distinct filenames (avoid default output in the repo root):
    ```bash
    npx repomix@latest src -o .repomix/pack-src.xml

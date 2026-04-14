@@ -8,7 +8,7 @@ items:
     status: implemented
     spec_ref: "Section 2.9"
     tests:
-      - tests/receipt/test_receipt_status.rs
+      - tests/test_receipt_status.rs
     notes: ""
 
   - id: RCP-002
@@ -17,7 +17,7 @@ items:
     status: implemented
     spec_ref: "Section 2.9"
     tests:
-      - tests/receipt/test_receipt_struct.rs
+      - tests/test_receipt_struct.rs
     notes: ""
 
   - id: RCP-003
@@ -26,7 +26,7 @@ items:
     status: implemented
     spec_ref: "Section 2.9"
     tests:
-      - tests/receipt/test_receipt_list_methods.rs
+      - tests/test_receipt_list_methods.rs
     notes: ""
 
   - id: RCP-004
@@ -35,5 +35,5 @@ items:
     status: implemented
     spec_ref: "Section 2.9"
     tests:
-      - tests/receipt/test_receipt_list_aggregates.rs
+      - tests/test_receipt_list_aggregates.rs
     notes: ""

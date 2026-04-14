@@ -8,7 +8,7 @@ items:
     status: implemented
     spec_ref: "Section 2.6"
     tests:
-      - tests/checkpoint/test_checkpoint_struct.rs
+      - tests/test_checkpoint_struct.rs
     notes: ""
 
   - id: CKP-002
@@ -17,7 +17,7 @@ items:
     status: implemented
     spec_ref: "Section 2.7"
     tests:
-      - tests/checkpoint/test_checkpoint_submission_struct.rs
+      - tests/test_checkpoint_submission_struct.rs
     notes: ""
 
   - id: CKP-003
@@ -26,7 +26,7 @@ items:
     status: implemented
     spec_ref: "Section 2.8"
     tests:
-      - tests/checkpoint/test_checkpoint_status.rs
+      - tests/test_checkpoint_status.rs
     notes: ""
 
   - id: CKP-004
@@ -35,7 +35,7 @@ items:
     status: implemented
     spec_ref: "Section 2.6"
     tests:
-      - tests/checkpoint/test_checkpoint_score.rs
+      - tests/test_checkpoint_score.rs
     notes: ""
 
   - id: CKP-005
@@ -44,7 +44,7 @@ items:
     status: implemented
     spec_ref: "Section 2.7"
     tests:
-      - tests/checkpoint/test_checkpoint_submission_methods.rs
+      - tests/test_checkpoint_submission_methods.rs
     notes: "Checkpoint::hash implements HSH-002 / SPEC §3.2 (160-byte preimage) as required for hash delegation."
 
   - id: CKP-006
@@ -53,5 +53,5 @@ items:
     status: implemented
     spec_ref: "Section 6.6"
     tests:
-      - tests/checkpoint/test_checkpoint_builder.rs
+      - tests/test_checkpoint_builder.rs
     notes: "Uses merkle_tree_root (chia_sdk_types MerkleTree); empty → EMPTY_ROOT."

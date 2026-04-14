@@ -8,14 +8,15 @@ items:
     status: implemented
     spec_ref: "SPEC.md#section-41"
     tests:
-      - tests/error_types/test_block_error_structural.rs
+      - tests/test_block_error_structural.rs
     notes: ""
   - id: ERR-002
     section: "4.1"
     summary: "BlockError Execution and State Variants"
-    status: gap
+    status: implemented
     spec_ref: "SPEC.md#section-41"
-    tests: []
+    tests:
+      - tests/test_block_error_execution_state.rs
     notes: ""
   - id: ERR-003
     section: "4.2"

@@ -19,7 +19,7 @@ use crate::primitives::{Bytes32, Cost};
 /// pre-DFSP roots and empty subtrees). The value is fixed by the protocol; clients must not substitute
 /// [`ZERO_HASH`] for this purpose.
 ///
-/// **Proof obligation:** [`tests/block_types/test_protocol_constants.rs`](../../tests/block_types/test_protocol_constants.rs)
+/// **Proof obligation:** [`tests/test_protocol_constants.rs`](../../tests/test_protocol_constants.rs)
 /// compares this constant to [`chia_sha2::Sha256`] of the empty input so we satisfy BLK-005 without
 /// recomputing at runtime in production code.
 pub const EMPTY_ROOT: Bytes32 = Bytes32::new([

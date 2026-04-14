@@ -123,6 +123,29 @@ fn lib_modules_all_top_level_declared() {
     }
 }
 
+/// **Project convention:** All requirement integration tests live as **individual `*.rs` files directly under `tests/`**
+/// (no `tests/<domain>/` subfolders). Shared helpers are `tests/common.rs`. This keeps `Cargo.toml` `[[test]]` paths
+/// uniform and matches tracker/spec references.
+#[test]
+fn integration_tests_directory_is_flat() {
+    let tests = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests");
+    for entry in std::fs::read_dir(&tests).expect("read tests/") {
+        let entry = entry.expect("directory entry");
+        let path = entry.path();
+        assert!(
+            path.is_file(),
+            "tests/ must be flat — no subdirectories (remove {:?})",
+            path
+        );
+        assert_eq!(
+            path.extension().and_then(|e| e.to_str()),
+            Some("rs"),
+            "tests/ should only contain Rust sources: {:?}",
+            path
+        );
+    }
+}
+
 #[test]
 fn compile_check_module_graph_resolves() {
     // If this test compiles, the module graph is valid.

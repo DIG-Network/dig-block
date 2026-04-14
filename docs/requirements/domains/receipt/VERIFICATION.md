@@ -9,7 +9,7 @@
 
 | ID      | Status  | Summary                 | Verification Approach                                                                           |
 |---------|---------|-------------------------|-------------------------------------------------------------------------------------------------|
-| RCP-001 | Done | ReceiptStatus Enum      | `tests/receipt/test_receipt_status.rs`: per-variant `as_u8`, six-variant uniqueness, `from_u8` round-trip, unknown `100` → `Failed`. |
-| RCP-002 | Done | Receipt Struct          | `tests/receipt/test_receipt_struct.rs`: [`Receipt::new`] + per-field round-trip; all six [`ReceiptStatus`] variants on `status`. |
-| RCP-003 | Done | ReceiptList Methods     | `tests/receipt/test_receipt_list_methods.rs`: `new`/`Default`, `from_receipts` root ≠ `EMPTY_ROOT`, `push`+`finalize` vs `from_receipts`, `get`/`get_by_tx_id`. |
-| RCP-004 | Done | ReceiptList Aggregates  | `tests/receipt/test_receipt_list_aggregates.rs`: `len`, all-success/all-fail/mixed counts, `success+failure==len`, `total_fees` incl. failed tx. |
+| RCP-001 | Done | ReceiptStatus Enum      | `tests/test_receipt_status.rs`: per-variant `as_u8`, six-variant uniqueness, `from_u8` round-trip, unknown `100` → `Failed`. |
+| RCP-002 | Done | Receipt Struct          | `tests/test_receipt_struct.rs`: [`Receipt::new`] + per-field round-trip; all six [`ReceiptStatus`] variants on `status`. |
+| RCP-003 | Done | ReceiptList Methods     | `tests/test_receipt_list_methods.rs`: `new`/`Default`, `from_receipts` root ≠ `EMPTY_ROOT`, `push`+`finalize` vs `from_receipts`, `get`/`get_by_tx_id`. |
+| RCP-004 | Done | ReceiptList Aggregates  | `tests/test_receipt_list_aggregates.rs`: `len`, all-success/all-fail/mixed counts, `success+failure==len`, `total_fees` incl. failed tx. |

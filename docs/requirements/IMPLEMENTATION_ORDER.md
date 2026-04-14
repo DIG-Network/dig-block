@@ -48,7 +48,7 @@ After completing a requirement: write tests, verify they pass, update TRACKING.y
 ## Phase 4: Error Types
 
 - [x] ERR-001 — BlockError enum (structural validation variants)
-- [ ] ERR-002 — BlockError execution and state validation variants (Tier 2 and 3)
+- [x] ERR-002 — BlockError execution and state validation variants (Tier 2 and 3)
 - [ ] ERR-003 — CheckpointError enum
 - [ ] ERR-004 — BuilderError enum
 - [ ] ERR-005 — SignerBitmapError and ReceiptError enums

@@ -236,7 +236,7 @@ fn first_duplicate_addition_coin_id(coins: &[Coin]) -> Option<Bytes32> {
     None
 }
 
-/// Exposed for [`tests/block_types/test_l2_block_helpers.rs`] (BLK-004) only — not protocol surface.
+/// Exposed for [`tests/test_l2_block_helpers.rs`] (BLK-004) only — not protocol surface.
 #[doc(hidden)]
 #[must_use]
 pub fn __blk004_first_duplicate_addition_coin_id(coins: &[Coin]) -> Option<Bytes32> {
