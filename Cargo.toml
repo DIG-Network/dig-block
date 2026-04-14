@@ -36,6 +36,7 @@ serde = { version = "1", features = ["derive"] }
 thiserror = "2"
 
 [dev-dependencies]
+bincode = "1"
 chia-sha2 = "0.26"
 hex-literal = "0.4"
 
@@ -48,3 +49,8 @@ path = "tests/block_types/test_protocol_constants.rs"
 [[test]]
 name = "blk_006_primitive_types"
 path = "tests/block_types/test_primitive_types.rs"
+
+# BLK-001: L2BlockHeader struct & derives.
+[[test]]
+name = "blk_001_l2_block_header_struct"
+path = "tests/block_types/test_l2_block_header_struct.rs"

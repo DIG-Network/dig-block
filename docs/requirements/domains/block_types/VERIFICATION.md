@@ -7,7 +7,7 @@
 
 | ID | Status | Summary | Verification Approach |
 |----|--------|---------|----------------------|
-| BLK-001 | gap | L2BlockHeader Struct | Unit test: construct header with all field groups, verify each field accessible and correctly typed. Compile-time check: verify derive macros (Serialize, Deserialize, Clone, Debug, PartialEq). |
+| BLK-001 | done | L2BlockHeader Struct | `tests/block_types/test_l2_block_header_struct.rs`: all field groups populated/typed; bincode round-trip; clone/debug; optional L1 proof `None` + serde defaults. `tests/common` helpers updated for full header literals. |
 | BLK-002 | gap | L2BlockHeader Constructors | Unit test: call new(), new_with_collateral(), new_with_l1_proofs(), genesis() and verify returned headers have correct field values. Verify genesis sets parent_hash to network_id with zeroed counts/roots. |
 | BLK-003 | gap | L2Block Struct | Unit test: construct L2Block with header, spend_bundles, slash_proposal_payloads, proposer_signature. Verify hash() delegates to header.hash(), height() and epoch() return header values. |
 | BLK-004 | gap | L2Block Helper Methods | Unit test: build block with known spend bundles, verify compute_spends_root(), compute_additions_root(), compute_removals_root(), compute_filter_hash(), compute_slash_proposals_root() produce expected Merkle roots. Test all_additions(), all_removals(), has_duplicate_outputs(), has_double_spends(), compute_size(). |
