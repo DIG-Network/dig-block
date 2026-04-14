@@ -13,9 +13,10 @@ items:
   - id: BLK-002
     section: "2.2"
     summary: "L2BlockHeader Constructors"
-    status: gap
+    status: implemented
     spec_ref: "SPEC.md#section-22"
-    tests: []
+    tests:
+      - tests/block_types/test_l2_block_header_constructors.rs
     notes: ""
   - id: BLK-003
     section: "2.3"

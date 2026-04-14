@@ -54,3 +54,8 @@ path = "tests/block_types/test_primitive_types.rs"
 [[test]]
 name = "blk_001_l2_block_header_struct"
 path = "tests/block_types/test_l2_block_header_struct.rs"
+
+# BLK-002: L2BlockHeader constructors.
+[[test]]
+name = "blk_002_l2_block_header_constructors"
+path = "tests/block_types/test_l2_block_header_constructors.rs"
