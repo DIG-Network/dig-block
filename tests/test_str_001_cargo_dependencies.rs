@@ -1,11 +1,17 @@
-//! STR-001: Cargo.toml Dependencies verification tests.
+//! STR-001: `Cargo.toml` dependencies and minimum versions ([spec](docs/requirements/domains/crate_structure/specs/STR-001.md), [NORMATIVE](docs/requirements/domains/crate_structure/NORMATIVE.md)).
 //!
-//! Verifies that all 13 required dependencies are present at correct versions.
+//! ## What this proves
+//!
+//! - **Dependency closure:** The 13 protocol/build crates listed in STR-001 are present so `dig-block` can use Chia types,
+//!   CLVM (`dig-clvm`), and serde/bincode without ad hoc forks ([SPEC §1.2](docs/resources/SPEC.md)).
+//! - **Version floor:** Pinned minor versions match the repo’s supported ecosystem (chia0.26, sdk 0.30, etc.) — drift breaks CI early.
+//! - **Serde:** The `derive` feature is enabled so block types can use `#[derive(Serialize, Deserialize)]`.
+//! - **Linkability:** Importing representative types from `chia-protocol` / `chia-bls` in this binary proves the graph resolves (`cargo check`).
 
 use std::fs;
 use std::path::Path;
 
-/// Parse Cargo.toml and extract dependency names.
+/// Read workspace `Cargo.toml` for string assertions (integration test has `CARGO_MANIFEST_DIR`).
 fn read_cargo_toml() -> String {
     let manifest_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml");
     fs::read_to_string(manifest_path).expect("Failed to read Cargo.toml")

@@ -1,13 +1,17 @@
-//! STR-004: CoinLookup and BlockSigner Trait Definitions verification tests.
+//! STR-004: [`CoinLookup`] and [`BlockSigner`] trait definitions ([spec](docs/requirements/domains/crate_structure/specs/STR-004.md), [SPEC §7.2](docs/resources/SPEC.md)).
 //!
-//! Verifies trait definitions, object safety, and mock implementations.
+//! ## What this proves
+//!
+//! - **Surface:** Traits expose chain context (`get_chain_height`, `get_chain_timestamp`) and coin state lookup without a custom coin record type — [`chia_protocol::CoinState`] is used directly ([start.md](docs/prompt/start.md) hard requirements).
+//! - **Object safety:** `Box<dyn CoinLookup>` / `Box<dyn BlockSigner>` can be built so validation code can take trait objects.
+//! - **Signing hook:** [`BlockSigner::sign_block`] returns `chia_bls::Signature` or [`dig_block::traits::SignerError`].
 
 use chia_bls::Signature;
 use chia_protocol::{Bytes32, CoinState};
 use dig_block::traits::SignerError;
 use dig_block::{BlockSigner, CoinLookup};
 
-/// Mock implementation of CoinLookup for testing.
+/// Minimal local mock — distinct from `tests/common::MockCoinLookup` (STR-005 full fixture).
 struct MockCoinLookup {
     height: u64,
     timestamp: u64,
@@ -27,7 +31,7 @@ impl CoinLookup for MockCoinLookup {
     }
 }
 
-/// Mock implementation of BlockSigner for testing.
+/// Minimal local mock for object-safety checks.
 struct MockBlockSigner;
 
 impl BlockSigner for MockBlockSigner {

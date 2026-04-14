@@ -8,10 +8,10 @@ items:
     status: verified
     spec_ref: "SPEC.md#section-12-dependencies"
     tests:
-      - tests/str_001_tests.rs::dep_presence_all_13_dependencies_listed
-      - tests/str_001_tests.rs::dep_versions_chia_ecosystem_at_minimum
-      - tests/str_001_tests.rs::serde_derive_feature_present
-      - tests/str_001_tests.rs::cargo_check_imports_resolve
+      - tests/test_str_001_cargo_dependencies.rs::dep_presence_all_13_dependencies_listed
+      - tests/test_str_001_cargo_dependencies.rs::dep_versions_chia_ecosystem_at_minimum
+      - tests/test_str_001_cargo_dependencies.rs::serde_derive_feature_present
+      - tests/test_str_001_cargo_dependencies.rs::cargo_check_imports_resolve
     notes: "All 13 deps present at specified versions. cargo check passes."
   - id: STR-002
     section: "11"
@@ -19,27 +19,28 @@ items:
     status: verified
     spec_ref: "SPEC.md#section-11-crate-boundaries"
     tests:
-      - tests/str_002_tests.rs::file_existence_all_18_source_files_present
-      - tests/str_002_tests.rs::mod_declarations_types_mod_rs
-      - tests/str_002_tests.rs::mod_declarations_validation_mod_rs
-      - tests/str_002_tests.rs::mod_declarations_builder_mod_rs
-      - tests/str_002_tests.rs::lib_modules_all_7_top_level_declared
-      - tests/str_002_tests.rs::compile_check_module_graph_resolves
-    notes: "All 20 source files present. Module graph compiles cleanly."
+      - tests/test_str_002_module_hierarchy.rs::file_existence_all_required_source_files_present
+      - tests/test_str_002_module_hierarchy.rs::mod_declarations_types_mod_rs
+      - tests/test_str_002_module_hierarchy.rs::mod_declarations_validation_mod_rs
+      - tests/test_str_002_module_hierarchy.rs::mod_declarations_builder_mod_rs
+      - tests/test_str_002_module_hierarchy.rs::lib_modules_all_top_level_declared
+      - tests/test_str_002_module_hierarchy.rs::integration_tests_directory_is_flat
+      - tests/test_str_002_module_hierarchy.rs::compile_check_module_graph_resolves
+    notes: "Required src/ files and mod declarations; flat tests/; module graph compiles."
   - id: STR-003
     section: "10"
     summary: "Public Re-exports in lib.rs"
     status: verified
     spec_ref: "SPEC.md#section-10-public-api"
     tests:
-      - tests/str_003_tests.rs::block_type_imports
-      - tests/str_003_tests.rs::status_type_imports
-      - tests/str_003_tests.rs::error_type_imports
-      - tests/str_003_tests.rs::trait_imports
-      - tests/str_003_tests.rs::builder_imports
-      - tests/str_003_tests.rs::execution_result_import
-      - tests/str_003_tests.rs::glob_import_all_public_types
-      - tests/str_003_tests.rs::constants_accessible_from_root
+      - tests/test_str_003_public_reexports.rs::block_type_imports
+      - tests/test_str_003_public_reexports.rs::status_type_imports
+      - tests/test_str_003_public_reexports.rs::error_type_imports
+      - tests/test_str_003_public_reexports.rs::trait_imports
+      - tests/test_str_003_public_reexports.rs::builder_imports
+      - tests/test_str_003_public_reexports.rs::execution_result_import
+      - tests/test_str_003_public_reexports.rs::glob_import_all_public_types
+      - tests/test_str_003_public_reexports.rs::constants_accessible_from_root
     notes: "All types accessible from crate root. Glob import works."
   - id: STR-004
     section: "7.2"
@@ -47,12 +48,12 @@ items:
     status: verified
     spec_ref: "SPEC.md#section-72-traits"
     tests:
-      - tests/str_004_tests.rs::coin_lookup_defined
-      - tests/str_004_tests.rs::block_signer_defined
-      - tests/str_004_tests.rs::coin_lookup_object_safe
-      - tests/str_004_tests.rs::block_signer_object_safe
-      - tests/str_004_tests.rs::uses_chia_coinstate
-      - tests/str_004_tests.rs::mock_implements_traits
+      - tests/test_str_004_coin_lookup_block_signer.rs::coin_lookup_defined
+      - tests/test_str_004_coin_lookup_block_signer.rs::block_signer_defined
+      - tests/test_str_004_coin_lookup_block_signer.rs::coin_lookup_object_safe
+      - tests/test_str_004_coin_lookup_block_signer.rs::block_signer_object_safe
+      - tests/test_str_004_coin_lookup_block_signer.rs::uses_chia_coinstate
+      - tests/test_str_004_coin_lookup_block_signer.rs::mock_implements_traits
     notes: "Both traits defined, object-safe, uses chia_protocol::CoinState directly."
   - id: STR-005
     section: "12"
@@ -60,14 +61,14 @@ items:
     status: verified
     spec_ref: "SPEC.md#section-12-testing"
     tests:
-      - tests/str_005_tests.rs::mock_coin_lookup_basic
-      - tests/str_005_tests.rs::mock_coin_lookup_missing
-      - tests/str_005_tests.rs::mock_coin_lookup_height
-      - tests/str_005_tests.rs::mock_coin_lookup_timestamp
-      - tests/str_005_tests.rs::mock_block_signer_sign
-      - tests/str_005_tests.rs::mock_block_signer_verify
-      - tests/str_005_tests.rs::test_header_valid
-      - tests/str_005_tests.rs::test_header_height
-      - tests/str_005_tests.rs::test_block_valid
-      - tests/str_005_tests.rs::test_spend_bundle_valid
+      - tests/test_str_005_test_infrastructure.rs::mock_coin_lookup_basic
+      - tests/test_str_005_test_infrastructure.rs::mock_coin_lookup_missing
+      - tests/test_str_005_test_infrastructure.rs::mock_coin_lookup_height
+      - tests/test_str_005_test_infrastructure.rs::mock_coin_lookup_timestamp
+      - tests/test_str_005_test_infrastructure.rs::mock_block_signer_sign
+      - tests/test_str_005_test_infrastructure.rs::mock_block_signer_verify
+      - tests/test_str_005_test_infrastructure.rs::test_header_valid
+      - tests/test_str_005_test_infrastructure.rs::test_header_height
+      - tests/test_str_005_test_infrastructure.rs::test_block_valid
+      - tests/test_str_005_test_infrastructure.rs::test_spend_bundle_valid
     notes: "MockCoinLookup, MockBlockSigner, test helpers all functional. Type helpers return stubs until BLK-001/BLK-003."

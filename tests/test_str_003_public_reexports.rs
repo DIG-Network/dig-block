@@ -1,6 +1,10 @@
-//! STR-003: Public Re-exports verification tests.
+//! STR-003: Public re-exports from crate root ([spec](docs/requirements/domains/crate_structure/specs/STR-003.md), [SPEC §10](docs/resources/SPEC.md)).
 //!
-//! Verifies all public types are accessible from the crate root.
+//! ## What this proves
+//!
+//! - **API ergonomics:** Callers may `use dig_block::L2Block` (etc.) without reaching into `dig_block::types::…` — the facade matches [crate_structure NORMATIVE](docs/requirements/domains/crate_structure/NORMATIVE.md).
+//! - **Glob import:** `use dig_block::*` remains usable for scripts and tests (sample of types + constants).
+//! - **Constants + primitives:** Protocol limits and Chia re-exports (`Bytes32`, `Cost`, …) match documented values (cross-check with BLK-005 / BLK-006 tests for full coverage).
 
 #[test]
 fn block_type_imports() {
