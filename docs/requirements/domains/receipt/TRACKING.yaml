@@ -5,9 +5,10 @@ items:
   - id: RCP-001
     section: "ReceiptStatus Enum"
     summary: "Success=0, InsufficientBalance=1, InvalidNonce=2, InvalidSignature=3, AccountNotFound=4, Failed=255 with numeric repr"
-    status: pending
+    status: implemented
     spec_ref: "Section 2.9"
-    tests: []
+    tests:
+      - tests/receipt/test_receipt_status.rs
     notes: ""
 
   - id: RCP-002
