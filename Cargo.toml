@@ -144,3 +144,8 @@ path = "tests/checkpoint/test_checkpoint_submission_struct.rs"
 [[test]]
 name = "ckp_004_checkpoint_score"
 path = "tests/checkpoint/test_checkpoint_score.rs"
+
+# CKP-005: CheckpointSubmission methods (hash, epoch, threshold, L1 record).
+[[test]]
+name = "ckp_005_checkpoint_submission_methods"
+path = "tests/checkpoint/test_checkpoint_submission_methods.rs"

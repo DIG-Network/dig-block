@@ -7,8 +7,9 @@
 //! - **[NORMATIVE § CKP-001 / CKP-002](docs/requirements/domains/checkpoint/NORMATIVE.md)** — checkpoint + submission field layouts and constructors.
 //! - **[SPEC §2.6](docs/resources/SPEC.md)** — checkpoint as epoch summary anchored toward L1.
 //! - **[CKP-004](docs/requirements/domains/checkpoint/specs/CKP-004.md)** — [`Checkpoint::compute_score`]: `stake_percentage * block_count` (epoch competition score).
+//! - **[CKP-005](docs/requirements/domains/checkpoint/specs/CKP-005.md)** — [`CheckpointSubmission`]: [`CheckpointSubmission::hash`], [`CheckpointSubmission::epoch`], threshold helpers, L1 [`CheckpointSubmission::record_submission`].
 //! - **[CKP-006](docs/requirements/domains/checkpoint/specs/CKP-006.md)** (future) — [`crate::builder::checkpoint_builder::CheckpointBuilder`] will populate `block_root` / `withdrawals_root` as Merkle roots over the epoch.
-//! - **[HSH-002](docs/requirements/domains/hashing/specs/HSH-002.md)** (future) — fixed-order SHA-256 over the nine fields (160 bytes LE + hashes).
+//! - **[HSH-002](docs/requirements/domains/hashing/specs/HSH-002.md)** / **[SPEC §3.2](docs/resources/SPEC.md)** — [`Checkpoint::hash`]: SHA-256 over 160-byte fixed-order preimage ([`chia_sha2::Sha256`]).
 //! - **[SER-001](docs/requirements/domains/serialization/specs/SER-001.md)** — bincode via [`Serialize`] / [`Deserialize`] on wire-bearing structs.
 //!
 //! ## Rationale
@@ -16,8 +17,9 @@
 //! - **Public fields:** Same ergonomics as [`crate::types::receipt::Receipt`] — consensus / builder layers assign values; this crate stays a typed bag of record ([CKP-001](docs/requirements/domains/checkpoint/specs/CKP-001.md) acceptance: read/write access).
 //! - **Default roots:** [`Bytes32::default`] is the all-zero hash, matching “empty Merkle” conventions used elsewhere ([`crate::constants::EMPTY_ROOT`] is the documented empty-tree sentinel; callers may normalize roots when building real checkpoints — CKP-006).
 //! - **`CheckpointSubmission` + L1 options:** `submission_height` / `submission_coin` start [`None`] at construction;
-//!   [CKP-005](docs/requirements/domains/checkpoint/specs/CKP-005.md) records L1 inclusion after submission ([CKP-002](docs/requirements/domains/checkpoint/specs/CKP-002.md) implementation notes).
+//!   [`CheckpointSubmission::record_submission`](CheckpointSubmission::record_submission) persists L1 proof ([CKP-005](docs/requirements/domains/checkpoint/specs/CKP-005.md), [CKP-002](docs/requirements/domains/checkpoint/specs/CKP-002.md) notes).
 
+use chia_sha2::Sha256;
 use serde::{Deserialize, Serialize};
 
 use super::signer_bitmap::SignerBitmap;
@@ -89,6 +91,29 @@ impl Checkpoint {
     pub fn compute_score(&self, stake_percentage: u64) -> u64 {
         stake_percentage * u64::from(self.block_count)
     }
+
+    /// Canonical checkpoint identity: SHA-256 over **160 bytes** in [SPEC §3.2](docs/resources/SPEC.md) field order.
+    ///
+    /// **Encoding:** `epoch`, `tx_count`, `total_fees` as `u64` LE; `block_count`, `withdrawal_count` as `u32` LE
+    /// (4 bytes each); four [`Bytes32`] roots as raw 32-byte slices ([HSH-002](docs/requirements/domains/hashing/specs/HSH-002.md),
+    /// [NORMATIVE § HSH-002](docs/requirements/domains/hashing/NORMATIVE.md)).
+    ///
+    /// **Primitive:** [`Sha256`] from `chia-sha2` only (project crypto rules). Dedicated HSH-002 property tests may live
+    /// under `tests/hashing/` when that requirement is tracked separately; [`CheckpointSubmission::hash`](CheckpointSubmission::hash) delegates here ([CKP-005](docs/requirements/domains/checkpoint/specs/CKP-005.md)).
+    #[must_use]
+    pub fn hash(&self) -> Bytes32 {
+        let mut hasher = Sha256::new();
+        hasher.update(self.epoch.to_le_bytes());
+        hasher.update(self.state_root.as_ref());
+        hasher.update(self.block_root.as_ref());
+        hasher.update(self.block_count.to_le_bytes());
+        hasher.update(self.tx_count.to_le_bytes());
+        hasher.update(self.total_fees.to_le_bytes());
+        hasher.update(self.prev_checkpoint.as_ref());
+        hasher.update(self.withdrawals_root.as_ref());
+        hasher.update(self.withdrawal_count.to_le_bytes());
+        Bytes32::new(hasher.finalize())
+    }
 }
 
 impl Default for Checkpoint {
@@ -106,7 +131,7 @@ impl Default for Checkpoint {
 ///   over the checkpoint preimage (exact signing protocol is outside this crate; types match ATT-001 / ATT-004 patterns).
 /// - **`score`:** Competition score, often populated from [`Checkpoint::compute_score`](Checkpoint::compute_score) ([CKP-004](docs/requirements/domains/checkpoint/specs/CKP-004.md)).
 /// - **`submitter`:** Validator **index** in the epoch set who published this submission ([CKP-002](docs/requirements/domains/checkpoint/specs/CKP-002.md) implementation notes).
-/// - **`submission_height` / `submission_coin`:** L1 observation metadata; [`None`] until CKP-005 `record_submission` runs.
+/// - **`submission_height` / `submission_coin`:** L1 observation metadata; [`None`] until [`record_submission`](CheckpointSubmission::record_submission).
 ///
 /// **Serialization:** [`Serialize`] / [`Deserialize`] for bincode ([SER-001](docs/requirements/domains/serialization/specs/SER-001.md)).
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -132,8 +157,8 @@ pub struct CheckpointSubmission {
 impl CheckpointSubmission {
     /// Build a submission with attestation material but **no** L1 inclusion data yet ([CKP-002](docs/requirements/domains/checkpoint/specs/CKP-002.md)).
     ///
-    /// **`submission_height` / `submission_coin`:** Initialized to [`None`]; CKP-005 `record_submission` will persist
-    /// height and coin id once that API exists.
+    /// **`submission_height` / `submission_coin`:** Initialized to [`None`]; use [`Self::record_submission`] after L1
+    /// confirmation ([CKP-005](docs/requirements/domains/checkpoint/specs/CKP-005.md)).
     #[must_use]
     pub fn new(
         checkpoint: Checkpoint,
@@ -153,5 +178,43 @@ impl CheckpointSubmission {
             submission_height: None,
             submission_coin: None,
         }
+    }
+
+    /// Delegates to [`Checkpoint::hash`] — canonical epoch-summary identity ([CKP-005](docs/requirements/domains/checkpoint/specs/CKP-005.md), HSH-002).
+    #[must_use]
+    pub fn hash(&self) -> Bytes32 {
+        self.checkpoint.hash()
+    }
+
+    /// Epoch number from the wrapped [`Checkpoint`] ([CKP-005](docs/requirements/domains/checkpoint/specs/CKP-005.md)).
+    #[must_use]
+    pub fn epoch(&self) -> u64 {
+        self.checkpoint.epoch
+    }
+
+    /// Validator participation as an integer percent `0..=100` — delegates to [`SignerBitmap::signing_percentage`] ([CKP-005](docs/requirements/domains/checkpoint/specs/CKP-005.md), ATT-004).
+    #[must_use]
+    pub fn signing_percentage(&self) -> u64 {
+        self.signer_bitmap.signing_percentage()
+    }
+
+    /// `true` iff [`Self::signing_percentage`] `>= threshold_pct` ([`SignerBitmap::has_threshold`](crate::SignerBitmap::has_threshold), CKP-005).
+    #[must_use]
+    pub fn meets_threshold(&self, threshold_pct: u64) -> bool {
+        self.signer_bitmap.has_threshold(threshold_pct)
+    }
+
+    /// Record L1 inclusion: block height and submission coin id ([CKP-005](docs/requirements/domains/checkpoint/specs/CKP-005.md)).
+    ///
+    /// **Normative:** Both fields become [`Some`]; [`Self::is_submitted`] becomes `true` because `submission_height` is set.
+    pub fn record_submission(&mut self, height: u32, coin_id: Bytes32) {
+        self.submission_height = Some(height);
+        self.submission_coin = Some(coin_id);
+    }
+
+    /// `true` once `submission_height` is [`Some`] ([NORMATIVE § CKP-005](docs/requirements/domains/checkpoint/NORMATIVE.md)).
+    #[must_use]
+    pub fn is_submitted(&self) -> bool {
+        self.submission_height.is_some()
     }
 }

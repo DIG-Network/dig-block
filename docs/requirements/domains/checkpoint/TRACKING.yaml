@@ -41,10 +41,11 @@ items:
   - id: CKP-005
     section: "CheckpointSubmission Methods"
     summary: "hash(), epoch(), signing_percentage(), meets_threshold(), record_submission(), is_submitted()"
-    status: pending
+    status: implemented
     spec_ref: "Section 2.7"
-    tests: []
-    notes: ""
+    tests:
+      - tests/checkpoint/test_checkpoint_submission_methods.rs
+    notes: "Checkpoint::hash implements HSH-002 / SPEC §3.2 (160-byte preimage) as required for hash delegation."
 
   - id: CKP-006
     section: "CheckpointBuilder"
