@@ -9,9 +9,7 @@ use chia_bls::{sign, PublicKey, SecretKey, Signature};
 use chia_protocol::{Bytes32, Coin, CoinSpend, CoinState, Program, SpendBundle};
 
 use dig_block::traits::SignerError;
-use dig_block::{
-    BlockSigner, CoinLookup, Cost, L2Block, L2BlockHeader, EMPTY_ROOT, VERSION_V1, ZERO_HASH,
-};
+use dig_block::{BlockSigner, CoinLookup, Cost, L2Block, L2BlockHeader, EMPTY_ROOT};
 
 // ---------------------------------------------------------------------------
 // MockCoinLookup
@@ -104,52 +102,37 @@ impl BlockSigner for MockBlockSigner {
 
 /// Create a test [`L2BlockHeader`] with sensible defaults (`height == 1`).
 ///
-/// **Spec links:** [BLK-001](docs/requirements/domains/block_types/specs/BLK-001.md) (full field surface);
-/// constructors with version auto-detection land in BLK-002 — this helper uses a **literal** for tests.
+/// **Spec links:** [BLK-001](docs/requirements/domains/block_types/specs/BLK-001.md),
+/// [BLK-002](docs/requirements/domains/block_types/specs/BLK-002.md) (`L2BlockHeader::new` via [`test_header_at_height`]).
 pub fn test_header() -> L2BlockHeader {
     test_header_at_height(1)
 }
 
 /// Create a test [`L2BlockHeader`] at a given `height` (all other scalars minimal, roots empty).
 ///
-/// DFSP roots and Merkle fields use [`EMPTY_ROOT`]; `extension_data` uses [`ZERO_HASH`] per SPEC defaults
-/// for unused extension space. L1 proof anchors are `None` until a test sets them.
+/// Uses [`L2BlockHeader::new`](L2BlockHeader::new) (BLK-002) so `version` tracks height; leaves `timestamp` at
+/// 0 as in SPEC-derived `new`. For a fixed non-zero timestamp, mutate the returned header in the test.
 pub fn test_header_at_height(height: u64) -> L2BlockHeader {
-    L2BlockHeader {
-        version: VERSION_V1,
+    L2BlockHeader::new(
         height,
-        epoch: 0,
-        parent_hash: Bytes32::new([0xee; 32]),
-        state_root: EMPTY_ROOT,
-        spends_root: EMPTY_ROOT,
-        additions_root: EMPTY_ROOT,
-        removals_root: EMPTY_ROOT,
-        receipts_root: EMPTY_ROOT,
-        l1_height: 1,
-        l1_hash: Bytes32::new([0xdd; 32]),
-        timestamp: 1_700_000_000,
-        proposer_index: 0,
-        spend_bundle_count: 0,
-        total_cost: 0 as Cost,
-        total_fees: 0,
-        additions_count: 0,
-        removals_count: 0,
-        block_size: 0,
-        filter_hash: EMPTY_ROOT,
-        extension_data: ZERO_HASH,
-        l1_collateral_coin_id: None,
-        l1_reserve_coin_id: None,
-        l1_prev_epoch_finalizer_coin_id: None,
-        l1_curr_epoch_finalizer_coin_id: None,
-        l1_network_coin_id: None,
-        slash_proposal_count: 0,
-        slash_proposals_root: EMPTY_ROOT,
-        collateral_registry_root: EMPTY_ROOT,
-        cid_state_root: EMPTY_ROOT,
-        node_registry_root: EMPTY_ROOT,
-        namespace_update_root: EMPTY_ROOT,
-        dfsp_finalize_commitment_root: EMPTY_ROOT,
-    }
+        0,
+        Bytes32::new([0xee; 32]),
+        EMPTY_ROOT,
+        EMPTY_ROOT,
+        EMPTY_ROOT,
+        EMPTY_ROOT,
+        EMPTY_ROOT,
+        1,
+        Bytes32::new([0xdd; 32]),
+        0,
+        0,
+        0 as Cost,
+        0,
+        0,
+        0,
+        0,
+        EMPTY_ROOT,
+    )
 }
 
 /// Create a test L2Block containing a header and minimal SpendBundle.

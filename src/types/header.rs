@@ -1,14 +1,21 @@
 //! `L2BlockHeader` — independently hashable L2 block metadata and commitments.
 //!
-//! **Requirement:** [BLK-001](docs/requirements/domains/block_types/specs/BLK-001.md) /
-//! [NORMATIVE § BLK-001](docs/requirements/domains/block_types/NORMATIVE.md#blk-001-l2blockheader-struct) /
-//! [SPEC §2.2](docs/resources/SPEC.md).
+//! **Requirements:**
+//! - [BLK-001](docs/requirements/domains/block_types/specs/BLK-001.md) — field groups /
+//!   [NORMATIVE § BLK-001](docs/requirements/domains/block_types/NORMATIVE.md#blk-001-l2blockheader-struct)
+//! - [BLK-002](docs/requirements/domains/block_types/specs/BLK-002.md) — constructors /
+//!   [NORMATIVE § BLK-002](docs/requirements/domains/block_types/NORMATIVE.md#blk-002-l2blockheader-constructors)
+//! - [SPEC §2.2](docs/resources/SPEC.md), [SPEC §8.3 Genesis](docs/resources/SPEC.md#83-genesis-block)
 //!
 //! ## Usage
 //!
-//! Headers are constructed via the public constructors in BLK-002 (`new`, `new_with_collateral`, …).
-//! For BLK-001, use struct literals in tests or internal call sites until those APIs exist. Field order
-//! matches SPEC §2.2 so future **bincode** layout (SER-001, HSH-001) stays deterministic.
+//! Prefer [`L2BlockHeader::new`], [`L2BlockHeader::new_with_collateral`], [`L2BlockHeader::new_with_l1_proofs`],
+//! or [`L2BlockHeader::genesis`] so **`version` is never caller-supplied** (auto-detected from `height`;
+//! shared rules in [`L2BlockHeader::protocol_version_for_height`], aligned with BLK-007). Production code
+//! that needs wall-clock timestamps should set `timestamp` after `new()` or use [`crate::builder::BlockBuilder`]
+//! (BLD-005): [`L2BlockHeader::new`] leaves `timestamp` at **0** per SPEC’s derived-`new()` parameter list.
+//!
+//! Field order matches SPEC §2.2 so **bincode** layout stays deterministic (SER-001, HSH-001).
 //!
 //! ## Rationale
 //!
@@ -23,9 +30,12 @@
 //! - **DFSP roots** are mandatory `Bytes32` fields; pre-activation they are set to [`crate::EMPTY_ROOT`]
 //!   by constructors / validation (SVL-002), not by the type itself.
 
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use serde::{Deserialize, Serialize};
 
-use crate::primitives::{Bytes32, Cost};
+use crate::constants::{DFSP_ACTIVATION_HEIGHT, EMPTY_ROOT, ZERO_HASH};
+use crate::primitives::{Bytes32, Cost, VERSION_V1, VERSION_V2};
 
 /// DIG L2 block header: identity, Merkle commitments, L1 anchor, metadata, optional L1 proofs, slash
 /// proposal commitments, and DFSP data-layer roots.
@@ -118,4 +128,302 @@ pub struct L2BlockHeader {
     pub namespace_update_root: Bytes32,
     /// DFSP epoch-boundary commitment digest.
     pub dfsp_finalize_commitment_root: Bytes32,
+}
+
+impl L2BlockHeader {
+    /// Protocol version for `height` (BLK-007 semantics).
+    ///
+    /// **Rules:** If [`DFSP_ACTIVATION_HEIGHT`](crate::constants::DFSP_ACTIVATION_HEIGHT) is `u64::MAX`
+    /// (DFSP disabled), returns [`VERSION_V1`]. Otherwise returns [`VERSION_V2`] when
+    /// `height >= DFSP_ACTIVATION_HEIGHT`, else [`VERSION_V1`].
+    ///
+    /// Exposed for consensus/builder call sites and BLK-007 tests; all BLK-002 constructors delegate here.
+    #[inline]
+    #[allow(clippy::absurd_extreme_comparisons)]
+    pub fn protocol_version_for_height(height: u64) -> u16 {
+        // `>=` stays correct when `DFSP_ACTIVATION_HEIGHT` is a finite fork height. While it remains
+        // `u64::MAX` (DFSP off), clippy sees `height >= u64::MAX` as degenerate — earliest branch handles that.
+        if DFSP_ACTIVATION_HEIGHT == u64::MAX {
+            VERSION_V1
+        } else if height >= DFSP_ACTIVATION_HEIGHT {
+            VERSION_V2
+        } else {
+            VERSION_V1
+        }
+    }
+
+    /// Standard header constructor (SPEC §2.2 **Derived methods** / `new()`).
+    ///
+    /// Sets `version` via [`Self::protocol_version_for_height`]; `timestamp` to **0** (SPEC omits it from
+    /// the `new` parameter list—set explicitly or use [`Self::genesis`] / block builder for wall clock);
+    /// L1 proof anchors to `None`; slash summary to empty; DFSP roots to [`EMPTY_ROOT`]; `extension_data`
+    /// to [`ZERO_HASH`].
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        height: u64,
+        epoch: u64,
+        parent_hash: Bytes32,
+        state_root: Bytes32,
+        spends_root: Bytes32,
+        additions_root: Bytes32,
+        removals_root: Bytes32,
+        receipts_root: Bytes32,
+        l1_height: u32,
+        l1_hash: Bytes32,
+        proposer_index: u32,
+        spend_bundle_count: u32,
+        total_cost: Cost,
+        total_fees: u64,
+        additions_count: u32,
+        removals_count: u32,
+        block_size: u32,
+        filter_hash: Bytes32,
+    ) -> Self {
+        Self::with_l1_anchors(
+            height,
+            epoch,
+            parent_hash,
+            state_root,
+            spends_root,
+            additions_root,
+            removals_root,
+            receipts_root,
+            l1_height,
+            l1_hash,
+            0,
+            proposer_index,
+            spend_bundle_count,
+            total_cost,
+            total_fees,
+            additions_count,
+            removals_count,
+            block_size,
+            filter_hash,
+            ZERO_HASH,
+            None,
+            None,
+            None,
+            None,
+            None,
+            0,
+            EMPTY_ROOT,
+            EMPTY_ROOT,
+            EMPTY_ROOT,
+            EMPTY_ROOT,
+            EMPTY_ROOT,
+            EMPTY_ROOT,
+        )
+    }
+
+    /// Like [`Self::new`] but sets [`L2BlockHeader::l1_collateral_coin_id`] to the given proof coin id.
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_with_collateral(
+        height: u64,
+        epoch: u64,
+        parent_hash: Bytes32,
+        state_root: Bytes32,
+        spends_root: Bytes32,
+        additions_root: Bytes32,
+        removals_root: Bytes32,
+        receipts_root: Bytes32,
+        l1_height: u32,
+        l1_hash: Bytes32,
+        proposer_index: u32,
+        spend_bundle_count: u32,
+        total_cost: Cost,
+        total_fees: u64,
+        additions_count: u32,
+        removals_count: u32,
+        block_size: u32,
+        filter_hash: Bytes32,
+        l1_collateral_coin_id: Bytes32,
+    ) -> Self {
+        Self::with_l1_anchors(
+            height,
+            epoch,
+            parent_hash,
+            state_root,
+            spends_root,
+            additions_root,
+            removals_root,
+            receipts_root,
+            l1_height,
+            l1_hash,
+            0,
+            proposer_index,
+            spend_bundle_count,
+            total_cost,
+            total_fees,
+            additions_count,
+            removals_count,
+            block_size,
+            filter_hash,
+            ZERO_HASH,
+            Some(l1_collateral_coin_id),
+            None,
+            None,
+            None,
+            None,
+            0,
+            EMPTY_ROOT,
+            EMPTY_ROOT,
+            EMPTY_ROOT,
+            EMPTY_ROOT,
+            EMPTY_ROOT,
+            EMPTY_ROOT,
+        )
+    }
+
+    /// Full L1 proof anchor set (SPEC field order: collateral, reserve, prev/curr finalizer, network coin).
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_with_l1_proofs(
+        height: u64,
+        epoch: u64,
+        parent_hash: Bytes32,
+        state_root: Bytes32,
+        spends_root: Bytes32,
+        additions_root: Bytes32,
+        removals_root: Bytes32,
+        receipts_root: Bytes32,
+        l1_height: u32,
+        l1_hash: Bytes32,
+        proposer_index: u32,
+        spend_bundle_count: u32,
+        total_cost: Cost,
+        total_fees: u64,
+        additions_count: u32,
+        removals_count: u32,
+        block_size: u32,
+        filter_hash: Bytes32,
+        l1_collateral_coin_id: Bytes32,
+        l1_reserve_coin_id: Bytes32,
+        l1_prev_epoch_finalizer_coin_id: Bytes32,
+        l1_curr_epoch_finalizer_coin_id: Bytes32,
+        l1_network_coin_id: Bytes32,
+    ) -> Self {
+        Self::with_l1_anchors(
+            height,
+            epoch,
+            parent_hash,
+            state_root,
+            spends_root,
+            additions_root,
+            removals_root,
+            receipts_root,
+            l1_height,
+            l1_hash,
+            0,
+            proposer_index,
+            spend_bundle_count,
+            total_cost,
+            total_fees,
+            additions_count,
+            removals_count,
+            block_size,
+            filter_hash,
+            ZERO_HASH,
+            Some(l1_collateral_coin_id),
+            Some(l1_reserve_coin_id),
+            Some(l1_prev_epoch_finalizer_coin_id),
+            Some(l1_curr_epoch_finalizer_coin_id),
+            Some(l1_network_coin_id),
+            0,
+            EMPTY_ROOT,
+            EMPTY_ROOT,
+            EMPTY_ROOT,
+            EMPTY_ROOT,
+            EMPTY_ROOT,
+            EMPTY_ROOT,
+        )
+    }
+
+    /// Genesis header (SPEC §8.3): `parent_hash = network_id`, zeroed counts/costs, empty Merkle roots.
+    ///
+    /// **`timestamp`:** set from `SystemTime::now()` (SPEC §8.3). Tests should assert structural fields, not
+    /// an exact timestamp.
+    pub fn genesis(network_id: Bytes32, l1_height: u32, l1_hash: Bytes32) -> Self {
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        let height = 0u64;
+        Self::with_l1_anchors(
+            height, 0, network_id, EMPTY_ROOT, EMPTY_ROOT, EMPTY_ROOT, EMPTY_ROOT, EMPTY_ROOT,
+            l1_height, l1_hash, timestamp, 0, 0, 0, 0, 0, 0, 0, EMPTY_ROOT, ZERO_HASH, None, None,
+            None, None, None, 0, EMPTY_ROOT, EMPTY_ROOT, EMPTY_ROOT, EMPTY_ROOT, EMPTY_ROOT,
+            EMPTY_ROOT,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn with_l1_anchors(
+        height: u64,
+        epoch: u64,
+        parent_hash: Bytes32,
+        state_root: Bytes32,
+        spends_root: Bytes32,
+        additions_root: Bytes32,
+        removals_root: Bytes32,
+        receipts_root: Bytes32,
+        l1_height: u32,
+        l1_hash: Bytes32,
+        timestamp: u64,
+        proposer_index: u32,
+        spend_bundle_count: u32,
+        total_cost: Cost,
+        total_fees: u64,
+        additions_count: u32,
+        removals_count: u32,
+        block_size: u32,
+        filter_hash: Bytes32,
+        extension_data: Bytes32,
+        l1_collateral_coin_id: Option<Bytes32>,
+        l1_reserve_coin_id: Option<Bytes32>,
+        l1_prev_epoch_finalizer_coin_id: Option<Bytes32>,
+        l1_curr_epoch_finalizer_coin_id: Option<Bytes32>,
+        l1_network_coin_id: Option<Bytes32>,
+        slash_proposal_count: u32,
+        slash_proposals_root: Bytes32,
+        collateral_registry_root: Bytes32,
+        cid_state_root: Bytes32,
+        node_registry_root: Bytes32,
+        namespace_update_root: Bytes32,
+        dfsp_finalize_commitment_root: Bytes32,
+    ) -> Self {
+        Self {
+            version: Self::protocol_version_for_height(height),
+            height,
+            epoch,
+            parent_hash,
+            state_root,
+            spends_root,
+            additions_root,
+            removals_root,
+            receipts_root,
+            l1_height,
+            l1_hash,
+            timestamp,
+            proposer_index,
+            spend_bundle_count,
+            total_cost,
+            total_fees,
+            additions_count,
+            removals_count,
+            block_size,
+            filter_hash,
+            extension_data,
+            l1_collateral_coin_id,
+            l1_reserve_coin_id,
+            l1_prev_epoch_finalizer_coin_id,
+            l1_curr_epoch_finalizer_coin_id,
+            l1_network_coin_id,
+            slash_proposal_count,
+            slash_proposals_root,
+            collateral_registry_root,
+            cid_state_root,
+            node_registry_root,
+            namespace_update_root,
+            dfsp_finalize_commitment_root,
+        }
+    }
 }
