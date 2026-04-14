@@ -3,7 +3,7 @@
 //! **Normative:** `docs/requirements/domains/error_types/NORMATIVE.md` (ERR-002)  
 //! **Spec + test plan:** `docs/requirements/domains/error_types/specs/ERR-002.md`  
 //! **Implementation:** `src/error.rs` (same enum as [ERR-001](docs/requirements/domains/error_types/specs/ERR-001.md))  
-//! **Test file:** `tests/test_block_error_execution_state.rs` (flat `tests/` layout; see `str_002_tests::integration_tests_directory_is_flat`).
+//! **Test file:** `tests/test_block_error_execution_state.rs` (flat `tests/` layout; see `test_str_002_module_hierarchy::integration_tests_directory_is_flat`).
 //!
 //! ## How these tests prove ERR-002
 //!

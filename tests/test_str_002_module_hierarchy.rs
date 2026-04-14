@@ -1,6 +1,11 @@
-//! STR-002: Module Hierarchy verification tests.
+//! STR-002: Module hierarchy under `src/` ([spec](docs/requirements/domains/crate_structure/specs/STR-002.md), [SPEC §11](docs/resources/SPEC.md)).
 //!
-//! Verifies all required source files exist and module declarations are correct.
+//! ## What this proves
+//!
+//! - **File surface:** Every module file implied by the crate boundary diagram exists (`types/*`, `validation/*`, `builder/*`).
+//! - **`mod` wiring:** `types/mod.rs`, `validation/mod.rs`, `builder/mod.rs`, and `lib.rs` declare the expected submodules — a missing `mod foo;` breaks the graph at compile time for dependents.
+//! - **Smoke compile:** Touching `dig_block::constants` and a concrete [`dig_block::BlockError`] variant ties the graph to real exports ([ERR-001](docs/requirements/domains/error_types/specs/ERR-001.md)).
+//! - **Flat integration tests:** `tests/` contains only `*.rs` files (no subdirectories) per project convention (see `.cursor/rules/tests-layout.mdc`).
 
 use std::path::Path;
 
@@ -123,9 +128,7 @@ fn lib_modules_all_top_level_declared() {
     }
 }
 
-/// **Project convention:** All requirement integration tests live as **individual `*.rs` files directly under `tests/`**
-/// (no `tests/<domain>/` subfolders). Shared helpers are `tests/common.rs`. This keeps `Cargo.toml` `[[test]]` paths
-/// uniform and matches tracker/spec references.
+/// Enforces **flat** `tests/` (one integration crate per requirement file; shared code only in `tests/common.rs`).
 #[test]
 fn integration_tests_directory_is_flat() {
     let tests = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests");

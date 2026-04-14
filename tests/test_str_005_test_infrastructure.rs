@@ -1,6 +1,10 @@
-//! STR-005: Test Infrastructure verification tests.
+//! STR-005: Shared test infrastructure — `tests/common.rs` mocks and fixtures ([spec](docs/requirements/domains/crate_structure/specs/STR-005.md)).
 //!
-//! Verifies mock implementations and helper functions work correctly.
+//! ## What this proves
+//!
+//! - **MockCoinLookup:** Register and fetch [`CoinState`], chain height/timestamp mutators — used by future STV/EXE tests ([`CoinLookup`]).
+//! - **MockBlockSigner:** Deterministic BLS key; [`sign_block`] + [`chia_bls::verify`] round-trip.
+//! - **Fixtures:** `test_header`, `test_header_at_height`, `test_block`, `test_spend_bundle` produce structurally populated values for BLK-* integration tests without duplicating setup.
 
 mod common;
 

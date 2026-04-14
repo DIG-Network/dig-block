@@ -167,23 +167,23 @@ path = "tests/test_block_error_structural.rs"
 name = "err_002_block_error_execution_state"
 path = "tests/test_block_error_execution_state.rs"
 
-# STR-*: crate structure / re-exports / traits / mocks (`autotests = false` requires explicit listing).
+# STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
-name = "str_001_tests"
-path = "tests/str_001_tests.rs"
+name = "str_001_cargo_dependencies"
+path = "tests/test_str_001_cargo_dependencies.rs"
 
 [[test]]
-name = "str_002_tests"
-path = "tests/str_002_tests.rs"
+name = "str_002_module_hierarchy"
+path = "tests/test_str_002_module_hierarchy.rs"
 
 [[test]]
-name = "str_003_tests"
-path = "tests/str_003_tests.rs"
+name = "str_003_public_reexports"
+path = "tests/test_str_003_public_reexports.rs"
 
 [[test]]
-name = "str_004_tests"
-path = "tests/str_004_tests.rs"
+name = "str_004_coin_lookup_block_signer"
+path = "tests/test_str_004_coin_lookup_block_signer.rs"
 
 [[test]]
-name = "str_005_tests"
-path = "tests/str_005_tests.rs"
+name = "str_005_test_infrastructure"
+path = "tests/test_str_005_test_infrastructure.rs"
