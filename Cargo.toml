@@ -139,3 +139,8 @@ path = "tests/checkpoint/test_checkpoint_struct.rs"
 [[test]]
 name = "ckp_002_checkpoint_submission_struct"
 path = "tests/checkpoint/test_checkpoint_submission_struct.rs"
+
+# CKP-004: Checkpoint::compute_score.
+[[test]]
+name = "ckp_004_checkpoint_score"
+path = "tests/checkpoint/test_checkpoint_score.rs"
