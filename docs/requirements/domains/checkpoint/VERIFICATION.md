@@ -14,4 +14,4 @@
 | CKP-003 | Done    | CheckpointStatus Enum          | Unit test all variant patterns including data-carrying variants WinnerSelected and Finalized (`tests/checkpoint/test_checkpoint_status.rs`) |
 | CKP-004 | Done    | Checkpoint Score Computation   | Unit test compute_score with various stake_percentage and block_count values (`tests/checkpoint/test_checkpoint_score.rs`) |
 | CKP-005 | Done    | CheckpointSubmission Methods   | Unit test hash/epoch delegation; verify signing_percentage, meets_threshold, record_submission, is_submitted (`tests/checkpoint/test_checkpoint_submission_methods.rs`); `Checkpoint::hash` per HSH-002 / SPEC §3.2 |
-| CKP-006 | Pending | CheckpointBuilder              | Unit test builder pipeline; verify Merkle root computation for block_root and withdrawals_root  |
+| CKP-006 | Done    | CheckpointBuilder              | Unit test builder pipeline; verify Merkle root computation for block_root and withdrawals_root (`tests/checkpoint/test_checkpoint_builder.rs`) |

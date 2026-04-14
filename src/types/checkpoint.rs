@@ -8,7 +8,7 @@
 //! - **[SPEC §2.6](docs/resources/SPEC.md)** — checkpoint as epoch summary anchored toward L1.
 //! - **[CKP-004](docs/requirements/domains/checkpoint/specs/CKP-004.md)** — [`Checkpoint::compute_score`]: `stake_percentage * block_count` (epoch competition score).
 //! - **[CKP-005](docs/requirements/domains/checkpoint/specs/CKP-005.md)** — [`CheckpointSubmission`]: [`CheckpointSubmission::hash`], [`CheckpointSubmission::epoch`], threshold helpers, L1 [`CheckpointSubmission::record_submission`].
-//! - **[CKP-006](docs/requirements/domains/checkpoint/specs/CKP-006.md)** (future) — [`crate::builder::checkpoint_builder::CheckpointBuilder`] will populate `block_root` / `withdrawals_root` as Merkle roots over the epoch.
+//! - **[CKP-006](docs/requirements/domains/checkpoint/specs/CKP-006.md)** — [`crate::CheckpointBuilder`] accumulates block / withdrawal hashes and produces `block_root` / `withdrawals_root` using the same internal Merkle helper as BLK-004 (`merkle_tree_root` in `merkle_util.rs`).
 //! - **[HSH-002](docs/requirements/domains/hashing/specs/HSH-002.md)** / **[SPEC §3.2](docs/resources/SPEC.md)** — [`Checkpoint::hash`]: SHA-256 over 160-byte fixed-order preimage ([`chia_sha2::Sha256`]).
 //! - **[SER-001](docs/requirements/domains/serialization/specs/SER-001.md)** — bincode via [`Serialize`] / [`Deserialize`] on wire-bearing structs.
 //!

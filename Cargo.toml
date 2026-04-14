@@ -149,3 +149,8 @@ path = "tests/checkpoint/test_checkpoint_score.rs"
 [[test]]
 name = "ckp_005_checkpoint_submission_methods"
 path = "tests/checkpoint/test_checkpoint_submission_methods.rs"
+
+# CKP-006: CheckpointBuilder (epoch summary accumulation + Merkle roots).
+[[test]]
+name = "ckp_006_checkpoint_builder"
+path = "tests/checkpoint/test_checkpoint_builder.rs"
