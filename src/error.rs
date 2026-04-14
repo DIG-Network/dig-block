@@ -3,6 +3,7 @@
 //! - **Tier 1 [`BlockError`]** (structural): [ERR-001](docs/requirements/domains/error_types/specs/ERR-001.md), [NORMATIVE § ERR-001](docs/requirements/domains/error_types/NORMATIVE.md).
 //! - **Tier 2 /3 [`BlockError`]** (execution / state): [ERR-002](docs/requirements/domains/error_types/specs/ERR-002.md), [NORMATIVE § ERR-002](docs/requirements/domains/error_types/NORMATIVE.md).
 //! - **[`CheckpointError`]** (checkpoints): [ERR-003](docs/requirements/domains/error_types/specs/ERR-003.md), [SPEC §4.2](docs/resources/SPEC.md).
+//! - **[`BuilderError`]** (block construction): [ERR-004](docs/requirements/domains/error_types/specs/ERR-004.md), [SPEC §6.5](docs/resources/SPEC.md).
 //! - **Crate spec:** [SPEC §4.1–4.2](docs/resources/SPEC.md) — error taxonomy and validator layering.
 
 use crate::primitives::Bytes32;
@@ -228,12 +229,55 @@ pub enum CheckpointError {
     NotStarted,
 }
 
-/// Errors from block/checkpoint builder operations.
-#[derive(Debug, Error)]
+/// Block assembly failures while mutating [`crate::BlockBuilder`] (budgets, slash payloads, signing, v2 DFSP preconditions).
+///
+/// **Normative:** [ERR-004](docs/requirements/domains/error_types/specs/ERR-004.md), [SPEC §6.5](docs/resources/SPEC.md).
+///
+/// **Rationale:** These errors are raised *during construction* — before structural [`BlockError`] Tier 1 validation — so producers get
+/// immediate feedback on limits defined in [BLK-005 `constants`](crate::constants) (`MAX_COST_PER_BLOCK`, `MAX_BLOCK_SIZE`, slash caps).
+///
+/// **Usage:** [`BlockBuilder::add_spend_bundle`](docs/resources/SPEC.md) maps overruns to [`BuilderError::CostBudgetExceeded`] /
+/// [`BuilderError::SizeBudgetExceeded`]; slash path uses [`BuilderError::TooManySlashProposals`] / [`BuilderError::SlashProposalTooLarge`];
+/// [`crate::BlockSigner`] failures map to [`BuilderError::SigningFailed`] ([block_production NORMATIVE](docs/requirements/domains/block_production/NORMATIVE.md)).
+///
+/// **Derivation:** `Debug` + `Clone` + `thiserror::Error` per ERR-004 acceptance criteria (Display + [`std::error::Error`] for `?`).
+#[derive(Debug, Clone, Error)]
 pub enum BuilderError {
-    /// Placeholder — variants will be added in ERR-004.
-    #[error("builder error: {0}")]
-    Other(String),
+    /// Cumulative CLVM cost would exceed the per-block budget after adding the candidate spend.
+    #[error("cost budget exceeded: current={current}, addition={addition}, max={max}")]
+    CostBudgetExceeded {
+        current: u64,
+        addition: u64,
+        max: u64,
+    },
+
+    /// Serialized block size would exceed [`crate::MAX_BLOCK_SIZE`](crate::constants) after adding the candidate body bytes.
+    #[error("size budget exceeded: current={current}, addition={addition}, max={max}")]
+    SizeBudgetExceeded {
+        current: u32,
+        addition: u32,
+        max: u32,
+    },
+
+    /// Slash proposal count would exceed [`crate::MAX_SLASH_PROPOSALS_PER_BLOCK`](crate::constants).
+    #[error("too many slash proposals: max={max}")]
+    TooManySlashProposals { max: u32 },
+
+    /// One slash payload exceeds [`crate::MAX_SLASH_PROPOSAL_PAYLOAD_BYTES`](crate::constants).
+    #[error("slash proposal too large: size={size}, max={max}")]
+    SlashProposalTooLarge { size: u32, max: u32 },
+
+    /// [`crate::BlockSigner`] rejected the block hash or could not produce a signature ([BLD-006](docs/requirements/domains/block_production/specs/BLD-006.md)).
+    #[error("signing failed: {0}")]
+    SigningFailed(String),
+
+    /// Finalize called with no spend bundles — blocks must carry at least one user transaction bundle ([ERR-004 notes](docs/requirements/domains/error_types/specs/ERR-004.md#implementation-notes)).
+    #[error("empty block: no spend bundles added")]
+    EmptyBlock,
+
+    /// Header `version >= VERSION_V2` but DFSP root fields were not supplied on the builder ([ERR-004 notes](docs/requirements/domains/error_types/specs/ERR-004.md#implementation-notes)).
+    #[error("missing DFSP roots")]
+    MissingDfspRoots,
 }
 
 /// Errors from SignerBitmap operations.
