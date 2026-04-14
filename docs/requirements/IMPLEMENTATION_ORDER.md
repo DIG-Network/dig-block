@@ -24,7 +24,7 @@ After completing a requirement: write tests, verify they pass, update TRACKING.y
 
 - [x] BLK-001 — L2BlockHeader struct with all field groups
 - [x] BLK-002 — L2BlockHeader constructors (new, new_with_collateral, new_with_l1_proofs, genesis)
-- [ ] BLK-007 — Version auto-detection from height and DFSP_ACTIVATION_HEIGHT
+- [x] BLK-007 — Version auto-detection from height and DFSP_ACTIVATION_HEIGHT
 - [ ] BLK-003 — L2Block struct with header, spend_bundles, slash_proposal_payloads, proposer_signature
 - [ ] BLK-004 — L2Block helper methods (all_additions, all_removals, has_duplicate_outputs, has_double_spends, compute_size)
 

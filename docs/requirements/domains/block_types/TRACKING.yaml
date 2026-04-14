@@ -51,7 +51,8 @@ items:
   - id: BLK-007
     section: "2.2"
     summary: "Version Auto-Detection"
-    status: gap
+    status: implemented
     spec_ref: "SPEC.md#section-22"
-    tests: []
+    tests:
+      - tests/block_types/test_version_auto_detection.rs
     notes: ""
