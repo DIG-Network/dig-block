@@ -21,9 +21,10 @@ items:
   - id: ATT-003
     section: "BlockStatus Enum"
     summary: "Pending/Validated/SoftFinalized/HardFinalized/Orphaned/Rejected with is_finalized() and is_canonical()"
-    status: pending
+    status: implemented
     spec_ref: "Section 2.5"
-    tests: []
+    tests:
+      - tests/attestation/test_block_status.rs
     notes: ""
 
   - id: ATT-004
