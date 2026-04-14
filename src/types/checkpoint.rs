@@ -1,9 +1,10 @@
-//! Checkpoint domain types: [`Checkpoint`], [`CheckpointSubmission`] (submission filled in CKP-002+).
+//! Checkpoint domain types: [`Checkpoint`] (CKP-001), [`CheckpointSubmission`] (CKP-002).
 //!
 //! ## Requirements trace
 //!
 //! - **[CKP-001](docs/requirements/domains/checkpoint/specs/CKP-001.md)** — [`Checkpoint`]: nine public fields + [`Checkpoint::new`] default instance.
-//! - **[NORMATIVE § CKP-001](docs/requirements/domains/checkpoint/NORMATIVE.md)** — field names and types (`epoch`, roots, counts, fees).
+//! - **[CKP-002](docs/requirements/domains/checkpoint/specs/CKP-002.md)** — [`CheckpointSubmission`]: checkpoint + [`crate::SignerBitmap`] + aggregate BLS + score + submitter + L1 tracking options.
+//! - **[NORMATIVE § CKP-001 / CKP-002](docs/requirements/domains/checkpoint/NORMATIVE.md)** — checkpoint + submission field layouts and constructors.
 //! - **[SPEC §2.6](docs/resources/SPEC.md)** — checkpoint as epoch summary anchored toward L1.
 //! - **[CKP-004](docs/requirements/domains/checkpoint/specs/CKP-004.md)** (future) — [`Checkpoint::compute_score`] will use `block_count` × stake.
 //! - **[CKP-006](docs/requirements/domains/checkpoint/specs/CKP-006.md)** (future) — [`crate::builder::checkpoint_builder::CheckpointBuilder`] will populate `block_root` / `withdrawals_root` as Merkle roots over the epoch.
@@ -14,11 +15,13 @@
 //!
 //! - **Public fields:** Same ergonomics as [`crate::types::receipt::Receipt`] — consensus / builder layers assign values; this crate stays a typed bag of record ([CKP-001](docs/requirements/domains/checkpoint/specs/CKP-001.md) acceptance: read/write access).
 //! - **Default roots:** [`Bytes32::default`] is the all-zero hash, matching “empty Merkle” conventions used elsewhere ([`crate::constants::EMPTY_ROOT`] is the documented empty-tree sentinel; callers may normalize roots when building real checkpoints — CKP-006).
-//! - **`CheckpointSubmission` placeholder:** Retains serde derives so STR-003 / SER-001 scaffolding keeps compiling until [CKP-002](docs/requirements/domains/checkpoint/specs/CKP-002.md) replaces the stub.
+//! - **`CheckpointSubmission` + L1 options:** `submission_height` / `submission_coin` start [`None`] at construction;
+//!   [CKP-005](docs/requirements/domains/checkpoint/specs/CKP-005.md) records L1 inclusion after submission ([CKP-002](docs/requirements/domains/checkpoint/specs/CKP-002.md) implementation notes).
 
 use serde::{Deserialize, Serialize};
 
-use crate::primitives::Bytes32;
+use super::signer_bitmap::SignerBitmap;
+use crate::primitives::{Bytes32, PublicKey, Signature};
 
 /// Epoch summary checkpoint: aggregate stats and Merkle roots for one L1-anchored epoch ([SPEC §2.6](docs/resources/SPEC.md), [CKP-001](docs/requirements/domains/checkpoint/specs/CKP-001.md)).
 ///
@@ -78,10 +81,61 @@ impl Default for Checkpoint {
     }
 }
 
-/// Signed checkpoint submission for the competition ([CKP-002](docs/requirements/domains/checkpoint/specs/CKP-002.md), [CKP-005](docs/requirements/domains/checkpoint/specs/CKP-005.md)).
+/// Signed checkpoint submission: epoch summary plus validator attestation material ([SPEC §2.7](docs/resources/SPEC.md), [CKP-002](docs/requirements/domains/checkpoint/specs/CKP-002.md)).
 ///
-/// **Status:** Stub until CKP-002 defines fields; serde retained for API stability ([SER-001](docs/requirements/domains/serialization/specs/SER-001.md)).
+/// ## Field semantics
+///
+/// - **`checkpoint`:** The [`Checkpoint`] being proposed for L1 anchoring (CKP-001).
+/// - **`signer_bitmap` / `aggregate_signature` / `aggregate_pubkey`:** Who attested and the aggregated BLS proof
+///   over the checkpoint preimage (exact signing protocol is outside this crate; types match ATT-001 / ATT-004 patterns).
+/// - **`score`:** Competition score, typically from `Checkpoint::compute_score` once [CKP-004](docs/requirements/domains/checkpoint/specs/CKP-004.md) lands.
+/// - **`submitter`:** Validator **index** in the epoch set who published this submission ([CKP-002](docs/requirements/domains/checkpoint/specs/CKP-002.md) implementation notes).
+/// - **`submission_height` / `submission_coin`:** L1 observation metadata; [`None`] until CKP-005 `record_submission` runs.
+///
+/// **Serialization:** [`Serialize`] / [`Deserialize`] for bincode ([SER-001](docs/requirements/domains/serialization/specs/SER-001.md)).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CheckpointSubmission {
-    _placeholder: (),
+    /// Epoch summary being submitted.
+    pub checkpoint: Checkpoint,
+    /// Which validators signed this submission ([`SignerBitmap`], ATT-004).
+    pub signer_bitmap: SignerBitmap,
+    /// Aggregated BLS signature over the checkpoint commitment.
+    pub aggregate_signature: Signature,
+    /// Aggregated BLS public key corresponding to `aggregate_signature`.
+    pub aggregate_pubkey: PublicKey,
+    /// Off-chain / protocol score used to compare competing submissions ([CKP-004](docs/requirements/domains/checkpoint/specs/CKP-004.md)).
+    pub score: u64,
+    /// Index of the validator who broadcast this submission.
+    pub submitter: u32,
+    /// L1 block height where the submission transaction was observed, once recorded ([CKP-005](docs/requirements/domains/checkpoint/specs/CKP-005.md)).
+    pub submission_height: Option<u32>,
+    /// L1 coin ID for the submission transaction, once recorded ([CKP-005](docs/requirements/domains/checkpoint/specs/CKP-005.md)).
+    pub submission_coin: Option<Bytes32>,
+}
+
+impl CheckpointSubmission {
+    /// Build a submission with attestation material but **no** L1 inclusion data yet ([CKP-002](docs/requirements/domains/checkpoint/specs/CKP-002.md)).
+    ///
+    /// **`submission_height` / `submission_coin`:** Initialized to [`None`]; CKP-005 `record_submission` will persist
+    /// height and coin id once that API exists.
+    #[must_use]
+    pub fn new(
+        checkpoint: Checkpoint,
+        signer_bitmap: SignerBitmap,
+        aggregate_signature: Signature,
+        aggregate_pubkey: PublicKey,
+        score: u64,
+        submitter: u32,
+    ) -> Self {
+        Self {
+            checkpoint,
+            signer_bitmap,
+            aggregate_signature,
+            aggregate_pubkey,
+            score,
+            submitter,
+            submission_height: None,
+            submission_coin: None,
+        }
+    }
 }
