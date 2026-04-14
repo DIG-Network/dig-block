@@ -50,7 +50,8 @@ items:
   - id: CKP-006
     section: "CheckpointBuilder"
     summary: "Builder with new(), add_block(), set_state_root(), add_withdrawal(), build() computing Merkle roots"
-    status: pending
+    status: implemented
     spec_ref: "Section 6.6"
-    tests: []
-    notes: ""
+    tests:
+      - tests/checkpoint/test_checkpoint_builder.rs
+    notes: "Uses merkle_tree_root (chia_sdk_types MerkleTree); empty → EMPTY_ROOT."
