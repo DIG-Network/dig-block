@@ -135,12 +135,18 @@ pub fn test_header_at_height(height: u64) -> L2BlockHeader {
     )
 }
 
-/// Create a test L2Block containing a header and minimal SpendBundle.
+/// Create a test [`L2Block`] with [`test_header`], one [`test_spend_bundle`], no slash payloads, default signature.
 ///
-/// Note: Returns a placeholder struct until BLK-003 adds real fields.
+/// **Spec:** [BLK-003](docs/requirements/domains/block_types/specs/BLK-003.md) — exercises real header + body fields
+/// for integration tests (STR-005).
 pub fn test_block() -> L2Block {
-    // Placeholder — will be replaced in BLK-003 when L2Block has fields.
-    L2Block::stub()
+    L2Block::new(
+        test_header(),
+        vec![test_spend_bundle()],
+        Vec::new(),
+        // Same type as `dig_block::Signature` (chia-bls re-export, BLK-006).
+        Signature::default(),
+    )
 }
 
 /// Create a minimal but structurally complete SpendBundle for testing.

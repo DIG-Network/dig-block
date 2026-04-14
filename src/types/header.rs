@@ -7,6 +7,7 @@
 //!   [NORMATIVE § BLK-002](docs/requirements/domains/block_types/NORMATIVE.md#blk-002-l2blockheader-constructors)
 //! - [BLK-007](docs/requirements/domains/block_types/specs/BLK-007.md) — version auto-detection /
 //!   [NORMATIVE](docs/requirements/domains/block_types/NORMATIVE.md) (BLK-007)
+//! - [HSH-001](docs/requirements/domains/hashing/specs/HSH-001.md) — header `hash()` (SPEC §3.1, 626 bytes)
 //! - [SPEC §2.2](docs/resources/SPEC.md), [SPEC §8.3 Genesis](docs/resources/SPEC.md#83-genesis-block)
 //!
 //! ## Usage
@@ -35,6 +36,7 @@
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use chia_sha2::Sha256;
 use serde::{Deserialize, Serialize};
 
 use crate::constants::{DFSP_ACTIVATION_HEIGHT, EMPTY_ROOT, ZERO_HASH};
@@ -160,6 +162,58 @@ impl L2BlockHeader {
     #[inline]
     pub fn protocol_version_for_height(height: u64) -> u16 {
         Self::protocol_version_for_height_with_activation(height, DFSP_ACTIVATION_HEIGHT)
+    }
+
+    /// Canonical block identity: SHA-256 over **626 bytes** in SPEC §3.1 field order.
+    ///
+    /// **Requirement:** [HSH-001](docs/requirements/domains/hashing/specs/HSH-001.md) /
+    /// [SPEC §3.1](docs/resources/SPEC.md). Numeric fields are little-endian; each optional L1 anchor
+    /// contributes 32 bytes of raw [`Bytes32`] or [`ZERO_HASH`] when `None` (malleability-safe encoding).
+    ///
+    /// **Primitive:** [`chia_sha2::Sha256`] only ([`crate::primitives`] / project crypto rules).
+    pub fn hash(&self) -> Bytes32 {
+        let mut hasher = Sha256::new();
+        hasher.update(self.version.to_le_bytes());
+        hasher.update(self.height.to_le_bytes());
+        hasher.update(self.epoch.to_le_bytes());
+        hasher.update(self.parent_hash.as_ref());
+        hasher.update(self.state_root.as_ref());
+        hasher.update(self.spends_root.as_ref());
+        hasher.update(self.additions_root.as_ref());
+        hasher.update(self.removals_root.as_ref());
+        hasher.update(self.receipts_root.as_ref());
+        hasher.update(self.l1_height.to_le_bytes());
+        hasher.update(self.l1_hash.as_ref());
+        hasher.update(self.timestamp.to_le_bytes());
+        hasher.update(self.proposer_index.to_le_bytes());
+        hasher.update(self.spend_bundle_count.to_le_bytes());
+        hasher.update(self.total_cost.to_le_bytes());
+        hasher.update(self.total_fees.to_le_bytes());
+        hasher.update(self.additions_count.to_le_bytes());
+        hasher.update(self.removals_count.to_le_bytes());
+        hasher.update(self.block_size.to_le_bytes());
+        hasher.update(self.filter_hash.as_ref());
+        hasher.update(self.extension_data.as_ref());
+        Self::hash_optional_l1(&mut hasher, &self.l1_collateral_coin_id);
+        Self::hash_optional_l1(&mut hasher, &self.l1_reserve_coin_id);
+        Self::hash_optional_l1(&mut hasher, &self.l1_prev_epoch_finalizer_coin_id);
+        Self::hash_optional_l1(&mut hasher, &self.l1_curr_epoch_finalizer_coin_id);
+        Self::hash_optional_l1(&mut hasher, &self.l1_network_coin_id);
+        hasher.update(self.slash_proposal_count.to_le_bytes());
+        hasher.update(self.slash_proposals_root.as_ref());
+        hasher.update(self.collateral_registry_root.as_ref());
+        hasher.update(self.cid_state_root.as_ref());
+        hasher.update(self.node_registry_root.as_ref());
+        hasher.update(self.namespace_update_root.as_ref());
+        hasher.update(self.dfsp_finalize_commitment_root.as_ref());
+        Bytes32::new(hasher.finalize())
+    }
+
+    fn hash_optional_l1(hasher: &mut Sha256, o: &Option<Bytes32>) {
+        match o {
+            Some(b) => hasher.update(b.as_ref()),
+            None => hasher.update(ZERO_HASH.as_ref()),
+        }
     }
 
     /// Standard header constructor (SPEC §2.2 **Derived methods** / `new()`).

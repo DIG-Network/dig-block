@@ -64,3 +64,8 @@ path = "tests/block_types/test_l2_block_header_constructors.rs"
 [[test]]
 name = "blk_007_version_auto_detection"
 path = "tests/block_types/test_version_auto_detection.rs"
+
+# BLK-003: L2Block struct (header + body + signature).
+[[test]]
+name = "blk_003_l2_block_struct"
+path = "tests/block_types/test_l2_block_struct.rs"
