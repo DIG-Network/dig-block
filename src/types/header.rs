@@ -5,13 +5,16 @@
 //!   [NORMATIVE § BLK-001](docs/requirements/domains/block_types/NORMATIVE.md#blk-001-l2blockheader-struct)
 //! - [BLK-002](docs/requirements/domains/block_types/specs/BLK-002.md) — constructors /
 //!   [NORMATIVE § BLK-002](docs/requirements/domains/block_types/NORMATIVE.md#blk-002-l2blockheader-constructors)
+//! - [BLK-007](docs/requirements/domains/block_types/specs/BLK-007.md) — version auto-detection /
+//!   [NORMATIVE](docs/requirements/domains/block_types/NORMATIVE.md) (BLK-007)
 //! - [SPEC §2.2](docs/resources/SPEC.md), [SPEC §8.3 Genesis](docs/resources/SPEC.md#83-genesis-block)
 //!
 //! ## Usage
 //!
 //! Prefer [`L2BlockHeader::new`], [`L2BlockHeader::new_with_collateral`], [`L2BlockHeader::new_with_l1_proofs`],
 //! or [`L2BlockHeader::genesis`] so **`version` is never caller-supplied** (auto-detected from `height`;
-//! shared rules in [`L2BlockHeader::protocol_version_for_height`], aligned with BLK-007). Production code
+//! shared rules in [`L2BlockHeader::protocol_version_for_height`] and
+//! [`L2BlockHeader::protocol_version_for_height_with_activation`] (BLK-007). Production code
 //! that needs wall-clock timestamps should set `timestamp` after `new()` or use [`crate::builder::BlockBuilder`]
 //! (BLD-005): [`L2BlockHeader::new`] leaves `timestamp` at **0** per SPEC’s derived-`new()` parameter list.
 //!
@@ -131,25 +134,32 @@ pub struct L2BlockHeader {
 }
 
 impl L2BlockHeader {
-    /// Protocol version for `height` (BLK-007 semantics).
+    /// Protocol version for `height` given an explicit DFSP activation height (BLK-007).
     ///
-    /// **Rules:** If [`DFSP_ACTIVATION_HEIGHT`](crate::constants::DFSP_ACTIVATION_HEIGHT) is `u64::MAX`
-    /// (DFSP disabled), returns [`VERSION_V1`]. Otherwise returns [`VERSION_V2`] when
-    /// `height >= DFSP_ACTIVATION_HEIGHT`, else [`VERSION_V1`].
+    /// **Rules:** If `dfsp_activation_height == u64::MAX` (DFSP disabled sentinel), returns [`VERSION_V1`].
+    /// Otherwise returns [`VERSION_V2`] when `height >= dfsp_activation_height`, else [`VERSION_V1`].
     ///
-    /// Exposed for consensus/builder call sites and BLK-007 tests; all BLK-002 constructors delegate here.
+    /// **Rationale:** Parameterizing activation height lets tests cover pre/post-fork behavior without
+    /// recompiling [`DFSP_ACTIVATION_HEIGHT`](crate::constants::DFSP_ACTIVATION_HEIGHT). Production code
+    /// should call [`Self::protocol_version_for_height`] instead.
     #[inline]
-    #[allow(clippy::absurd_extreme_comparisons)]
-    pub fn protocol_version_for_height(height: u64) -> u16 {
-        // `>=` stays correct when `DFSP_ACTIVATION_HEIGHT` is a finite fork height. While it remains
-        // `u64::MAX` (DFSP off), clippy sees `height >= u64::MAX` as degenerate — earliest branch handles that.
-        if DFSP_ACTIVATION_HEIGHT == u64::MAX {
+    pub fn protocol_version_for_height_with_activation(
+        height: u64,
+        dfsp_activation_height: u64,
+    ) -> u16 {
+        if dfsp_activation_height == u64::MAX {
             VERSION_V1
-        } else if height >= DFSP_ACTIVATION_HEIGHT {
+        } else if height >= dfsp_activation_height {
             VERSION_V2
         } else {
             VERSION_V1
         }
+    }
+
+    /// Protocol version for `height` using the crate’s [`DFSP_ACTIVATION_HEIGHT`] constant.
+    #[inline]
+    pub fn protocol_version_for_height(height: u64) -> u16 {
+        Self::protocol_version_for_height_with_activation(height, DFSP_ACTIVATION_HEIGHT)
     }
 
     /// Standard header constructor (SPEC §2.2 **Derived methods** / `new()`).

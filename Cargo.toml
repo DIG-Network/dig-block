@@ -59,3 +59,8 @@ path = "tests/block_types/test_l2_block_header_struct.rs"
 [[test]]
 name = "blk_002_l2_block_header_constructors"
 path = "tests/block_types/test_l2_block_header_constructors.rs"
+
+# BLK-007: version auto-detection.
+[[test]]
+name = "blk_007_version_auto_detection"
+path = "tests/block_types/test_version_auto_detection.rs"
