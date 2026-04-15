@@ -10,6 +10,7 @@
 //!   additions/removals collectors, duplicate / double-spend probes, serialized size
 //! - [SVL-005](docs/requirements/domains/structural_validation/specs/SVL-005.md) — header/body **count agreement**
 //!   ([`L2Block::validate_structure`]; SPEC §5.2 steps 2, 4, 5, 13) before expensive Merkle checks ([SVL-006](docs/requirements/domains/structural_validation/specs/SVL-006.md))
+//! - [SER-002](docs/requirements/domains/serialization/specs/SER-002.md) — [`Self::to_bytes`] / [`Self::from_bytes`] (bincode + [`BlockError::InvalidData`](crate::BlockError::InvalidData) on decode)
 //! - [SPEC §2.3](docs/resources/SPEC.md), [SPEC §3.3–§3.6](docs/resources/SPEC.md) — body commitments + filter
 //!
 //! ## Usage
@@ -76,6 +77,19 @@ impl L2Block {
     #[inline]
     pub fn hash(&self) -> Bytes32 {
         self.header.hash()
+    }
+
+    /// Serialize this block (header + body) to **bincode** bytes ([SER-002](docs/requirements/domains/serialization/specs/SER-002.md), SPEC §8.2).
+    ///
+    /// **Infallible:** Same contract as [`L2BlockHeader::to_bytes`] — well-formed structs serialize; failures are `expect` panics.
+    #[must_use]
+    pub fn to_bytes(&self) -> Vec<u8> {
+        bincode::serialize(self).expect("L2Block serialization should never fail")
+    }
+
+    /// Deserialize a block from **bincode** bytes ([SER-002](docs/requirements/domains/serialization/specs/SER-002.md)).
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, BlockError> {
+        bincode::deserialize(bytes).map_err(|e| BlockError::InvalidData(e.to_string()))
     }
 
     /// Block height from the header ([`L2BlockHeader::height`]).

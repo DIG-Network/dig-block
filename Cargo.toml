@@ -303,6 +303,11 @@ path = "tests/test_bld_007_builder_validity_guarantee.rs"
 name = "ser_001_bincode_all_types"
 path = "tests/test_ser_001_bincode_all_types.rs"
 
+# SER-002: to_bytes (infallible) / from_bytes (BlockError / CheckpointError) conventions.
+[[test]]
+name = "ser_002_to_from_bytes"
+path = "tests/test_ser_002_to_from_bytes.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"
