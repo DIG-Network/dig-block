@@ -16,7 +16,9 @@
 //! - **`Failed = 255`:** Leaves `5..=254` for future specific failure codes without renumbering existing wire values.
 //! - **`ReceiptStatus::from_u8`:** Unknown bytes map to [`ReceiptStatus::Failed`] so forward-compatible decoders never panic (RCP-001 implementation notes).
 //! - **`ReceiptList::push` without immediate root update:** Batch amortization per [RCP-003](docs/requirements/domains/receipt/specs/RCP-003.md); callers must [`ReceiptList::finalize`] (or use [`ReceiptList::from_receipts`]).
-//! - **`compute_receipts_root` location:** Implemented privately in this file to match [HSH-008](docs/requirements/domains/hashing/specs/HSH-008.md) while avoiding a `crate::hash` ↔ `types::receipt` import cycle. [HSH-008](docs/requirements/domains/hashing/specs/HSH-008.md) may relocate the symbol to [`crate::hash`](crate::hash) when that module owns root helpers.
+//! - **`compute_receipts_root`:** [HSH-008](docs/requirements/domains/hashing/specs/HSH-008.md) algorithm lives in this module (bincode
+//!   leaf + [`MerkleTree`]); re-exported as [`crate::compute_receipts_root`] from the crate root ([`types::receipt`](crate::types::receipt))
+//!   to avoid `merkle_util` ↔ `Receipt` dependency cycles while keeping one normative implementation for [`ReceiptList`].
 //! - **Aggregates ([RCP-004](docs/requirements/domains/receipt/specs/RCP-004.md)):** `failure_count` is any status other than [`ReceiptStatus::Success`]; [`ReceiptList::total_fees`] sums [`Receipt::fee_charged`] for all rows (fees still charged on failed execution per spec notes). Used by checkpoint / epoch summaries ([CKP-006](docs/requirements/domains/checkpoint/specs/CKP-006.md) when implemented).
 
 use chia_sdk_types::MerkleTree;
@@ -131,10 +133,14 @@ impl Receipt {
 
 /// Merkle root over ordered receipts: SHA-256(bincode(`Receipt`)) per leaf, then [`MerkleTree`] ([HSH-008](docs/requirements/domains/hashing/specs/HSH-008.md)).
 ///
+/// **Public API:** Also exported as [`crate::compute_receipts_root`] for callers that hold a `[Receipt]` slice without a
+/// [`ReceiptList`] wrapper (structural validation, tooling).
+///
 /// **Empty list:** [`EMPTY_ROOT`] ([BLK-005](docs/requirements/domains/block_types/specs/BLK-005.md)).
 ///
 /// **Tagged hashing:** [`MerkleTree`] applies leaf/node domain separation per [HSH-007](docs/requirements/domains/hashing/specs/HSH-007.md) (inherited from `chia-sdk-types`).
-fn compute_receipts_root(receipts: &[Receipt]) -> Bytes32 {
+#[must_use]
+pub fn compute_receipts_root(receipts: &[Receipt]) -> Bytes32 {
     if receipts.is_empty() {
         return EMPTY_ROOT;
     }

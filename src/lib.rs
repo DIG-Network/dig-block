@@ -47,6 +47,9 @@ pub use merkle_util::compute_removals_root;
 // BIP-158 compact block filter + `filter_hash` (HSH-006); implementation in [`crate::merkle_util`].
 pub use merkle_util::{compact_block_filter_encoded, compute_filter_hash};
 
+// Receipts Merkle root (HSH-008); implementation in [`crate::types::receipt`] (see module docs on import layering).
+pub use types::receipt::compute_receipts_root;
+
 // Traits
 pub use traits::{BlockSigner, CoinLookup};
 

@@ -96,6 +96,9 @@ fn glob_import_all_public_types() {
     let _: Option<ExecutionResult> = None;
     // HSH-007: tagged Merkle helpers re-exported from crate root.
     let _ = hash_leaf(EMPTY_ROOT.as_ref());
+    // HSH-008: receipts root helper re-exported from crate root (same algorithm as ReceiptList).
+    let empty: &[Receipt] = &[];
+    assert_eq!(compute_receipts_root(empty), EMPTY_ROOT);
 }
 
 #[test]
