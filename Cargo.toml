@@ -245,6 +245,11 @@ path = "tests/test_svl_002_dfsp_root_pre_activation.rs"
 name = "svl_003_cost_and_size_checks"
 path = "tests/test_svl_003_cost_and_size_checks.rs"
 
+# SVL-004: header timestamp vs now + MAX_FUTURE_TIMESTAMP_SECONDS (SPEC §5.1 Step 5).
+[[test]]
+name = "svl_004_timestamp_future_bound"
+path = "tests/test_svl_004_timestamp_future_bound.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"

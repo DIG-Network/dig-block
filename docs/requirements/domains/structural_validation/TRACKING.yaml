@@ -38,12 +38,15 @@ items:
   - id: SVL-004
     section: "5.1 Step 5"
     summary: Header Timestamp Future Bound
-    status: Not Started
+    status: implemented
     spec_ref: specs/SVL-004.md
-    tests: []
+    tests:
+      - tests/test_svl_004_timestamp_future_bound.rs
     notes: >
-      Reject with TimestampTooFarInFuture if timestamp > now() + 300s.
-      Adopted from Chia block_header_validation.py Check 26a.
+      L2BlockHeader::validate_with_dfsp_activation samples wall clock then delegates to
+      validate_with_dfsp_activation_at_unix(dfsp, now_secs) which enforces SVL-001..004.
+      TimestampTooFarInFuture when timestamp > now_secs + MAX_FUTURE_TIMESTAMP_SECONDS (strict >).
+      validate_with_dfsp_activation_at_unix is the deterministic test hook per SVL-004 spec.
 
   - id: SVL-005
     section: "5.2 Steps 2, 4, 5, 13"

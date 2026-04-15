@@ -10,6 +10,7 @@
 //! - [SVL-001](docs/requirements/domains/structural_validation/specs/SVL-001.md) — header `version` vs height / DFSP activation ([`L2BlockHeader::validate`])
 //! - [SVL-002](docs/requirements/domains/structural_validation/specs/SVL-002.md) — DFSP roots must be [`EMPTY_ROOT`] before activation ([`L2BlockHeader::validate_with_dfsp_activation`])
 //! - [SVL-003](docs/requirements/domains/structural_validation/specs/SVL-003.md) — declared [`L2BlockHeader::total_cost`] / [`L2BlockHeader::block_size`] vs protocol caps ([`crate::MAX_COST_PER_BLOCK`], [`crate::MAX_BLOCK_SIZE`])
+//! - [SVL-004](docs/requirements/domains/structural_validation/specs/SVL-004.md) — [`L2BlockHeader::timestamp`] vs wall clock + [`crate::MAX_FUTURE_TIMESTAMP_SECONDS`]; production [`validate`]/[`L2BlockHeader::validate_with_dfsp_activation`], tests [`L2BlockHeader::validate_with_dfsp_activation_at_unix`]
 //! - [HSH-001](docs/requirements/domains/hashing/specs/HSH-001.md) — header `hash()` (SPEC §3.1 field order;
 //!   preimage length [`L2BlockHeader::HASH_PREIMAGE_LEN`])
 //! - [SPEC §2.2](docs/resources/SPEC.md), [SPEC §8.3 Genesis](docs/resources/SPEC.md#83-genesis-block)
@@ -45,7 +46,8 @@ use chia_streamable_macro::Streamable;
 use serde::{Deserialize, Serialize};
 
 use crate::constants::{
-    DFSP_ACTIVATION_HEIGHT, EMPTY_ROOT, MAX_BLOCK_SIZE, MAX_COST_PER_BLOCK, ZERO_HASH,
+    DFSP_ACTIVATION_HEIGHT, EMPTY_ROOT, MAX_BLOCK_SIZE, MAX_COST_PER_BLOCK,
+    MAX_FUTURE_TIMESTAMP_SECONDS, ZERO_HASH,
 };
 use crate::error::BlockError;
 use crate::primitives::{Bytes32, Cost, VERSION_V1, VERSION_V2};
@@ -172,35 +174,44 @@ impl L2BlockHeader {
         Self::protocol_version_for_height_with_activation(height, DFSP_ACTIVATION_HEIGHT)
     }
 
-    /// **SVL-001 / SPEC §5.1 Step 1:** ensure [`L2BlockHeader::version`] matches the protocol rule for this header’s
-    /// [`L2BlockHeader::height`] and an explicit DFSP activation height.
+    /// Sample `SystemTime::now()` as whole Unix seconds for [`Self::validate_with_dfsp_activation`].
     ///
-    /// **SVL-002 / SPEC §5.1 Step 2:** when `height < dfsp_activation_height`, all five DFSP data-layer roots
-    /// ([`L2BlockHeader::collateral_registry_root`] … [`L2BlockHeader::dfsp_finalize_commitment_root`]) MUST equal
-    /// [`EMPTY_ROOT`]; otherwise reject with [`BlockError::InvalidData`] (fixed message per
-    /// [SVL-002 spec](docs/requirements/domains/structural_validation/specs/SVL-002.md)). Post-activation (`height >=`
-    /// threshold) does **not** apply this gate — non-empty roots are validated by later tiers / domain logic.
+    /// **Rationale:** SVL-004 needs a monotonic-ish wall clock; if the host clock is before 1970, validation cannot
+    /// define “future” sensibly — we surface [`BlockError::InvalidData`] rather than panicking.
+    fn unix_secs_wall_clock() -> Result<u64, BlockError> {
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .map_err(|_| {
+                BlockError::InvalidData(
+                    "system clock before UNIX epoch; cannot validate header timestamp".into(),
+                )
+            })
+    }
+
+    /// Tier-1 header checks **SVL-001 through SVL-004** with an explicit DFSP activation height **and** a fixed
+    /// `now_secs` reference for the timestamp bound ([SVL-004](docs/requirements/domains/structural_validation/specs/SVL-004.md)).
     ///
-    /// **Rationale:** Parameterizing `dfsp_activation_height` mirrors SVL-001 so integration tests can inject a finite
-    /// fork height; production uses [`Self::validate`] → [`DFSP_ACTIVATION_HEIGHT`](crate::constants::DFSP_ACTIVATION_HEIGHT).
-    /// With the BLK-005 sentinel `u64::MAX`, every finite `height` satisfies `height < u64::MAX`, so DFSP payloads cannot
-    /// appear on-chain until governance lowers the constant.
+    /// **SVL-001 / SPEC §5.1 Step 1:** [`L2BlockHeader::version`] must match [`Self::protocol_version_for_height_with_activation`]
+    /// for [`L2BlockHeader::height`] and `dfsp_activation_height`; else [`BlockError::InvalidVersion`].
     ///
-    /// **Algorithm (Step 1):** `expected = `[`Self::protocol_version_for_height_with_activation`]`(height, dfsp_activation_height)`;
-    /// reject with [`BlockError::InvalidVersion`] when `version != expected` ([structural_validation NORMATIVE](docs/requirements/domains/structural_validation/NORMATIVE.md#svl-001-header-version-check)).
+    /// **SVL-002 / SPEC §5.1 Step 2:** when `height < dfsp_activation_height`, all five DFSP roots must equal [`EMPTY_ROOT`];
+    /// else [`BlockError::InvalidData`] (fixed message per [SVL-002 spec](docs/requirements/domains/structural_validation/specs/SVL-002.md)).
     ///
-    /// **SVL-003 / SPEC §5.1 Steps 3–4:** After SVL-001/002 succeed, reject if `total_cost > `[`MAX_COST_PER_BLOCK`]` with
-    /// [`BlockError::CostExceeded`], then if `block_size > `[`MAX_BLOCK_SIZE`]` with [`BlockError::TooLarge`]. **Order matters:**
-    /// cost is checked first so an over-budget header returns `CostExceeded` even when `block_size` is also illegal
-    /// ([SVL-003 spec](docs/requirements/domains/structural_validation/specs/SVL-003.md) — declared header fields only; SVL-006
-    /// re-verifies actual serialized size against the body).
+    /// **SVL-003 / SPEC §5.1 Steps 3–4:** `total_cost > `[`MAX_COST_PER_BLOCK`] ⇒ [`BlockError::CostExceeded`]; then
+    /// `block_size > `[`MAX_BLOCK_SIZE`] ⇒ [`BlockError::TooLarge`] ([SVL-003 spec](docs/requirements/domains/structural_validation/specs/SVL-003.md)).
     ///
-    /// **Production:** Prefer [`Self::validate`], which passes [`DFSP_ACTIVATION_HEIGHT`](crate::constants::DFSP_ACTIVATION_HEIGHT)
-    /// (BLK-005 sentinel `u64::MAX` ⇒ always expect [`VERSION_V1`](crate::primitives::VERSION_V1) until governance changes the constant).
-    /// This method stays **public** so tests can simulate a finite fork height without recompiling the crate.
-    pub fn validate_with_dfsp_activation(
+    /// **SVL-004 / SPEC §5.1 Step 5:** let `max_allowed = now_secs + `[`MAX_FUTURE_TIMESTAMP_SECONDS`]. If
+    /// `timestamp > max_allowed`, reject with [`BlockError::TimestampTooFarInFuture`] (Chia `block_header_validation.py`
+    /// Check 26a analogue). **Strict `>`:** `timestamp == max_allowed` is accepted.
+    ///
+    /// **Usage:** Production should call [`Self::validate`] or [`Self::validate_with_dfsp_activation`] (wall-clock `now`).
+    /// Integration tests call **this** method with a synthetic `now_secs` so boundary arithmetic is deterministic
+    /// ([SVL-004 spec — Implementation Notes](docs/requirements/domains/structural_validation/specs/SVL-004.md)).
+    pub fn validate_with_dfsp_activation_at_unix(
         &self,
         dfsp_activation_height: u64,
+        now_secs: u64,
     ) -> Result<(), BlockError> {
         let expected =
             Self::protocol_version_for_height_with_activation(self.height, dfsp_activation_height);
@@ -239,15 +250,39 @@ impl L2BlockHeader {
                 max: MAX_BLOCK_SIZE,
             });
         }
+        let max_allowed = now_secs.saturating_add(MAX_FUTURE_TIMESTAMP_SECONDS);
+        if self.timestamp > max_allowed {
+            return Err(BlockError::TimestampTooFarInFuture {
+                timestamp: self.timestamp,
+                max_allowed,
+            });
+        }
         Ok(())
+    }
+
+    /// Same as [`Self::validate_with_dfsp_activation_at_unix`] after sampling the host wall clock ([`Self::unix_secs_wall_clock`]).
+    ///
+    /// **Rationale:** Parameterizing `dfsp_activation_height` mirrors SVL-001 so integration tests can inject a finite
+    /// fork height; production uses [`Self::validate`] → [`DFSP_ACTIVATION_HEIGHT`](crate::constants::DFSP_ACTIVATION_HEIGHT).
+    /// With the BLK-005 sentinel `u64::MAX`, every finite `height` satisfies `height < u64::MAX`, so DFSP payloads cannot
+    /// appear on-chain until governance lowers the constant.
+    ///
+    /// **SVL-004:** Uses real `SystemTime` for `now_secs`. For deterministic timestamp tests, call
+    /// [`Self::validate_with_dfsp_activation_at_unix`] directly.
+    pub fn validate_with_dfsp_activation(
+        &self,
+        dfsp_activation_height: u64,
+    ) -> Result<(), BlockError> {
+        let now_secs = Self::unix_secs_wall_clock()?;
+        self.validate_with_dfsp_activation_at_unix(dfsp_activation_height, now_secs)
     }
 
     /// Tier 1 header structural validation using crate-wide constants ([SVL-*](docs/requirements/domains/structural_validation/NORMATIVE.md)).
     ///
     /// **Current steps:** [SVL-001](docs/requirements/domains/structural_validation/specs/SVL-001.md) (version),
     /// [SVL-002](docs/requirements/domains/structural_validation/specs/SVL-002.md) (DFSP roots before activation),
-    /// [SVL-003](docs/requirements/domains/structural_validation/specs/SVL-003.md) (cost/size caps on declared header fields).
-    /// Timestamp bound ([SVL-004](docs/requirements/domains/structural_validation/specs/SVL-004.md)) follows in implementation order.
+    /// [SVL-003](docs/requirements/domains/structural_validation/specs/SVL-003.md) (cost/size caps on declared header fields),
+    /// [SVL-004](docs/requirements/domains/structural_validation/specs/SVL-004.md) (timestamp vs wall clock + [`MAX_FUTURE_TIMESTAMP_SECONDS`]).
     pub fn validate(&self) -> Result<(), BlockError> {
         self.validate_with_dfsp_activation(DFSP_ACTIVATION_HEIGHT)?;
         Ok(())
