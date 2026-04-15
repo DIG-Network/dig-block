@@ -39,11 +39,18 @@
 //!
 //! ## Status
 //!
-//! **BLD-001** (struct + `new`) is implemented. **`add_*` / `set_*` / `build`** follow in BLD-002 — BLD-007.
+//! **BLD-001** (struct + `new`) and **BLD-002** (`add_spend_bundle`, `remaining_cost`, `spend_bundle_count`) are
+//! implemented. **`add_slash_proposal` / `set_*` / `build`** follow in BLD-003 — BLD-007.
 
+use bincode;
 use chia_protocol::{Coin, SpendBundle};
 
-use crate::primitives::{Bytes32, Cost};
+use crate::error::BuilderError;
+use crate::merkle_util::empty_on_additions_err;
+use crate::primitives::{Bytes32, Cost, Signature};
+use crate::types::block::L2Block;
+use crate::types::header::L2BlockHeader;
+use crate::{EMPTY_ROOT, MAX_BLOCK_SIZE, MAX_COST_PER_BLOCK};
 
 /// Incremental accumulator for a single L2 block body and header metadata ([SPEC §6.1–6.2](docs/resources/SPEC.md),
 /// [BLD-001](docs/requirements/domains/block_production/specs/BLD-001.md)).
@@ -114,5 +121,116 @@ impl BlockBuilder {
             additions: Vec::new(),
             removals: Vec::new(),
         }
+    }
+
+    /// Serialized [`L2Block`] byte length if the body were `spend_bundles` plus this builder’s slash payloads.
+    ///
+    /// **Rationale (BLD-002):** [`crate::L2Block::validate_structure`] and SVL-003 compare **full** `bincode(L2Block)`
+    /// against [`MAX_BLOCK_SIZE`](crate::MAX_BLOCK_SIZE). The builder does not yet have a final header (BLD-005), so we
+    /// synthesize a probe [`L2BlockHeader`] with **fixed-shape** fields only: identity scalars copied from
+    /// [`Self::new`], Merkle counters set to zero, roots set to [`EMPTY_ROOT`], and a default [`Signature`]. The
+    /// header’s bincode footprint is independent of those placeholder root values (same struct layout as production),
+    /// while the variable portion (`Vec<SpendBundle>`, `Vec<Vec<u8>>` slash payloads) matches what this builder will
+    /// eventually serialize — so the estimate tracks real growth in body bytes.
+    ///
+    /// **Related:** [`L2Block::compute_size`](crate::L2Block::compute_size) (BLK-004) uses the same `bincode` schema.
+    fn serialized_l2_block_probe_len(&self, spend_bundles: &[SpendBundle]) -> usize {
+        let header = L2BlockHeader::new(
+            self.height,
+            self.epoch,
+            self.parent_hash,
+            EMPTY_ROOT,
+            EMPTY_ROOT,
+            EMPTY_ROOT,
+            EMPTY_ROOT,
+            EMPTY_ROOT,
+            self.l1_height,
+            self.l1_hash,
+            self.proposer_index,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            EMPTY_ROOT,
+        );
+        let block = L2Block::new(
+            header,
+            spend_bundles.to_vec(),
+            self.slash_proposal_payloads.clone(),
+            Signature::default(),
+        );
+        bincode::serialize(&block)
+            .map(|bytes| bytes.len())
+            .unwrap_or(usize::MAX)
+    }
+
+    /// Append a [`SpendBundle`] after validating CLVM cost and serialized block-size budgets ([BLD-002](docs/requirements/domains/block_production/specs/BLD-002.md)).
+    ///
+    /// **Parameters:** `cost` / `fee` are **caller-supplied** aggregates for this bundle (typically from
+    /// `dig_clvm::validate_spend_bundle` / execution preview). The builder trusts these numbers for budgeting only;
+    /// [`L2BlockHeader::total_cost`] consistency is enforced later at execution tier (EXE-007) and in `build()` (BLD-005).
+    ///
+    /// **Budget order:** cost is checked first (cheap, no cloning). Size uses a bincode probe that temporarily
+    /// [`clone`]s the candidate bundle — if the probe fails, `bundle` is still owned by the caller on `Err`.
+    ///
+    /// **Mutation contract:** On `Err`, **no** field of `self` changes. On `Ok`, additions/removals/totals/spend_bundles
+    /// advance together so partial state is impossible.
+    ///
+    /// **Additions / removals:** Mirrors [`crate::L2Block::all_additions`] / [`crate::L2Block::all_removals`] —
+    /// [`SpendBundle::additions`] (CLVM-simulated `CREATE_COIN`s) plus one removal [`Bytes32`] per [`CoinSpend`].
+    pub fn add_spend_bundle(
+        &mut self,
+        bundle: SpendBundle,
+        cost: Cost,
+        fee: u64,
+    ) -> Result<(), BuilderError> {
+        let next_cost = self.total_cost.saturating_add(cost);
+        if next_cost > MAX_COST_PER_BLOCK {
+            return Err(BuilderError::CostBudgetExceeded {
+                current: self.total_cost,
+                addition: cost,
+                max: MAX_COST_PER_BLOCK,
+            });
+        }
+
+        let base_bytes = self.serialized_l2_block_probe_len(&self.spend_bundles);
+        let mut probe_bundles = self.spend_bundles.clone();
+        probe_bundles.push(bundle.clone());
+        let with_bytes = self.serialized_l2_block_probe_len(&probe_bundles);
+
+        if with_bytes > MAX_BLOCK_SIZE as usize {
+            return Err(BuilderError::SizeBudgetExceeded {
+                current: u32::try_from(base_bytes).unwrap_or(u32::MAX),
+                addition: u32::try_from(with_bytes.saturating_sub(base_bytes)).unwrap_or(u32::MAX),
+                max: MAX_BLOCK_SIZE,
+            });
+        }
+
+        self.additions
+            .extend(empty_on_additions_err(bundle.additions()));
+        for cs in &bundle.coin_spends {
+            self.removals.push(cs.coin.coin_id());
+        }
+        self.total_cost += cost;
+        self.total_fees += fee;
+        self.spend_bundles.push(bundle);
+        Ok(())
+    }
+
+    /// Remaining CLVM cost budget before hitting [`MAX_COST_PER_BLOCK`](crate::MAX_COST_PER_BLOCK) ([BLD-002](docs/requirements/domains/block_production/specs/BLD-002.md)).
+    ///
+    /// **Usage:** Proposers can gate bundle selection without duplicating protocol constants. Saturates at zero if
+    /// `total_cost` ever overshoots (should not happen if only [`Self::add_spend_bundle`] mutates cost).
+    #[must_use]
+    pub fn remaining_cost(&self) -> Cost {
+        MAX_COST_PER_BLOCK.saturating_sub(self.total_cost)
+    }
+
+    /// Number of spend bundles accepted so far (same as `spend_bundles.len()`).
+    #[must_use]
+    pub fn spend_bundle_count(&self) -> usize {
+        self.spend_bundles.len()
     }
 }

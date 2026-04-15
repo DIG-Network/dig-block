@@ -266,6 +266,11 @@ path = "tests/test_svl_006_merkle_root_integrity.rs"
 name = "bld_001_builder_struct_constructor"
 path = "tests/test_bld_001_builder_struct_constructor.rs"
 
+# BLD-002: BlockBuilder add_spend_bundle cost/size budgets, remaining_cost, spend_bundle_count.
+[[test]]
+name = "bld_002_add_spend_bundle_budget"
+path = "tests/test_bld_002_add_spend_bundle_budget.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"

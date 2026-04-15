@@ -42,7 +42,7 @@
 - MUST update running `total_cost` and `total_fees` totals.
 - MUST append the bundle to `spend_bundles`.
 
-`remaining_cost()` MUST return `MAX_COST_PER_BLOCK - total_cost`.
+`remaining_cost()` MUST return `MAX_COST_PER_BLOCK.saturating_sub(total_cost)` (never underflows if `total_cost` is already at the cap).
 
 `spend_bundle_count()` MUST return the number of SpendBundles currently added to the builder.
 

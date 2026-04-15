@@ -17,9 +17,10 @@ items:
   - id: BLD-002
     section: "6.3"
     summary: add_spend_bundle with Budget Enforcement
-    status: Not Started
+    status: implemented
     spec_ref: specs/BLD-002.md
-    tests: []
+    tests:
+      - tests/test_bld_002_add_spend_bundle_budget.rs
     notes: >
       Enforces cost and size budgets; extracts additions/removals;
       updates running totals; remaining_cost() returns budget remainder.
