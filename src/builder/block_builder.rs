@@ -39,8 +39,8 @@
 //!
 //! ## Status
 //!
-//! **BLD-001** (struct + `new`) and **BLD-002** (`add_spend_bundle`, `remaining_cost`, `spend_bundle_count`) are
-//! implemented. **`add_slash_proposal` / `set_*` / `build`** follow in BLD-003 — BLD-007.
+//! **BLD-001**–**BLD-003** are implemented (`new`, `add_spend_bundle`, `add_slash_proposal`, helpers). **`set_*` /
+//! `build`** follow in BLD-004 — BLD-007.
 
 use bincode;
 use chia_protocol::{Coin, SpendBundle};
@@ -50,13 +50,17 @@ use crate::merkle_util::empty_on_additions_err;
 use crate::primitives::{Bytes32, Cost, Signature};
 use crate::types::block::L2Block;
 use crate::types::header::L2BlockHeader;
-use crate::{EMPTY_ROOT, MAX_BLOCK_SIZE, MAX_COST_PER_BLOCK};
+use crate::{
+    EMPTY_ROOT, MAX_BLOCK_SIZE, MAX_COST_PER_BLOCK, MAX_SLASH_PROPOSALS_PER_BLOCK,
+    MAX_SLASH_PROPOSAL_PAYLOAD_BYTES,
+};
 
 /// Incremental accumulator for a single L2 block body and header metadata ([SPEC §6.1–6.2](docs/resources/SPEC.md),
 /// [BLD-001](docs/requirements/domains/block_production/specs/BLD-001.md)).
 ///
-/// **Usage:** Construct with [`Self::new`], add spend bundles and optional slash payloads via future BLD-002/003 APIs,
-/// then call `build(...)` (BLD-005) to obtain a signed [`crate::L2Block`]. The struct exposes **public fields** so
+/// **Usage:** Construct with [`Self::new`], add spend bundles via [`Self::add_spend_bundle`] (BLD-002) and slash payloads
+/// via [`Self::add_slash_proposal`] (BLD-003), then call `build(...)` (BLD-005) to obtain a signed [`crate::L2Block`].
+/// The struct exposes **public fields** so
 /// advanced callers or tests can inspect partial state without accessor boilerplate; treat them as read-mostly except
 /// through official builder methods once those exist.
 ///
@@ -87,7 +91,7 @@ pub struct BlockBuilder {
     pub total_cost: Cost,
     /// Running sum of fees from accepted bundles.
     pub total_fees: u64,
-    /// Flattened [`Coin`] outputs extracted from spends (BLD-002 will maintain this on each add).
+    /// Flattened [`Coin`] outputs extracted from spends ([`Self::add_spend_bundle`] / BLD-002).
     pub additions: Vec<Coin>,
     /// Spent coin IDs (same bytes as `coin.coin_id()` / NORMATIVE `CoinId`).
     pub removals: Vec<Bytes32>,
@@ -232,5 +236,37 @@ impl BlockBuilder {
     #[must_use]
     pub fn spend_bundle_count(&self) -> usize {
         self.spend_bundles.len()
+    }
+
+    /// Append an opaque slash-proposal payload after enforcing protocol caps ([BLD-003](docs/requirements/domains/block_production/specs/BLD-003.md)).
+    ///
+    /// **Count:** Rejects when [`Self::slash_proposal_payloads`] already holds [`MAX_SLASH_PROPOSALS_PER_BLOCK`](crate::MAX_SLASH_PROPOSALS_PER_BLOCK)
+    /// rows — the guard uses `>=` so the **next** push would exceed the cap ([`BuilderError::TooManySlashProposals`]).
+    ///
+    /// **Size:** Rejects when `payload.len() > `[`MAX_SLASH_PROPOSAL_PAYLOAD_BYTES`](crate::MAX_SLASH_PROPOSAL_PAYLOAD_BYTES)
+    /// ([`BuilderError::SlashProposalTooLarge`]). A payload whose length **equals** the limit is accepted (strict `>`).
+    ///
+    /// **Check order (spec):** Count is validated **before** size so that a builder already at the count cap surfaces
+    /// [`BuilderError::TooManySlashProposals`] even if the candidate payload is also oversized — callers get a stable
+    /// primary failure mode ([BLD-003 implementation notes](docs/requirements/domains/block_production/specs/BLD-003.md#implementation-notes)).
+    ///
+    /// **Mutation contract:** On `Err`, `slash_proposal_payloads` and all other fields are unchanged. On `Ok`, only
+    /// `slash_proposal_payloads` grows; spend-bundle state is untouched (slash bytes still participate in the BLD-002
+    /// `bincode(L2Block)` size probe on later [`Self::add_spend_bundle`] calls).
+    pub fn add_slash_proposal(&mut self, payload: Vec<u8>) -> Result<(), BuilderError> {
+        if self.slash_proposal_payloads.len() >= MAX_SLASH_PROPOSALS_PER_BLOCK as usize {
+            return Err(BuilderError::TooManySlashProposals {
+                max: MAX_SLASH_PROPOSALS_PER_BLOCK,
+            });
+        }
+        let len = payload.len();
+        if len > MAX_SLASH_PROPOSAL_PAYLOAD_BYTES as usize {
+            return Err(BuilderError::SlashProposalTooLarge {
+                size: u32::try_from(len).unwrap_or(u32::MAX),
+                max: MAX_SLASH_PROPOSAL_PAYLOAD_BYTES,
+            });
+        }
+        self.slash_proposal_payloads.push(payload);
+        Ok(())
     }
 }
