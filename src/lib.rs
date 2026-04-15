@@ -57,5 +57,5 @@ pub use traits::{BlockSigner, CoinLookup};
 pub use builder::block_builder::BlockBuilder;
 pub use builder::checkpoint_builder::CheckpointBuilder;
 
-// Validation result
-pub use validation::execution::ExecutionResult;
+// Validation result (Tier 2 — [`ExecutionResult`] placeholder + EXE-009 assertion types; SER-001 serde surface)
+pub use validation::execution::{AssertionKind, ExecutionResult, PendingAssertion};
