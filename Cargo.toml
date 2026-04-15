@@ -235,6 +235,11 @@ path = "tests/test_hsh_008_receipts_root.rs"
 name = "svl_001_header_version_check"
 path = "tests/test_svl_001_header_version_check.rs"
 
+# SVL-002: DFSP roots must be EMPTY_ROOT before activation height (SPEC §5.1 Step 2).
+[[test]]
+name = "svl_002_dfsp_root_pre_activation"
+path = "tests/test_svl_002_dfsp_root_pre_activation.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"

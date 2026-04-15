@@ -8,6 +8,7 @@
 //! - [BLK-007](docs/requirements/domains/block_types/specs/BLK-007.md) — version auto-detection /
 //!   [NORMATIVE](docs/requirements/domains/block_types/NORMATIVE.md) (BLK-007)
 //! - [SVL-001](docs/requirements/domains/structural_validation/specs/SVL-001.md) — header `version` vs height / DFSP activation ([`L2BlockHeader::validate`])
+//! - [SVL-002](docs/requirements/domains/structural_validation/specs/SVL-002.md) — DFSP roots must be [`EMPTY_ROOT`] before activation ([`L2BlockHeader::validate_with_dfsp_activation`])
 //! - [HSH-001](docs/requirements/domains/hashing/specs/HSH-001.md) — header `hash()` (SPEC §3.1 field order;
 //!   preimage length [`L2BlockHeader::HASH_PREIMAGE_LEN`])
 //! - [SPEC §2.2](docs/resources/SPEC.md), [SPEC §8.3 Genesis](docs/resources/SPEC.md#83-genesis-block)
@@ -171,7 +172,18 @@ impl L2BlockHeader {
     /// **SVL-001 / SPEC §5.1 Step 1:** ensure [`L2BlockHeader::version`] matches the protocol rule for this header’s
     /// [`L2BlockHeader::height`] and an explicit DFSP activation height.
     ///
-    /// **Algorithm:** `expected = `[`Self::protocol_version_for_height_with_activation`]`(height, dfsp_activation_height)`;
+    /// **SVL-002 / SPEC §5.1 Step 2:** when `height < dfsp_activation_height`, all five DFSP data-layer roots
+    /// ([`L2BlockHeader::collateral_registry_root`] … [`L2BlockHeader::dfsp_finalize_commitment_root`]) MUST equal
+    /// [`EMPTY_ROOT`]; otherwise reject with [`BlockError::InvalidData`] (fixed message per
+    /// [SVL-002 spec](docs/requirements/domains/structural_validation/specs/SVL-002.md)). Post-activation (`height >=`
+    /// threshold) does **not** apply this gate — non-empty roots are validated by later tiers / domain logic.
+    ///
+    /// **Rationale:** Parameterizing `dfsp_activation_height` mirrors SVL-001 so integration tests can inject a finite
+    /// fork height; production uses [`Self::validate`] → [`DFSP_ACTIVATION_HEIGHT`](crate::constants::DFSP_ACTIVATION_HEIGHT).
+    /// With the BLK-005 sentinel `u64::MAX`, every finite `height` satisfies `height < u64::MAX`, so DFSP payloads cannot
+    /// appear on-chain until governance lowers the constant.
+    ///
+    /// **Algorithm (Step 1):** `expected = `[`Self::protocol_version_for_height_with_activation`]`(height, dfsp_activation_height)`;
     /// reject with [`BlockError::InvalidVersion`] when `version != expected` ([structural_validation NORMATIVE](docs/requirements/domains/structural_validation/NORMATIVE.md#svl-001-header-version-check)).
     ///
     /// **Production:** Prefer [`Self::validate`], which passes [`DFSP_ACTIVATION_HEIGHT`](crate::constants::DFSP_ACTIVATION_HEIGHT)
@@ -189,13 +201,30 @@ impl L2BlockHeader {
                 actual: self.version,
             });
         }
+        if self.height < dfsp_activation_height {
+            let dfsp_roots = [
+                self.collateral_registry_root,
+                self.cid_state_root,
+                self.node_registry_root,
+                self.namespace_update_root,
+                self.dfsp_finalize_commitment_root,
+            ];
+            for root in &dfsp_roots {
+                if *root != EMPTY_ROOT {
+                    return Err(BlockError::InvalidData(
+                        "DFSP root must be EMPTY_ROOT before activation".into(),
+                    ));
+                }
+            }
+        }
         Ok(())
     }
 
     /// Tier 1 header structural validation using crate-wide constants ([SVL-*](docs/requirements/domains/structural_validation/NORMATIVE.md)).
     ///
-    /// **Current steps:** [SVL-001](docs/requirements/domains/structural_validation/specs/SVL-001.md) only — additional
-    /// header checks (DFSP roots, cost/size, timestamp) will chain here in implementation order.
+    /// **Current steps:** [SVL-001](docs/requirements/domains/structural_validation/specs/SVL-001.md) (version),
+    /// [SVL-002](docs/requirements/domains/structural_validation/specs/SVL-002.md) (DFSP roots before activation) — cost/size
+    /// and timestamp checks follow in implementation order ([SVL-003](docs/requirements/domains/structural_validation/specs/SVL-003.md), [SVL-004](docs/requirements/domains/structural_validation/specs/SVL-004.md)).
     pub fn validate(&self) -> Result<(), BlockError> {
         self.validate_with_dfsp_activation(DFSP_ACTIVATION_HEIGHT)?;
         Ok(())

@@ -13,6 +13,7 @@ use thiserror::Error;
 /// Block validation failures across three tiers on one enum ([ERR-001](docs/requirements/domains/error_types/specs/ERR-001.md), [ERR-002](docs/requirements/domains/error_types/specs/ERR-002.md)).
 ///
 /// **Tier 1 — structural:** cheapest checks first on [`crate::L2BlockHeader`] / [`crate::L2Block`] (SVL-*); no CLVM, no [`CoinLookup`].
+/// [`BlockError::InvalidData`] is also used for SVL-002 DFSP pre-activation root policy ([`crate::L2BlockHeader::validate_with_dfsp_activation`]).
 ///
 /// **Tier 2 — execution:** CLVM / puzzle / signature / fee invariants for `validate_execution` (EXE-*;
 /// [execution_validation NORMATIVE](docs/requirements/domains/execution_validation/NORMATIVE.md)). Prefer mapping `dig-clvm` errors into these variants rather than [`BlockError::InvalidData`].
