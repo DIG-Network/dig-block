@@ -261,6 +261,11 @@ path = "tests/test_svl_005_block_count_agreement.rs"
 name = "svl_006_merkle_root_integrity"
 path = "tests/test_svl_006_merkle_root_integrity.rs"
 
+# BLD-001: BlockBuilder struct and new() (SPEC §6.1–6.2, block_production NORMATIVE).
+[[test]]
+name = "bld_001_builder_struct_constructor"
+path = "tests/test_bld_001_builder_struct_constructor.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"

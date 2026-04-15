@@ -9,7 +9,7 @@
 
 | ID      | Status      | Summary                                  | Verification Approach                                                                    |
 |---------|-------------|------------------------------------------|------------------------------------------------------------------------------------------|
-| BLD-001 | Not Started | BlockBuilder Struct and Constructor      | Unit test that new() produces a builder with empty collections and zero totals            |
+| BLD-001 | implemented | BlockBuilder Struct and Constructor      | `tests/test_bld_001_builder_struct_constructor.rs`: identity args preserved; empty `spend_bundles` / `slash_proposal_payloads` / `additions` / `removals`; `total_cost` and `total_fees` zero (BLD-001 test plan). |
 | BLD-002 | Not Started | add_spend_bundle with Budget Enforcement | Unit tests at cost/size boundaries; verify additions/removals extraction and totals       |
 | BLD-003 | Not Started | add_slash_proposal with Limits           | Unit tests exceeding MAX_SLASH_PROPOSALS_PER_BLOCK and MAX_SLASH_PROPOSAL_PAYLOAD_BYTES   |
 | BLD-004 | Not Started | Optional Setters                         | Unit tests verifying each setter stores the provided values correctly                     |
