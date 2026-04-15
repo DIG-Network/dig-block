@@ -17,6 +17,7 @@
 //! | [SVL-003](docs/requirements/domains/structural_validation/specs/SVL-003.md) | Declared `total_cost` / `block_size` vs protocol caps | [`crate::L2BlockHeader::validate_with_dfsp_activation`] (chained from [`crate::L2BlockHeader::validate`]) |
 //! | [SVL-004](docs/requirements/domains/structural_validation/specs/SVL-004.md) | Header `timestamp` vs `now + MAX_FUTURE_TIMESTAMP_SECONDS` | [`crate::L2BlockHeader::validate_with_dfsp_activation_at_unix`] (tests), same pipeline in [`crate::L2BlockHeader::validate`] |
 //! | [SVL-004](docs/requirements/domains/structural_validation/specs/SVL-004.md) | `timestamp` vs `now + MAX_FUTURE_TIMESTAMP_SECONDS` | [`crate::L2BlockHeader::validate_with_dfsp_activation`], [`crate::L2BlockHeader::validate_with_dfsp_activation_at_unix`] |
+//! | [SVL-005](docs/requirements/domains/structural_validation/specs/SVL-005.md) | Header/body count fields agree | [`crate::L2Block::validate_structure`] |
 //!
 //! **Rationale:** Keeping SVL-001 on [`crate::L2BlockHeader`](crate::types::header::L2BlockHeader) reuses the existing
 //! BLK-007 helpers [`L2BlockHeader::protocol_version_for_height_with_activation`] and

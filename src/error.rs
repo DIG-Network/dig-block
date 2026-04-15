@@ -97,17 +97,17 @@ pub enum BlockError {
     #[error("double spend in block: coin_id={coin_id}")]
     DoubleSpendInBlock { coin_id: Bytes32 },
 
-    /// Header `additions_count` vs computed additions length.
-    #[error("additions count mismatch")]
-    AdditionsCountMismatch,
+    /// Header `additions_count` vs computed additions from the body ([SVL-005](docs/requirements/domains/structural_validation/specs/SVL-005.md)).
+    #[error("additions count mismatch: header={header}, actual={actual}")]
+    AdditionsCountMismatch { header: u32, actual: u32 },
 
-    /// Header `removals_count` vs computed removals length.
-    #[error("removals count mismatch")]
-    RemovalsCountMismatch,
+    /// Header `removals_count` vs total coin spends in the body ([SVL-005](docs/requirements/domains/structural_validation/specs/SVL-005.md)).
+    #[error("removals count mismatch: header={header}, actual={actual}")]
+    RemovalsCountMismatch { header: u32, actual: u32 },
 
-    /// Header slash proposal count vs payloads length.
-    #[error("slash proposal count mismatch")]
-    SlashProposalCountMismatch,
+    /// Header `slash_proposal_count` vs `slash_proposal_payloads.len()` ([SVL-005](docs/requirements/domains/structural_validation/specs/SVL-005.md)).
+    #[error("slash proposal count mismatch: header={header}, actual={actual}")]
+    SlashProposalCountMismatch { header: u32, actual: u32 },
 
     /// Block timestamp too far ahead of local wall clock ([SVL-004](docs/requirements/domains/structural_validation/specs/SVL-004.md)).
     #[error("timestamp too far in future: {timestamp} exceeds max_allowed {max_allowed}")]

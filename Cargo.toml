@@ -250,6 +250,11 @@ path = "tests/test_svl_003_cost_and_size_checks.rs"
 name = "svl_004_timestamp_future_bound"
 path = "tests/test_svl_004_timestamp_future_bound.rs"
 
+# SVL-005: header spend/addition/removal/slash counts vs block body (SPEC §5.2 steps 2, 4, 5, 13).
+[[test]]
+name = "svl_005_block_count_agreement"
+path = "tests/test_svl_005_block_count_agreement.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"
