@@ -5,6 +5,7 @@
 //! - [HSH-003](docs/requirements/domains/hashing/specs/HSH-003.md) — [`crate::compute_spends_root`] (spends Merkle root)
 //! - [HSH-004](docs/requirements/domains/hashing/specs/HSH-004.md) — [`crate::compute_additions_root`] (additions Merkle set)
 //! - [HSH-005](docs/requirements/domains/hashing/specs/HSH-005.md) — [`crate::compute_removals_root`] (removals Merkle set)
+//! - [HSH-006](docs/requirements/domains/hashing/specs/HSH-006.md) — [`crate::compute_filter_hash`] (BIP-158 compact filter)
 //! - [BLK-004](docs/requirements/domains/block_types/specs/BLK-004.md) — Merkle roots, BIP158 `filter_hash` preimage,
 //!   additions/removals collectors, duplicate / double-spend probes, serialized size
 //! - [SPEC §2.3](docs/resources/SPEC.md), [SPEC §3.3–§3.6](docs/resources/SPEC.md) — body commitments + filter
@@ -26,9 +27,7 @@ use chia_streamable_macro::Streamable;
 use serde::{Deserialize, Serialize};
 
 use super::header::L2BlockHeader;
-use crate::merkle_util::{
-    bip158_filter_encoded, empty_on_additions_err, merkle_tree_root, slash_leaf_hash,
-};
+use crate::merkle_util::{empty_on_additions_err, merkle_tree_root, slash_leaf_hash};
 use crate::primitives::{Bytes32, Signature};
 
 /// Complete L2 block: header plus body (spend bundles, slash payloads) and proposer attestation.
@@ -121,24 +120,15 @@ impl L2Block {
         crate::compute_removals_root(&ids)
     }
 
-    /// SHA-256 of the BIP-158–encoded element set (SPEC §3.6, Chia `std_hash(encoded)`).
+    /// BIP-158 compact filter hash ([HSH-006](docs/requirements/domains/hashing/specs/HSH-006.md), SPEC §3.6).
     ///
-    /// **Elements:** each addition’s `puzzle_hash`, then each removal’s `coin_id`, in [`Self::all_additions`] /
-    /// [`Self::all_removals`] order. **SipHash keys:** first 8 + next 8 bytes (LE `u64` pair) of [`Self::hash`]
-    /// (header identity), matching Bitcoin/rust-bitcoin `GcsFilterWriter` initialization.
+    /// **Delegation:** [`crate::compute_filter_hash`] with `block_identity = `[`Self::hash`] and body-derived
+    /// [`Self::all_additions`] / [`Self::all_removals`] slices.
     #[must_use]
     pub fn compute_filter_hash(&self) -> Bytes32 {
-        let mut buf: Vec<[u8; 32]> = Vec::new();
-        for c in self.all_additions() {
-            buf.push(c.puzzle_hash.to_bytes());
-        }
-        for id in self.all_removals() {
-            buf.push(id.to_bytes());
-        }
-        let encoded = bip158_filter_encoded(self.hash(), &buf).unwrap_or_default();
-        let mut h = chia_sha2::Sha256::new();
-        h.update(&encoded);
-        Bytes32::new(h.finalize())
+        let additions = self.all_additions();
+        let removals = self.all_removals();
+        crate::compute_filter_hash(self.hash(), &additions, &removals)
     }
 
     /// Binary Merkle root over slash payload digests (`sha256` each), in payload order.

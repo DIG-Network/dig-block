@@ -45,10 +45,11 @@ items:
   - id: HSH-006
     section: "3.6"
     summary: "Filter Hash Construction"
-    status: gap
+    status: implemented
     spec_ref: "SPEC.md#section-36"
-    tests: []
-    notes: ""
+    tests:
+      - tests/test_hsh_006_filter_hash.rs
+    notes: "dig_block::compute_filter_hash / compact_block_filter_encoded; L2Block delegates; bitcoin::bip158::BlockFilter membership in tests."
   - id: HSH-007
     section: "3.3"
     summary: "Tagged Merkle Hashing"

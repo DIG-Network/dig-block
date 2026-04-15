@@ -44,6 +44,9 @@ pub use merkle_util::compute_additions_root;
 // Removals Merkle set root over coin IDs (HSH-005); implementation in [`crate::merkle_util`].
 pub use merkle_util::compute_removals_root;
 
+// BIP-158 compact block filter + `filter_hash` (HSH-006); implementation in [`crate::merkle_util`].
+pub use merkle_util::{compact_block_filter_encoded, compute_filter_hash};
+
 // Traits
 pub use traits::{BlockSigner, CoinLookup};
 

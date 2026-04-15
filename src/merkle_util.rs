@@ -16,6 +16,9 @@
 //!
 //! **HSH-005 ([`compute_removals_root`]):** removals roots are a Merkle **set** over **raw removal coin IDs** (one leaf per
 //! ID) — see [HSH-005](docs/requirements/domains/hashing/specs/HSH-005.md).
+//!
+//! **HSH-006 ([`compute_filter_hash`]):** `filter_hash` is SHA-256 of BIP-158 GCS bytes over addition `puzzle_hash`s then
+//! removal `coin_id`s — see [HSH-006](docs/requirements/domains/hashing/specs/HSH-006.md).
 
 use bitcoin::bip158::GcsFilterWriter;
 use chia_consensus::merkle_set::compute_merkle_set_root;
@@ -170,6 +173,58 @@ pub fn compute_removals_root(removals: &[Bytes32]) -> Bytes32 {
 pub fn slash_leaf_hash(payload: &[u8]) -> Bytes32 {
     let mut h = Sha256::new();
     h.update(payload);
+    Bytes32::new(h.finalize())
+}
+
+/// BIP-158 **encoded filter bytes** (Golomb–Rice GCS) for block light-client filtering ([HSH-006](docs/requirements/domains/hashing/specs/HSH-006.md)).
+///
+/// **Element order:** each [`Coin::puzzle_hash`] for `additions` in slice order, then each removal [`Bytes32`] in
+/// `removals` slice order — matches [`L2Block::all_additions`] / [`L2Block::all_removals`] when those slices are built
+/// the same way ([SPEC §3.6](docs/resources/SPEC.md)).
+///
+/// **Wire:** [`compact_block_filter_encoded`] is a thin wrapper assembling the `[[u8;32]; n]` table and calling
+/// [`bip158_filter_encoded`]. **Commitment:** [`compute_filter_hash`] is **SHA-256** of the returned bytes (Chia
+/// `std_hash(encoded)` pattern).
+///
+/// **Downstream:** Light clients need these bytes (not only the hash) to run membership queries via
+/// [`bitcoin::bip158::BlockFilter`].
+pub fn compact_block_filter_encoded(
+    block_identity: Bytes32,
+    additions: &[Coin],
+    removals: &[Bytes32],
+) -> Result<Vec<u8>, std::io::Error> {
+    let mut elements: Vec<[u8; 32]> = Vec::with_capacity(additions.len() + removals.len());
+    for c in additions {
+        // UFCS: `Bytes32` also has [`Streamable::to_bytes`] (`Result`); use inherent `to_bytes(self) -> [u8; 32]`.
+        elements.push(Bytes32::to_bytes(c.puzzle_hash));
+    }
+    for id in removals {
+        elements.push(Bytes32::to_bytes(*id));
+    }
+    bip158_filter_encoded(block_identity, &elements)
+}
+
+/// **`filter_hash`** (header field, SPEC §3.6) — SHA-256 over BIP-158 compact filter bytes.
+///
+/// **Normative:** [HSH-006](docs/requirements/domains/hashing/specs/HSH-006.md).  
+/// **Algorithm:** [`compact_block_filter_encoded`] then [`Sha256`] over the wire (empty IO error → hash of empty encoding,
+/// matching previous [`L2Block::compute_filter_hash`] behavior via `unwrap_or_default()`).
+///
+/// **SipHash keys:** First 8 + next 8 bytes (LE `u64`) of `block_identity` — same as [`bip158_filter_encoded`] /
+/// Bitcoin [`GcsFilterWriter`](bitcoin::bip158::GcsFilterWriter) initialization used in this crate.
+///
+/// **Callers:** [`crate::L2Block::compute_filter_hash`](crate::L2Block::compute_filter_hash) passes [`L2Block::hash`] as
+/// `block_identity` so the filter is keyed to the block’s canonical header id.
+#[must_use]
+pub fn compute_filter_hash(
+    block_identity: Bytes32,
+    additions: &[Coin],
+    removals: &[Bytes32],
+) -> Bytes32 {
+    let encoded =
+        compact_block_filter_encoded(block_identity, additions, removals).unwrap_or_default();
+    let mut h = Sha256::new();
+    h.update(&encoded);
     Bytes32::new(h.finalize())
 }
 
