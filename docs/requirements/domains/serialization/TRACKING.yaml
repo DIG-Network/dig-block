@@ -23,10 +23,11 @@ items:
   - id: SER-003
     section: "8.3"
     summary: "Genesis Block Construction"
-    status: gap
+    status: implemented
     spec_ref: "SPEC Section 8.3"
-    tests: []
-    notes: ""
+    tests:
+      - tests/test_ser_003_genesis_header.rs
+    notes: "genesis() uses with_l1_anchors; version via protocol_version_for_height(0) (BLK-007)."
 
   - id: SER-004
     section: "8.2"

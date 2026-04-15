@@ -308,6 +308,11 @@ path = "tests/test_ser_001_bincode_all_types.rs"
 name = "ser_002_to_from_bytes"
 path = "tests/test_ser_002_to_from_bytes.rs"
 
+# SER-003: L2BlockHeader::genesis bootstrap (SPEC §8.3, NORMATIVE § SER-003).
+[[test]]
+name = "ser_003_genesis_header"
+path = "tests/test_ser_003_genesis_header.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"
