@@ -36,7 +36,7 @@ All block types (`L2BlockHeader`, `L2Block`, `AttestedBlock`, `Checkpoint`, `Che
 - All counts/costs = 0
 - All L1 proofs = `None`
 - `timestamp` = current wall-clock time
-- `version` = auto-detected from crate version
+- `version` = `L2BlockHeader::protocol_version_for_height(0)` (BLK-007 / DFSP activation policy — same rule as `L2BlockHeader::new`, not `CARGO_PKG_VERSION`)
 
 **Spec reference:** SPEC Section 8.3
 

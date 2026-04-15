@@ -14,6 +14,7 @@
 //! - [HSH-001](docs/requirements/domains/hashing/specs/HSH-001.md) — header `hash()` (SPEC §3.1 field order;
 //!   preimage length [`L2BlockHeader::HASH_PREIMAGE_LEN`])
 //! - [SER-002](docs/requirements/domains/serialization/specs/SER-002.md) — [`Self::to_bytes`] / [`Self::from_bytes`] (SPEC §8.2; bincode + [`BlockError::InvalidData`](crate::BlockError::InvalidData) on decode)
+//! - [SER-003](docs/requirements/domains/serialization/specs/SER-003.md) — [`L2BlockHeader::genesis`] deterministic bootstrap (SPEC §8.3; see NORMATIVE § SER-003)
 //! - [SPEC §2.2](docs/resources/SPEC.md), [SPEC §8.3 Genesis](docs/resources/SPEC.md#83-genesis-block)
 //!
 //! ## Usage
@@ -578,14 +579,27 @@ impl L2BlockHeader {
         )
     }
 
-    /// Genesis header (SPEC §8.3): `parent_hash = network_id`, zeroed counts/costs, empty Merkle roots.
+    /// Genesis header ([SER-003](docs/requirements/domains/serialization/specs/SER-003.md), [NORMATIVE § SER-003](docs/requirements/domains/serialization/NORMATIVE.md#ser-003-genesis-block-construction), SPEC §8.3).
     ///
-    /// **`timestamp`:** set from `SystemTime::now()` (SPEC §8.3). Tests should assert structural fields, not
-    /// an exact timestamp.
+    /// ## Field obligations
+    ///
+    /// - **`height` / `epoch`:** `0` — chain bootstrap position.
+    /// - **`parent_hash`:** `network_id` — there is no prior L2 block; binding the parent slot to the network identity
+    ///   blocks cross-network replay of height-0 material ([SER-003](docs/requirements/domains/serialization/specs/SER-003.md) summary).
+    /// - **Merkle / commitment roots:** [`EMPTY_ROOT`](crate::EMPTY_ROOT) for state, spends, additions, removals, receipts,
+    ///   filter, slash proposals, and all DFSP layer roots; [`ZERO_HASH`](crate::ZERO_HASH) for `extension_data` (opaque
+    ///   extension slot starts empty).
+    /// - **Counts / costs / size:** all zero; **L1 anchor options:** all [`None`]; **slash count:** `0`.
+    /// - **`l1_height` / `l1_hash`:** caller-supplied L1 observation the genesis L2 header is anchored to.
+    /// - **`version`:** [`Self::protocol_version_for_height`](Self::protocol_version_for_height)(`0`) — same BLK-007
+    ///   auto-detection as every other constructor (not `CARGO_PKG_VERSION`; see SER-003 spec errata vs older pseudocode).
+    ///
+    /// **`timestamp`:** wall-clock Unix seconds from [`SystemTime::now`]. Host clocks before 1970 cannot be represented;
+    /// we **panic** with a clear message (same contract as “real” wall time for genesis in SPEC §8.3).
     pub fn genesis(network_id: Bytes32, l1_height: u32, l1_hash: Bytes32) -> Self {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
+            .expect("system clock before UNIX epoch; genesis header requires wall-clock time")
             .as_secs();
         let height = 0u64;
         Self::with_l1_anchors(
