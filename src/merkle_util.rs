@@ -10,14 +10,18 @@
 //! **HSH-003 ([`compute_spends_root`]):** spends roots use **binary** [`MerkleTree`] over per-bundle digests; each leaf is
 //! SHA-256 of the streamable [`SpendBundle`](chia_protocol::SpendBundle) bytes (same digest as [`SpendBundle::name`] /
 //! [`chia_traits::Streamable::hash`]) — see [HSH-003](docs/requirements/domains/hashing/specs/HSH-003.md).
+//!
+//! **HSH-004 ([`compute_additions_root`]):** additions roots use **`chia_consensus::merkle_set`** (radix Merkle **set**),
+//! not the tagged binary [`MerkleTree`] from HSH-007 — see [HSH-004](docs/requirements/domains/hashing/specs/HSH-004.md).
 
 use bitcoin::bip158::GcsFilterWriter;
 use chia_consensus::merkle_set::compute_merkle_set_root;
-use chia_protocol::{Bytes32, SpendBundle};
+use chia_protocol::{Bytes32, Coin, SpendBundle};
 use chia_sdk_types::MerkleTree;
 use chia_sha2::Sha256;
 use chia_traits::Streamable;
 use clvmr::reduction::EvalErr;
+use indexmap::IndexMap;
 
 use crate::constants::EMPTY_ROOT;
 
@@ -93,6 +97,43 @@ pub fn compute_spends_root(spend_bundles: &[SpendBundle]) -> Bytes32 {
         })
         .collect();
     merkle_tree_root(&leaves)
+}
+
+/// **`additions_root`** (header field, SPEC §3.4) — Merkle-set root over created coins grouped by `puzzle_hash`.
+///
+/// **Normative:** [HSH-004](docs/requirements/domains/hashing/specs/HSH-004.md) and Chia
+/// [`block_body_validation`](https://github.com/Chia-Network/chia-blockchain/blob/main/chia/consensus/block_body_validation.py)
+/// (additions handling ~158–175).  
+/// **Algorithm:** Walk `additions` in **slice order**; bucket coin IDs by [`Coin::puzzle_hash`]. Emit **two** 32-byte
+/// leaves per group, in **first-seen `puzzle_hash` order**: `[puzzle_hash, hash_coin_ids(ids…)]`, then [`merkle_set_root`]
+/// → [`compute_merkle_set_root`] with DIG empty-set semantics ([`EMPTY_ROOT`] when there are no additions).
+///
+/// **Why [`IndexMap`] instead of `HashMap`:** HSH-004’s pseudocode uses a map for grouping; Chia’s Python uses dict
+/// **insertion order** when flattening groups. Rust’s `HashMap` iteration order is nondeterministic, which would make roots
+/// non-reproducible. [`IndexMap`] matches insertion-order semantics and the existing [`crate::L2Block::compute_additions_root`]
+/// behavior exercised by BLK-004 tests.
+///
+/// **`hash_coin_ids`:** sorts multiple IDs descending by bytes, concatenates, SHA-256 — see [`hash_coin_ids`] and Chia
+/// [`coin.py`](https://github.com/Chia-Network/chia-blockchain/blob/main/chia/types/blockchain_format/coin.py).
+///
+/// **Callers:** [`crate::L2Block::compute_additions_root`](crate::L2Block::compute_additions_root) delegates here after
+/// collecting [`SpendBundle::additions`]-derived [`Coin`]s so validation and tooling share one definition.
+#[must_use]
+pub fn compute_additions_root(additions: &[Coin]) -> Bytes32 {
+    if additions.is_empty() {
+        return EMPTY_ROOT;
+    }
+    let mut groups: IndexMap<Bytes32, Vec<Bytes32>> = IndexMap::new();
+    for coin in additions {
+        let id = coin.coin_id();
+        groups.entry(coin.puzzle_hash).or_default().push(id);
+    }
+    let mut leafs: Vec<[u8; 32]> = Vec::with_capacity(groups.len() * 2);
+    for (ph, mut ids) in groups {
+        leafs.push(ph.to_bytes());
+        leafs.push(hash_coin_ids(&mut ids).to_bytes());
+    }
+    merkle_set_root(&mut leafs)
 }
 
 /// [`L2Block::slash_proposal_leaf_hash`](crate::types::block::L2Block::slash_proposal_leaf_hash) — SHA-256 over raw payload.

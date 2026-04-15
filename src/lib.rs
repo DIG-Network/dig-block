@@ -38,6 +38,9 @@ pub use hash::{hash_leaf, hash_node};
 // Spends root over spend bundles (HSH-003); implementation in [`crate::merkle_util`].
 pub use merkle_util::compute_spends_root;
 
+// Additions Merkle set root over `Coin` additions (HSH-004); implementation in [`crate::merkle_util`].
+pub use merkle_util::compute_additions_root;
+
 // Traits
 pub use traits::{BlockSigner, CoinLookup};
 

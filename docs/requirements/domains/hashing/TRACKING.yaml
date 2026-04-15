@@ -29,10 +29,11 @@ items:
   - id: HSH-004
     section: "3.4"
     summary: "Additions Root Construction"
-    status: gap
+    status: implemented
     spec_ref: "SPEC.md#section-34"
-    tests: []
-    notes: ""
+    tests:
+      - tests/test_hsh_004_additions_root.rs
+    notes: "dig_block::compute_additions_root; IndexMap for first-seen puzzle_hash order (Chia dict semantics); L2Block delegates."
   - id: HSH-005
     section: "3.5"
     summary: "Removals Root Construction"
