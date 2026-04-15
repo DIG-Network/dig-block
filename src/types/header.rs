@@ -9,6 +9,7 @@
 //!   [NORMATIVE](docs/requirements/domains/block_types/NORMATIVE.md) (BLK-007)
 //! - [SVL-001](docs/requirements/domains/structural_validation/specs/SVL-001.md) — header `version` vs height / DFSP activation ([`L2BlockHeader::validate`])
 //! - [SVL-002](docs/requirements/domains/structural_validation/specs/SVL-002.md) — DFSP roots must be [`EMPTY_ROOT`] before activation ([`L2BlockHeader::validate_with_dfsp_activation`])
+//! - [SVL-003](docs/requirements/domains/structural_validation/specs/SVL-003.md) — declared [`L2BlockHeader::total_cost`] / [`L2BlockHeader::block_size`] vs protocol caps ([`crate::MAX_COST_PER_BLOCK`], [`crate::MAX_BLOCK_SIZE`])
 //! - [HSH-001](docs/requirements/domains/hashing/specs/HSH-001.md) — header `hash()` (SPEC §3.1 field order;
 //!   preimage length [`L2BlockHeader::HASH_PREIMAGE_LEN`])
 //! - [SPEC §2.2](docs/resources/SPEC.md), [SPEC §8.3 Genesis](docs/resources/SPEC.md#83-genesis-block)
@@ -43,7 +44,9 @@ use chia_sha2::Sha256;
 use chia_streamable_macro::Streamable;
 use serde::{Deserialize, Serialize};
 
-use crate::constants::{DFSP_ACTIVATION_HEIGHT, EMPTY_ROOT, ZERO_HASH};
+use crate::constants::{
+    DFSP_ACTIVATION_HEIGHT, EMPTY_ROOT, MAX_BLOCK_SIZE, MAX_COST_PER_BLOCK, ZERO_HASH,
+};
 use crate::error::BlockError;
 use crate::primitives::{Bytes32, Cost, VERSION_V1, VERSION_V2};
 
@@ -186,6 +189,12 @@ impl L2BlockHeader {
     /// **Algorithm (Step 1):** `expected = `[`Self::protocol_version_for_height_with_activation`]`(height, dfsp_activation_height)`;
     /// reject with [`BlockError::InvalidVersion`] when `version != expected` ([structural_validation NORMATIVE](docs/requirements/domains/structural_validation/NORMATIVE.md#svl-001-header-version-check)).
     ///
+    /// **SVL-003 / SPEC §5.1 Steps 3–4:** After SVL-001/002 succeed, reject if `total_cost > `[`MAX_COST_PER_BLOCK`]` with
+    /// [`BlockError::CostExceeded`], then if `block_size > `[`MAX_BLOCK_SIZE`]` with [`BlockError::TooLarge`]. **Order matters:**
+    /// cost is checked first so an over-budget header returns `CostExceeded` even when `block_size` is also illegal
+    /// ([SVL-003 spec](docs/requirements/domains/structural_validation/specs/SVL-003.md) — declared header fields only; SVL-006
+    /// re-verifies actual serialized size against the body).
+    ///
     /// **Production:** Prefer [`Self::validate`], which passes [`DFSP_ACTIVATION_HEIGHT`](crate::constants::DFSP_ACTIVATION_HEIGHT)
     /// (BLK-005 sentinel `u64::MAX` ⇒ always expect [`VERSION_V1`](crate::primitives::VERSION_V1) until governance changes the constant).
     /// This method stays **public** so tests can simulate a finite fork height without recompiling the crate.
@@ -217,14 +226,28 @@ impl L2BlockHeader {
                 }
             }
         }
+        // SVL-003: strict `>` so values exactly at the limit pass (spec acceptance + ERR-001 semantics).
+        if self.total_cost > MAX_COST_PER_BLOCK {
+            return Err(BlockError::CostExceeded {
+                cost: self.total_cost,
+                max: MAX_COST_PER_BLOCK,
+            });
+        }
+        if self.block_size > MAX_BLOCK_SIZE {
+            return Err(BlockError::TooLarge {
+                size: self.block_size,
+                max: MAX_BLOCK_SIZE,
+            });
+        }
         Ok(())
     }
 
     /// Tier 1 header structural validation using crate-wide constants ([SVL-*](docs/requirements/domains/structural_validation/NORMATIVE.md)).
     ///
     /// **Current steps:** [SVL-001](docs/requirements/domains/structural_validation/specs/SVL-001.md) (version),
-    /// [SVL-002](docs/requirements/domains/structural_validation/specs/SVL-002.md) (DFSP roots before activation) — cost/size
-    /// and timestamp checks follow in implementation order ([SVL-003](docs/requirements/domains/structural_validation/specs/SVL-003.md), [SVL-004](docs/requirements/domains/structural_validation/specs/SVL-004.md)).
+    /// [SVL-002](docs/requirements/domains/structural_validation/specs/SVL-002.md) (DFSP roots before activation),
+    /// [SVL-003](docs/requirements/domains/structural_validation/specs/SVL-003.md) (cost/size caps on declared header fields).
+    /// Timestamp bound ([SVL-004](docs/requirements/domains/structural_validation/specs/SVL-004.md)) follows in implementation order.
     pub fn validate(&self) -> Result<(), BlockError> {
         self.validate_with_dfsp_activation(DFSP_ACTIVATION_HEIGHT)?;
         Ok(())
