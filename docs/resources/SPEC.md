@@ -696,7 +696,7 @@ pub enum BlockError {
     InvalidData(String),
 
     /// Block version does not match expected version for its height.
-    InvalidVersion(u16),
+    InvalidVersion { expected: u16, actual: u16 },
 
     /// Serialized block size exceeds MAX_BLOCK_SIZE.
     TooLarge { size: usize, max: usize },

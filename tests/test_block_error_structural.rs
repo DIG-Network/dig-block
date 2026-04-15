@@ -33,13 +33,18 @@ fn err001_invalid_data_display_contains_message() {
     assert!(s.contains("test"), "{}", s);
 }
 
-/// **Test plan:** `test_invalid_version` — version mismatches are numeric; Display must surface the raw `u16` for quick grep in logs.
+/// **Test plan:** `test_invalid_version` — SVL-001 uses [`BlockError::InvalidVersion`] with **expected** vs **actual** protocol
+/// versions; Display must surface both `u16` values for logs and alerts ([ERR-001](docs/requirements/domains/error_types/specs/ERR-001.md)).
 #[test]
-fn err001_invalid_version_display_contains_discriminant() {
-    let e = BlockError::InvalidVersion(99);
+fn err001_invalid_version_display_contains_expected_and_actual() {
+    let e = BlockError::InvalidVersion {
+        expected: 1,
+        actual: 99,
+    };
     let s = e.to_string();
     assert!(s.contains("invalid version"), "{}", s);
-    assert!(s.contains("99"), "{}", s);
+    assert!(s.contains("99"), "actual version should appear: {}", s);
+    assert!(s.contains('1'), "expected version should appear: {}", s);
 }
 
 /// **Test plan:** `test_too_large` — both observed `size` and protocol `max` appear so operators can see how far over the limit a blob is ([`BlockError::TooLarge`]).
@@ -183,6 +188,9 @@ fn err001_implements_std_error() {
 /// **Acceptance (ERR-001 + API ergonomics):** [`Clone`] lets validation pipelines fork [`BlockError`] into multiple branches (e.g. parallel checks) without allocating new strings for every copy.
 #[test]
 fn err001_block_error_is_clone() {
-    let e = BlockError::InvalidVersion(2);
+    let e = BlockError::InvalidVersion {
+        expected: 1,
+        actual: 2,
+    };
     assert_eq!(e.to_string(), e.clone().to_string());
 }

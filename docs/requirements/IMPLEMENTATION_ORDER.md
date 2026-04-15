@@ -66,7 +66,7 @@ After completing a requirement: write tests, verify they pass, update TRACKING.y
 
 ## Phase 6: Structural Validation (Tier 1)
 
-- [ ] SVL-001 — Header validation: version check
+- [x] SVL-001 — Header validation: version check
 - [ ] SVL-002 — Header validation: DFSP root pre-activation check
 - [ ] SVL-003 — Header validation: cost and size limit checks
 - [ ] SVL-004 — Header validation: timestamp future bound (MAX_FUTURE_TIMESTAMP_SECONDS)

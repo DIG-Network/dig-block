@@ -9,7 +9,7 @@ items:
     spec_ref: "SPEC.md#section-41"
     tests:
       - tests/test_block_error_structural.rs
-    notes: ""
+    notes: "InvalidVersion { expected, actual } — SVL-001 / header version check."
   - id: ERR-002
     section: "4.1"
     summary: "BlockError Execution and State Variants"

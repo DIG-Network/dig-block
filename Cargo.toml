@@ -230,6 +230,11 @@ path = "tests/test_hsh_006_filter_hash.rs"
 name = "hsh_008_receipts_root"
 path = "tests/test_hsh_008_receipts_root.rs"
 
+# SVL-001: header version vs height / DFSP activation (SPEC §5.1 Step 1).
+[[test]]
+name = "svl_001_header_version_check"
+path = "tests/test_svl_001_header_version_check.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"

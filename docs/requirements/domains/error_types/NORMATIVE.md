@@ -11,7 +11,7 @@
 BlockError MUST define variants for structural validation (Tier 1):
 
 - `InvalidData(String)` - generic invalid data
-- `InvalidVersion(u16)` - unsupported protocol version
+- `InvalidVersion { expected: u16, actual: u16 }` - header version does not match height / DFSP activation (SVL-001)
 - `TooLarge { size, max }` - block exceeds maximum size
 - `CostExceeded { cost, max }` - block exceeds cost budget
 - `SpendBundleCountMismatch { header, actual }` - header count does not match actual bundle count
