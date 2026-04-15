@@ -74,9 +74,11 @@ items:
   - id: BLD-007
     section: "1.1, 12.2"
     summary: Builder Structural Validity Guarantee
-    status: Not Started
+    status: implemented
     spec_ref: specs/BLD-007.md
-    tests: []
+    tests:
+      - tests/test_bld_007_builder_validity_guarantee.rs
     notes: >
-      Any block produced by build() must pass validate_structure().
-      Embodies the "build correct, validate everything" design principle.
+      Every Ok(build) output passes validate_structure() (SVL-005/006); EmptyBlock excludes zero-spend case.
+      Integration matrix: single/multi bundle, slash, BLD-004 optionals, V1 default activation, V2 via
+      build_with_dfsp_activation; empty-body structural reference uses sync_block_header helper.

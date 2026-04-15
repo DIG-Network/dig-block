@@ -32,8 +32,8 @@
 //! - **Signing:** [`chia_bls::verify`] on `header.hash()`, [`dig_block::MockBlockSigner`], and
 //!   [`dig_block::L2Block::proposer_signature`] in the full-pipeline test; dedicated BLD-006 coverage lives in
 //!   `tests/test_bld_006_block_signer_integration.rs`.
-//! - **Structural tier:** [`dig_block::L2Block::validate_structure`] returns `Ok` — forward-looking proof obligation
-//!   for BLD-007 (builder output is SVL-005/006-consistent when only builder APIs were used).
+//! - **Structural tier:** [`dig_block::L2Block::validate_structure`] on the success path — full BLD-007 matrix lives in
+//!   `tests/test_bld_007_builder_validity_guarantee.rs`.
 //!
 //! **Tooling:** Repomix packs under `.repomix/` for `src/`, `tests/`, `docs/requirements/domains/block_production`.
 //! `npx gitnexus impact BlockBuilder` → **LOW** (no upstream crate callers at index time).

@@ -108,7 +108,7 @@ MUST reject with `BuilderError::MissingDfspRoots` if DFSP roots are required but
 
 ### BLD-007: Builder Structural Validity Guarantee
 
-Any `L2Block` produced by `BlockBuilder.build()` MUST pass `L2Block::validate_structure()` without error.
+Any `L2Block` **successfully returned** from `BlockBuilder::build()` / `build_with_dfsp_activation()` (i.e. `Ok(block)` — at least one spend bundle per BLD-005) MUST pass `L2Block::validate_structure()` without error.
 
 The builder computes all derived fields correctly by construction. This is the "build correct, validate everything" design principle.
 
