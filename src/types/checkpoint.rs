@@ -92,26 +92,49 @@ impl Checkpoint {
         stake_percentage * u64::from(self.block_count)
     }
 
-    /// Canonical checkpoint identity: SHA-256 over **160 bytes** in [SPEC §3.2](docs/resources/SPEC.md) field order.
+    /// Byte length of the SHA-256 preimage for [`Self::hash`] ([SPEC §3.2](docs/resources/SPEC.md): 8+32+32+4+8+8+32+32+4).
+    pub const HASH_PREIMAGE_LEN: usize = 160;
+
+    /// Fixed-order **160-byte** preimage for [HSH-002](docs/requirements/domains/hashing/specs/HSH-002.md) /
+    /// [SPEC §3.2](docs/resources/SPEC.md) (same bytes as fed to [`Self::hash`]).
+    ///
+    /// **Order:** `epoch`, `state_root`, `block_root`, `block_count`, `tx_count`, `total_fees`, `prev_checkpoint`,
+    /// `withdrawals_root`, `withdrawal_count`.
+    ///
+    /// **Note:** [HSH-002 spec](docs/requirements/domains/hashing/specs/HSH-002.md) pseudocode lists some counts as `u64`;
+    /// the wire table in SPEC §3.2 and this struct use `u32` LE for `block_count` and `withdrawal_count` (4 bytes each).
+    #[must_use]
+    pub fn hash_preimage_bytes(&self) -> [u8; Self::HASH_PREIMAGE_LEN] {
+        fn put(buf: &mut [u8; Checkpoint::HASH_PREIMAGE_LEN], i: &mut usize, bytes: &[u8]) {
+            buf[*i..*i + bytes.len()].copy_from_slice(bytes);
+            *i += bytes.len();
+        }
+        let mut buf = [0u8; Self::HASH_PREIMAGE_LEN];
+        let mut i = 0usize;
+        put(&mut buf, &mut i, &self.epoch.to_le_bytes());
+        put(&mut buf, &mut i, self.state_root.as_ref());
+        put(&mut buf, &mut i, self.block_root.as_ref());
+        put(&mut buf, &mut i, &self.block_count.to_le_bytes());
+        put(&mut buf, &mut i, &self.tx_count.to_le_bytes());
+        put(&mut buf, &mut i, &self.total_fees.to_le_bytes());
+        put(&mut buf, &mut i, self.prev_checkpoint.as_ref());
+        put(&mut buf, &mut i, self.withdrawals_root.as_ref());
+        put(&mut buf, &mut i, &self.withdrawal_count.to_le_bytes());
+        debug_assert_eq!(i, Self::HASH_PREIMAGE_LEN);
+        buf
+    }
+
+    /// Canonical checkpoint identity: SHA-256 over [`Self::hash_preimage_bytes`] ([SPEC §3.2](docs/resources/SPEC.md)).
     ///
     /// **Encoding:** `epoch`, `tx_count`, `total_fees` as `u64` LE; `block_count`, `withdrawal_count` as `u32` LE
     /// (4 bytes each); four [`Bytes32`] roots as raw 32-byte slices ([HSH-002](docs/requirements/domains/hashing/specs/HSH-002.md),
     /// [NORMATIVE § HSH-002](docs/requirements/domains/hashing/NORMATIVE.md)).
     ///
-    /// **Primitive:** [`Sha256`] from `chia-sha2` only (project crypto rules). Dedicated HSH-002 property tests may live
-    /// under `tests/hashing/` when that requirement is tracked separately; [`CheckpointSubmission::hash`](CheckpointSubmission::hash) delegates here ([CKP-005](docs/requirements/domains/checkpoint/specs/CKP-005.md)).
+    /// **Primitive:** [`Sha256`] from `chia-sha2` only (project crypto rules). [`CheckpointSubmission::hash`](CheckpointSubmission::hash) delegates here ([CKP-005](docs/requirements/domains/checkpoint/specs/CKP-005.md)).
     #[must_use]
     pub fn hash(&self) -> Bytes32 {
         let mut hasher = Sha256::new();
-        hasher.update(self.epoch.to_le_bytes());
-        hasher.update(self.state_root.as_ref());
-        hasher.update(self.block_root.as_ref());
-        hasher.update(self.block_count.to_le_bytes());
-        hasher.update(self.tx_count.to_le_bytes());
-        hasher.update(self.total_fees.to_le_bytes());
-        hasher.update(self.prev_checkpoint.as_ref());
-        hasher.update(self.withdrawals_root.as_ref());
-        hasher.update(self.withdrawal_count.to_le_bytes());
+        hasher.update(self.hash_preimage_bytes());
         Bytes32::new(hasher.finalize())
     }
 }

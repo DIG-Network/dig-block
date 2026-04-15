@@ -13,9 +13,10 @@ items:
   - id: HSH-002
     section: "3.2"
     summary: "Checkpoint Hash"
-    status: gap
+    status: implemented
     spec_ref: "SPEC.md#section-32"
-    tests: []
+    tests:
+      - tests/test_hsh_002_checkpoint_hash.rs
     notes: ""
   - id: HSH-003
     section: "3.3"
