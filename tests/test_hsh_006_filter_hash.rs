@@ -18,7 +18,7 @@
 //! - **`hsh006_membership_negative_unlikely_element`:** A 32-byte value not inserted — expect **no** match (BIP-158 allows false
 //!   positives; we pick an all-zero pattern unrelated to the small fixture set; if this ever flakes, widen Hamming distance).
 //! - **`hsh006_deterministic_repeat`:** Same inputs ⇒ same digest.
-//! - **`hsh006_l2block_delegates`:** [`L2Block::compute_filter_hash`] equals `compute_filter_hash(hash(), &additions, &removals)`.
+//! - **`hsh006_l2block_delegates`:** [`L2Block::compute_filter_hash`] equals `compute_filter_hash(parent_hash, &additions, &removals)`.
 //!
 //! **Layout:** Flat `tests/` ([STR-002](docs/requirements/domains/crate_structure/specs/STR-002.md)).  
 //! **SocratiCode:** Not used in this environment (no MCP).
@@ -205,6 +205,6 @@ fn hsh006_l2block_delegates() {
     let rems = block.all_removals();
     assert_eq!(
         block.compute_filter_hash(),
-        compute_filter_hash(block.hash(), &adds, &rems)
+        compute_filter_hash(block.header.parent_hash, &adds, &rems)
     );
 }

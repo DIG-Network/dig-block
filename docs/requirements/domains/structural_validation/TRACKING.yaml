@@ -63,9 +63,11 @@ items:
   - id: SVL-006
     section: "5.2 Steps 3, 6-15"
     summary: Block Merkle Root and Integrity Checks
-    status: Not Started
+    status: implemented
     spec_ref: specs/SVL-006.md
-    tests: []
+    tests:
+      - tests/test_svl_006_merkle_root_integrity.rs
     notes: >
-      Ten sub-checks covering Merkle roots, duplicate outputs,
-      double spends, slash proposal limits, filter hash, and size.
+      L2Block::validate_structure: spends_root, DuplicateOutput, DoubleSpendInBlock, additions/removals roots,
+      filter_hash (BIP158 via parent_hash per SPEC §6.4), slash count/payload/root, bincode size vs MAX_BLOCK_SIZE.
+      Integration tests use sync_block_header_for_validate_structure in tests/common.rs for coherent headers.

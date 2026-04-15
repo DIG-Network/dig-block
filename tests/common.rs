@@ -177,3 +177,36 @@ pub fn test_coin_state(coin: Coin, created_height: u32, spent_height: Option<u32
         spent_height,
     }
 }
+
+// ---------------------------------------------------------------------------
+// Structural validation fixtures (SVL-005 / SVL-006)
+// ---------------------------------------------------------------------------
+
+/// Recompute SVL-005 **count** fields and SVL-006 **Merkle / filter / slash-root / block_size** header fields from the
+/// current [`L2Block`] body so [`L2Block::validate_structure`] can return `Ok` when the body is otherwise coherent.
+///
+/// **Rationale:** After [SVL-006](docs/requirements/domains/structural_validation/specs/SVL-006.md), `validate_structure`
+/// checks body-derived roots and bincode size — tests that only adjusted counts (SVL-005 era) must call this helper
+/// (or an equivalent) so headers stay consistent with spends and slash payloads. `filter_hash` uses
+/// [`L2Block::compute_filter_hash`] (BIP158 keyed by [`L2BlockHeader::parent_hash`]) so it can be assigned in one pass
+/// once Merkle roots and counts are correct.
+///
+/// **Does not** set `receipts_root`, `state_root`, fee/cost/timestamp, or DFSP fields — use for structural-tier tests
+/// that focus on counts + Merkle integrity only.
+pub fn sync_block_header_for_validate_structure(b: &mut L2Block) {
+    b.header.spend_bundle_count = u32::try_from(b.spend_bundles.len()).unwrap_or(u32::MAX);
+    b.header.additions_count = u32::try_from(b.all_additions().len()).unwrap_or(u32::MAX);
+    b.header.removals_count = b
+        .spend_bundles
+        .iter()
+        .map(|sb| u32::try_from(sb.coin_spends.len()).unwrap_or(u32::MAX))
+        .sum();
+    b.header.slash_proposal_count =
+        u32::try_from(b.slash_proposal_payloads.len()).unwrap_or(u32::MAX);
+    b.header.spends_root = b.compute_spends_root();
+    b.header.additions_root = b.compute_additions_root();
+    b.header.removals_root = b.compute_removals_root();
+    b.header.slash_proposals_root = b.compute_slash_proposals_root();
+    b.header.filter_hash = b.compute_filter_hash();
+    b.header.block_size = u32::try_from(b.compute_size()).unwrap_or(u32::MAX);
+}

@@ -213,8 +213,9 @@ pub fn compact_block_filter_encoded(
 /// **SipHash keys:** First 8 + next 8 bytes (LE `u64`) of `block_identity` — same as [`bip158_filter_encoded`] /
 /// Bitcoin [`GcsFilterWriter`](bitcoin::bip158::GcsFilterWriter) initialization used in this crate.
 ///
-/// **Callers:** [`crate::L2Block::compute_filter_hash`](crate::L2Block::compute_filter_hash) passes [`L2Block::hash`] as
-/// `block_identity` so the filter is keyed to the block’s canonical header id.
+/// **Callers:** [`crate::L2Block::compute_filter_hash`](crate::L2Block::compute_filter_hash) passes
+/// [`crate::L2BlockHeader::parent_hash`](crate::types::header::L2BlockHeader::parent_hash) as `block_identity` (SPEC §6.4;
+/// avoids circular dependence on the committed `filter_hash` inside [`L2Block::hash`](crate::L2Block::hash)).
 #[must_use]
 pub fn compute_filter_hash(
     block_identity: Bytes32,

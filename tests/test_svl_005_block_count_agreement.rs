@@ -3,16 +3,17 @@
 //! [NORMATIVE — SVL-005](docs/requirements/domains/structural_validation/NORMATIVE.md#svl-005-block-count-agreement)).
 //!
 //! **Spec + test plan:** `docs/requirements/domains/structural_validation/specs/SVL-005.md`  
-//! **Implementation:** [`dig_block::L2Block::validate_structure`] — `src/types/block.rs` (count phase; SVL-006 extends with Merkle/integrity).  
+//! **Implementation:** [`dig_block::L2Block::validate_structure`] — `src/types/block.rs` (SVL-005 counts then SVL-006 Merkle/integrity).  
 //! **Errors:** [`dig_block::BlockError::SpendBundleCountMismatch`], [`AdditionsCountMismatch`], [`RemovalsCountMismatch`],
 //! [`SlashProposalCountMismatch`] ([ERR-001](docs/requirements/domains/error_types/specs/ERR-001.md)) — each carries
 //! `header` (declared) and `actual` (computed) `u32` values.
 //!
 //! ## How these tests prove SVL-005
 //!
-//! - **`svl005_zero_counts_match_empty_block`:** Empty vectors with all header counts at **0** ⇒ `Ok` (spec `test_zero_counts_match_empty_block`).
-//! - **`svl005_all_counts_match_one_bundle`:** One real [`SpendBundle`] from the Chia-style hex fixture (same pattern as
-//!   BLK-004 tests); header counts are set to the **true** derived values so all four gates pass together.
+//! - **`svl005_zero_counts_match_empty_block`:** Empty body; [`common::sync_block_header_for_validate_structure`] aligns
+//!   counts **and** SVL-006 commitments (`filter_hash`, `block_size`, …) so `Ok` reflects the full Tier-1 block path.
+//! - **`svl005_all_counts_match_one_bundle`:** One real [`SpendBundle`] from the Chia-style hex fixture; sync helper
+//!   mirrors what a honest producer would commit in the header after SVL-006.
 //! - **Mismatch tests:** clone that consistent header, poison **one** count at a time, expect the **distinct** error
 //!   variant with matching `header` / `actual` fields — proving each counter is enforced independently and diagnostics
 //!   stay structured.
@@ -20,12 +21,14 @@
 //! **Flat test path:** `tests/test_svl_005_block_count_agreement.rs` per [STR-002](docs/requirements/domains/crate_structure/specs/STR-002.md)
 //! (not `tests/structural_validation/…` from the spec prose).
 //!
-//! **Tooling:** Repomix packs under `.repomix/` were regenerated before edits. GitNexus CLI was not usable in this
-//! session (`npx gitnexus` npm failure); blast radius was checked with repository search — only [`validate_structure`]
-//! is new on [`L2Block`], and three [`BlockError`] variants gained fields (callers updated in-repo).
+//! **Tooling:** Repomix packs under `.repomix/` were regenerated before edits. GitNexus CLI may be unavailable on some
+//! Windows/npm installs; blast radius for `validate_structure` was verified via repository search when CLI fails.
+
+mod common;
 
 use chia_bls::G2Element;
 use chia_protocol::{Coin, CoinSpend, Program, SpendBundle};
+use common::sync_block_header_for_validate_structure;
 use dig_block::{BlockError, Bytes32, Cost, L2Block, L2BlockHeader, Signature, EMPTY_ROOT};
 
 /// Inert header base: counts and roots are adjusted per test; height/version follow [`L2BlockHeader::new`] rules.
@@ -89,9 +92,10 @@ fn spend_single_create_hex_coin() -> SpendBundle {
 #[test]
 fn svl005_zero_counts_match_empty_block() {
     let h = base_header(0, 0, 0, 0);
-    let b = L2Block::new(h, vec![], vec![], Signature::default());
+    let mut b = L2Block::new(h, vec![], vec![], Signature::default());
+    sync_block_header_for_validate_structure(&mut b);
     b.validate_structure()
-        .expect("empty body with zero header counts must pass SVL-005");
+        .expect("empty body with synced header must pass SVL-005 and SVL-006");
 }
 
 /// Block with one fixture bundle and header counts matching [`L2Block::all_additions`] / coin-spend / slash lengths.
@@ -113,6 +117,7 @@ fn consistent_one_bundle_block() -> L2Block {
     b.header.additions_count = additions;
     b.header.removals_count = removals;
     b.header.slash_proposal_count = 0;
+    sync_block_header_for_validate_structure(&mut b);
     b
 }
 

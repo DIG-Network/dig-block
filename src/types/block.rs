@@ -5,7 +5,7 @@
 //! - [HSH-003](docs/requirements/domains/hashing/specs/HSH-003.md) — [`crate::compute_spends_root`] (spends Merkle root)
 //! - [HSH-004](docs/requirements/domains/hashing/specs/HSH-004.md) — [`crate::compute_additions_root`] (additions Merkle set)
 //! - [HSH-005](docs/requirements/domains/hashing/specs/HSH-005.md) — [`crate::compute_removals_root`] (removals Merkle set)
-//! - [HSH-006](docs/requirements/domains/hashing/specs/HSH-006.md) — [`crate::compute_filter_hash`] (BIP-158 compact filter)
+//! - [HSH-006](docs/requirements/domains/hashing/specs/HSH-006.md) — [`crate::compute_filter_hash`] (BIP-158; [`L2Block::compute_filter_hash`] keys SipHash with [`L2BlockHeader::parent_hash`] per SPEC §6.4)
 //! - [BLK-004](docs/requirements/domains/block_types/specs/BLK-004.md) — Merkle roots, BIP158 `filter_hash` preimage,
 //!   additions/removals collectors, duplicate / double-spend probes, serialized size
 //! - [SVL-005](docs/requirements/domains/structural_validation/specs/SVL-005.md) — header/body **count agreement**
@@ -32,6 +32,7 @@ use super::header::L2BlockHeader;
 use crate::error::BlockError;
 use crate::merkle_util::{empty_on_additions_err, merkle_tree_root, slash_leaf_hash};
 use crate::primitives::{Bytes32, Signature};
+use crate::{MAX_BLOCK_SIZE, MAX_SLASH_PROPOSALS_PER_BLOCK, MAX_SLASH_PROPOSAL_PAYLOAD_BYTES};
 
 /// Complete L2 block: header plus body (spend bundles, slash payloads) and proposer attestation.
 ///
@@ -125,13 +126,18 @@ impl L2Block {
 
     /// BIP-158 compact filter hash ([HSH-006](docs/requirements/domains/hashing/specs/HSH-006.md), SPEC §3.6).
     ///
-    /// **Delegation:** [`crate::compute_filter_hash`] with `block_identity = `[`Self::hash`] and body-derived
-    /// [`Self::all_additions`] / [`Self::all_removals`] slices.
+    /// **Delegation:** [`crate::compute_filter_hash`] with body-derived [`Self::all_additions`] /
+    /// [`Self::all_removals`] slices.
+    ///
+    /// **BIP158 key (`block_identity` argument):** [`Self::header`]'s [`L2BlockHeader::parent_hash`] — stable while the
+    /// filter field is being filled and matches SPEC §6.4’s `filter_hash = compute_filter_hash(additions, removals)` build
+    /// step (no self-referential [`Self::hash`] dependency). SipHash keys are the first 16 bytes of that parent digest
+    /// ([`crate::merkle_util::bip158_filter_encoded`]).
     #[must_use]
     pub fn compute_filter_hash(&self) -> Bytes32 {
         let additions = self.all_additions();
         let removals = self.all_removals();
-        crate::compute_filter_hash(self.hash(), &additions, &removals)
+        crate::compute_filter_hash(self.header.parent_hash, &additions, &removals)
     }
 
     /// Binary Merkle root over slash payload digests (`sha256` each), in payload order.
@@ -207,18 +213,21 @@ impl L2Block {
 
     /// Tier 1 **structural** validation: cheap consistency checks that need no chain state ([SPEC §5.2](docs/resources/SPEC.md)).
     ///
-    /// **Current scope — [SVL-005](docs/requirements/domains/structural_validation/specs/SVL-005.md):** the four header
-    /// counters `spend_bundle_count`, `additions_count`, `removals_count`, and `slash_proposal_count` MUST equal the
-    /// counts implied by `spend_bundles`, flattened CLVM additions ([`Self::all_additions`]), total [`CoinSpend`] rows,
-    /// and `slash_proposal_payloads` respectively. Order matches the spec’s fail-fast intent: spend-bundle cardinality
-    /// first, then additions/removals derived from spends, then slash payload count.
+    /// **SVL-005** ([spec](docs/requirements/domains/structural_validation/specs/SVL-005.md)): header counters
+    /// `spend_bundle_count`, `additions_count`, `removals_count`, and `slash_proposal_count` MUST match the body
+    /// (`spend_bundles`, [`Self::all_additions`], total [`CoinSpend`] rows, `slash_proposal_payloads`).
     ///
-    /// **Not yet implemented here (SVL-006):** Merkle root recomputation, duplicate/double-spend probes, slash byte caps,
-    /// filter hash, and bincode size vs [`crate::MAX_BLOCK_SIZE`]. Callers should treat `Ok(())` today as “counts only”
-    /// unless SVL-006 is merged—see [structural_validation NORMATIVE](docs/requirements/domains/structural_validation/NORMATIVE.md).
+    /// **SVL-006** ([spec](docs/requirements/domains/structural_validation/specs/SVL-006.md)): after counts, enforces
+    /// Merkle commitments and integrity in **SPEC §5.2** order: `spends_root` → duplicate outputs (Chia check 13) →
+    /// double spends (check 14) → `additions_root` / `removals_root` → BIP158 `filter_hash` → slash count and per-payload
+    /// byte caps → `slash_proposals_root` → full-block bincode size vs [`crate::MAX_BLOCK_SIZE`]. All hashing reuses
+    /// [`Self::compute_spends_root`], [`Self::compute_additions_root`], [`Self::compute_removals_root`],
+    /// [`Self::compute_filter_hash`], [`Self::compute_slash_proposals_root`] so validation stays aligned with HSH-003–006
+    /// and BLK-004.
     ///
-    /// **Rationale:** Keeping count agreement separate from Merkle work lets invalid headers fail without hashing large
-    /// bodies; [`crate::validation::structural`](crate::validation::structural) documents the full SVL matrix.
+    /// **Rationale:** Count checks stay first (cheap, fail-fast); Merkle and filter work only after cardinality is sane;
+    /// serialized-size is last so malicious oversized bodies still pay for earlier checks where applicable.
+    /// [`crate::validation::structural`](crate::validation::structural) indexes the SVL matrix.
     pub fn validate_structure(&self) -> Result<(), BlockError> {
         let actual_spend_bundles = u32_len(self.spend_bundles.len());
         if self.header.spend_bundle_count != actual_spend_bundles {
@@ -254,6 +263,67 @@ impl L2Block {
             return Err(BlockError::SlashProposalCountMismatch {
                 header: self.header.slash_proposal_count,
                 actual: actual_slash,
+            });
+        }
+
+        // --- SVL-006: Merkle roots + integrity (SPEC §5.2 steps 3, 6–15) ---
+        // Step 3 — spends_root (HSH-003)
+        let computed_spends_root = self.compute_spends_root();
+        if self.header.spends_root != computed_spends_root {
+            return Err(BlockError::InvalidSpendsRoot {
+                expected: self.header.spends_root,
+                computed: computed_spends_root,
+            });
+        }
+
+        // Steps 6–7 — duplicate outputs / double spends (Chia checks 13–14; BLK-004 probes)
+        if let Some(coin_id) = self.has_duplicate_outputs() {
+            return Err(BlockError::DuplicateOutput { coin_id });
+        }
+        if let Some(coin_id) = self.has_double_spends() {
+            return Err(BlockError::DoubleSpendInBlock { coin_id });
+        }
+
+        // Steps 8–9 — additions / removals Merkle sets (HSH-004 / HSH-005)
+        let computed_additions_root = self.compute_additions_root();
+        if self.header.additions_root != computed_additions_root {
+            return Err(BlockError::InvalidAdditionsRoot);
+        }
+        let computed_removals_root = self.compute_removals_root();
+        if self.header.removals_root != computed_removals_root {
+            return Err(BlockError::InvalidRemovalsRoot);
+        }
+
+        // Step 10 — BIP158 filter (HSH-006)
+        let computed_filter_hash = self.compute_filter_hash();
+        if self.header.filter_hash != computed_filter_hash {
+            return Err(BlockError::InvalidFilterHash);
+        }
+
+        // Steps 11–12 — slash proposal policy ([`MAX_SLASH_PROPOSALS_PER_BLOCK`], [`MAX_SLASH_PROPOSAL_PAYLOAD_BYTES`])
+        if self.slash_proposal_payloads.len() > MAX_SLASH_PROPOSALS_PER_BLOCK as usize {
+            return Err(BlockError::TooManySlashProposals);
+        }
+        let max_payload = MAX_SLASH_PROPOSAL_PAYLOAD_BYTES as usize;
+        for payload in &self.slash_proposal_payloads {
+            if payload.len() > max_payload {
+                return Err(BlockError::SlashProposalPayloadTooLarge);
+            }
+        }
+
+        // Step 14 — slash proposals Merkle root (BLK-004 / header field)
+        let computed_slash_root = self.compute_slash_proposals_root();
+        if self.header.slash_proposals_root != computed_slash_root {
+            return Err(BlockError::InvalidSlashProposalsRoot);
+        }
+
+        // Step 15 — actual serialized block size (bincode), independent of header `block_size` (SVL-003 caps declared field)
+        let serialized_size = self.compute_size();
+        if serialized_size > MAX_BLOCK_SIZE as usize {
+            let size_u32 = u32::try_from(serialized_size).unwrap_or(u32::MAX);
+            return Err(BlockError::TooLarge {
+                size: size_u32,
+                max: MAX_BLOCK_SIZE,
             });
         }
 
