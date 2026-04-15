@@ -39,8 +39,8 @@
 //!
 //! ## Status
 //!
-//! **BLD-001**–**BLD-003** are implemented (`new`, `add_spend_bundle`, `add_slash_proposal`, helpers). **`set_*` /
-//! `build`** follow in BLD-004 — BLD-007.
+//! **BLD-001**–**BLD-004** are implemented (`new`, body accumulation, optional header setters). **`build`** follows in
+//! BLD-005 — BLD-007.
 
 use bincode;
 use chia_protocol::{Coin, SpendBundle};
@@ -52,14 +52,16 @@ use crate::types::block::L2Block;
 use crate::types::header::L2BlockHeader;
 use crate::{
     EMPTY_ROOT, MAX_BLOCK_SIZE, MAX_COST_PER_BLOCK, MAX_SLASH_PROPOSALS_PER_BLOCK,
-    MAX_SLASH_PROPOSAL_PAYLOAD_BYTES,
+    MAX_SLASH_PROPOSAL_PAYLOAD_BYTES, ZERO_HASH,
 };
 
 /// Incremental accumulator for a single L2 block body and header metadata ([SPEC §6.1–6.2](docs/resources/SPEC.md),
 /// [BLD-001](docs/requirements/domains/block_production/specs/BLD-001.md)).
 ///
-/// **Usage:** Construct with [`Self::new`], add spend bundles via [`Self::add_spend_bundle`] (BLD-002) and slash payloads
-/// via [`Self::add_slash_proposal`] (BLD-003), then call `build(...)` (BLD-005) to obtain a signed [`crate::L2Block`].
+/// **Usage:** Construct with [`Self::new`], optionally configure L1 proof anchors / DFSP roots / [`L2BlockHeader::extension_data`]
+/// via [`Self::set_l1_proofs`], [`Self::set_dfsp_roots`], [`Self::set_extension_data`] (BLD-004), add spend bundles via
+/// [`Self::add_spend_bundle`] (BLD-002) and slash payloads via [`Self::add_slash_proposal`] (BLD-003), then call
+/// `build(...)` (BLD-005) to obtain a signed [`crate::L2Block`].
 /// The struct exposes **public fields** so
 /// advanced callers or tests can inspect partial state without accessor boilerplate; treat them as read-mostly except
 /// through official builder methods once those exist.
@@ -95,6 +97,32 @@ pub struct BlockBuilder {
     pub additions: Vec<Coin>,
     /// Spent coin IDs (same bytes as `coin.coin_id()` / NORMATIVE `CoinId`).
     pub removals: Vec<Bytes32>,
+
+    // --- BLD-004: optional / deferred header fields (copied into [`L2BlockHeader`] in BLD-005) ---
+    /// L1 collateral proof anchor ([`L2BlockHeader::l1_collateral_coin_id`]); `None` until [`Self::set_l1_proofs`].
+    pub l1_collateral_coin_id: Option<Bytes32>,
+    /// Network validator collateral set anchor ([`L2BlockHeader::l1_reserve_coin_id`]).
+    pub l1_reserve_coin_id: Option<Bytes32>,
+    /// Previous-epoch finalizer proof coin ([`L2BlockHeader::l1_prev_epoch_finalizer_coin_id`]).
+    pub l1_prev_epoch_finalizer_coin_id: Option<Bytes32>,
+    /// Current-epoch finalizer proof coin ([`L2BlockHeader::l1_curr_epoch_finalizer_coin_id`]).
+    pub l1_curr_epoch_finalizer_coin_id: Option<Bytes32>,
+    /// Network singleton proof coin ([`L2BlockHeader::l1_network_coin_id`]).
+    pub l1_network_coin_id: Option<Bytes32>,
+
+    /// DFSP collateral registry root ([`L2BlockHeader::collateral_registry_root`]); defaults [`EMPTY_ROOT`] per SVL-002.
+    pub collateral_registry_root: Bytes32,
+    /// DFSP CID state root ([`L2BlockHeader::cid_state_root`]).
+    pub cid_state_root: Bytes32,
+    /// DFSP node registry root ([`L2BlockHeader::node_registry_root`]).
+    pub node_registry_root: Bytes32,
+    /// Namespace update delta root ([`L2BlockHeader::namespace_update_root`]).
+    pub namespace_update_root: Bytes32,
+    /// DFSP finalize commitment root ([`L2BlockHeader::dfsp_finalize_commitment_root`]).
+    pub dfsp_finalize_commitment_root: Bytes32,
+
+    /// Header extension slot ([`L2BlockHeader::extension_data`]); default [`ZERO_HASH`] matches [`L2BlockHeader::new`].
+    pub extension_data: Bytes32,
 }
 
 impl BlockBuilder {
@@ -124,22 +152,28 @@ impl BlockBuilder {
             total_fees: 0,
             additions: Vec::new(),
             removals: Vec::new(),
+            l1_collateral_coin_id: None,
+            l1_reserve_coin_id: None,
+            l1_prev_epoch_finalizer_coin_id: None,
+            l1_curr_epoch_finalizer_coin_id: None,
+            l1_network_coin_id: None,
+            collateral_registry_root: EMPTY_ROOT,
+            cid_state_root: EMPTY_ROOT,
+            node_registry_root: EMPTY_ROOT,
+            namespace_update_root: EMPTY_ROOT,
+            dfsp_finalize_commitment_root: EMPTY_ROOT,
+            extension_data: ZERO_HASH,
         }
     }
 
-    /// Serialized [`L2Block`] byte length if the body were `spend_bundles` plus this builder’s slash payloads.
+    /// Build a probe [`L2BlockHeader`] sharing this builder’s identity, L1 anchor, **optional L1 proofs**, **DFSP roots**,
+    /// and **extension** fields ([BLD-004](docs/requirements/domains/block_production/specs/BLD-004.md)).
     ///
-    /// **Rationale (BLD-002):** [`crate::L2Block::validate_structure`] and SVL-003 compare **full** `bincode(L2Block)`
-    /// against [`MAX_BLOCK_SIZE`](crate::MAX_BLOCK_SIZE). The builder does not yet have a final header (BLD-005), so we
-    /// synthesize a probe [`L2BlockHeader`] with **fixed-shape** fields only: identity scalars copied from
-    /// [`Self::new`], Merkle counters set to zero, roots set to [`EMPTY_ROOT`], and a default [`Signature`]. The
-    /// header’s bincode footprint is independent of those placeholder root values (same struct layout as production),
-    /// while the variable portion (`Vec<SpendBundle>`, `Vec<Vec<u8>>` slash payloads) matches what this builder will
-    /// eventually serialize — so the estimate tracks real growth in body bytes.
-    ///
-    /// **Related:** [`L2Block::compute_size`](crate::L2Block::compute_size) (BLK-004) uses the same `bincode` schema.
-    fn serialized_l2_block_probe_len(&self, spend_bundles: &[SpendBundle]) -> usize {
-        let header = L2BlockHeader::new(
+    /// **Rationale:** `bincode` encodes `Option<Bytes32>` with a discriminant — `Some(_)` rows are larger than `None`.
+    /// After BLD-004, [`Self::serialized_l2_block_probe_len`] must fold these fields in so [`Self::add_spend_bundle`]
+    /// (BLD-002) cannot underestimate wire size when proofs are present.
+    fn probe_header_stub(&self) -> L2BlockHeader {
+        let mut h = L2BlockHeader::new(
             self.height,
             self.epoch,
             self.parent_hash,
@@ -159,6 +193,31 @@ impl BlockBuilder {
             0,
             EMPTY_ROOT,
         );
+        h.l1_collateral_coin_id = self.l1_collateral_coin_id;
+        h.l1_reserve_coin_id = self.l1_reserve_coin_id;
+        h.l1_prev_epoch_finalizer_coin_id = self.l1_prev_epoch_finalizer_coin_id;
+        h.l1_curr_epoch_finalizer_coin_id = self.l1_curr_epoch_finalizer_coin_id;
+        h.l1_network_coin_id = self.l1_network_coin_id;
+        h.collateral_registry_root = self.collateral_registry_root;
+        h.cid_state_root = self.cid_state_root;
+        h.node_registry_root = self.node_registry_root;
+        h.namespace_update_root = self.namespace_update_root;
+        h.dfsp_finalize_commitment_root = self.dfsp_finalize_commitment_root;
+        h.extension_data = self.extension_data;
+        h
+    }
+
+    /// Serialized [`L2Block`] byte length if the body were `spend_bundles` plus this builder’s slash payloads.
+    ///
+    /// **Rationale (BLD-002):** [`crate::L2Block::validate_structure`] and SVL-003 compare **full** `bincode(L2Block)`
+    /// against [`MAX_BLOCK_SIZE`](crate::MAX_BLOCK_SIZE). The builder does not yet have a final header (BLD-005), so we
+    /// synthesize a probe header via [`Self::probe_header_stub`] (counts/ Merkle fields still placeholders), while the
+    /// variable body (`Vec<SpendBundle>`, `Vec<Vec<u8>>` slash payloads) matches this builder — so the estimate tracks
+    /// growth in spend + slash bytes **and** optional header encodings from BLD-004.
+    ///
+    /// **Related:** [`L2Block::compute_size`](crate::L2Block::compute_size) (BLK-004) uses the same `bincode` schema.
+    fn serialized_l2_block_probe_len(&self, spend_bundles: &[SpendBundle]) -> usize {
+        let header = self.probe_header_stub();
         let block = L2Block::new(
             header,
             spend_bundles.to_vec(),
@@ -268,5 +327,55 @@ impl BlockBuilder {
         }
         self.slash_proposal_payloads.push(payload);
         Ok(())
+    }
+
+    /// Set all five L1 proof anchor coin IDs at once ([BLD-004](docs/requirements/domains/block_production/specs/BLD-004.md)).
+    ///
+    /// **Semantics:** Each argument becomes `Some(hash)` on the builder, matching [`L2BlockHeader`]’s optional L1 proof
+    /// fields ([`L2BlockHeader::l1_collateral_coin_id`] … [`L2BlockHeader::l1_network_coin_id`]). Callers omitting L1
+    /// proofs should leave these as `None` (default from [`Self::new`]).
+    ///
+    /// **Overwrite:** Later calls replace the entire quintuple — there is no partial merge.
+    pub fn set_l1_proofs(
+        &mut self,
+        collateral: Bytes32,
+        reserve: Bytes32,
+        prev_finalizer: Bytes32,
+        curr_finalizer: Bytes32,
+        network_coin: Bytes32,
+    ) {
+        self.l1_collateral_coin_id = Some(collateral);
+        self.l1_reserve_coin_id = Some(reserve);
+        self.l1_prev_epoch_finalizer_coin_id = Some(prev_finalizer);
+        self.l1_curr_epoch_finalizer_coin_id = Some(curr_finalizer);
+        self.l1_network_coin_id = Some(network_coin);
+    }
+
+    /// Set all five DFSP data-layer Merkle roots ([BLD-004](docs/requirements/domains/block_production/specs/BLD-004.md)).
+    ///
+    /// **Semantics:** Mirrors [`L2BlockHeader`]’s DFSP root block ([`L2BlockHeader::collateral_registry_root`] …
+    /// [`L2BlockHeader::dfsp_finalize_commitment_root`]). Pre-activation callers typically keep [`EMPTY_ROOT`] values
+    /// (SVL-002); post-activation, pass real roots before `build()` (BLD-005 validates against version).
+    pub fn set_dfsp_roots(
+        &mut self,
+        collateral_registry_root: Bytes32,
+        cid_state_root: Bytes32,
+        node_registry_root: Bytes32,
+        namespace_update_root: Bytes32,
+        dfsp_finalize_commitment_root: Bytes32,
+    ) {
+        self.collateral_registry_root = collateral_registry_root;
+        self.cid_state_root = cid_state_root;
+        self.node_registry_root = node_registry_root;
+        self.namespace_update_root = namespace_update_root;
+        self.dfsp_finalize_commitment_root = dfsp_finalize_commitment_root;
+    }
+
+    /// Set the header extension hash ([BLD-004](docs/requirements/domains/block_production/specs/BLD-004.md)).
+    ///
+    /// **Semantics:** Stored as [`L2BlockHeader::extension_data`]; [`Self::new`] initializes to [`ZERO_HASH`] like
+    /// [`L2BlockHeader::new`].
+    pub fn set_extension_data(&mut self, extension_data: Bytes32) {
+        self.extension_data = extension_data;
     }
 }
