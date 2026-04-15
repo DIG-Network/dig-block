@@ -5,10 +5,11 @@ items:
   - id: HSH-001
     section: "3.1"
     summary: "Block Header Hash"
-    status: gap
+    status: implemented
     spec_ref: "SPEC.md#section-31"
-    tests: []
-    notes: ""
+    tests:
+      - tests/test_hsh_001_block_header_hash.rs
+    notes: "Preimage length 710 bytes (SPEC §3.1 table); legacy '626' figure in prose is incorrect."
   - id: HSH-002
     section: "3.2"
     summary: "Checkpoint Hash"

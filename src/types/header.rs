@@ -7,7 +7,8 @@
 //!   [NORMATIVE § BLK-002](docs/requirements/domains/block_types/NORMATIVE.md#blk-002-l2blockheader-constructors)
 //! - [BLK-007](docs/requirements/domains/block_types/specs/BLK-007.md) — version auto-detection /
 //!   [NORMATIVE](docs/requirements/domains/block_types/NORMATIVE.md) (BLK-007)
-//! - [HSH-001](docs/requirements/domains/hashing/specs/HSH-001.md) — header `hash()` (SPEC §3.1, 626 bytes)
+//! - [HSH-001](docs/requirements/domains/hashing/specs/HSH-001.md) — header `hash()` (SPEC §3.1 field order;
+//!   preimage length [`L2BlockHeader::HASH_PREIMAGE_LEN`])
 //! - [SPEC §2.2](docs/resources/SPEC.md), [SPEC §8.3 Genesis](docs/resources/SPEC.md#83-genesis-block)
 //!
 //! ## Usage
@@ -164,56 +165,81 @@ impl L2BlockHeader {
         Self::protocol_version_for_height_with_activation(height, DFSP_ACTIVATION_HEIGHT)
     }
 
-    /// Canonical block identity: SHA-256 over **626 bytes** in SPEC §3.1 field order.
+    /// Byte length of the fixed preimage fed to [`Self::hash`] (all 33 rows of [SPEC §3.1](docs/resources/SPEC.md)).
     ///
-    /// **Requirement:** [HSH-001](docs/requirements/domains/hashing/specs/HSH-001.md) /
-    /// [SPEC §3.1](docs/resources/SPEC.md). Numeric fields are little-endian; each optional L1 anchor
+    /// **Accounting:** 20×[`Bytes32`] fields + `u16` + 6×`u64` + 7×`u32` = 640 + 70 = **710** bytes.
+    /// The SPEC prose once said “626 bytes”; summing the §3.1 table yields **710** — this constant is authoritative for code.
+    pub const HASH_PREIMAGE_LEN: usize = 710;
+
+    /// Serialize the exact **710-byte** preimage for [HSH-001](docs/requirements/domains/hashing/specs/HSH-001.md) /
+    /// [SPEC §3.1](docs/resources/SPEC.md) (same order as [`Self::hash`]).
+    ///
+    /// **Usage:** Tests and debug tooling can diff preimages without re-deriving field order; [`Self::hash`] is
+    /// `SHA-256(self.hash_preimage_bytes())`.
+    ///
+    /// **Optionals:** Each `Option<Bytes32>` occupies 32 bytes: [`ZERO_HASH`] when `None`, raw bytes when `Some`.
+    pub fn hash_preimage_bytes(&self) -> [u8; Self::HASH_PREIMAGE_LEN] {
+        fn put(buf: &mut [u8; L2BlockHeader::HASH_PREIMAGE_LEN], i: &mut usize, bytes: &[u8]) {
+            buf[*i..*i + bytes.len()].copy_from_slice(bytes);
+            *i += bytes.len();
+        }
+        fn put_opt(buf: &mut [u8; L2BlockHeader::HASH_PREIMAGE_LEN], i: &mut usize, o: &Option<Bytes32>) {
+            let slice = match o {
+                Some(b) => b.as_ref(),
+                None => ZERO_HASH.as_ref(),
+            };
+            buf[*i..*i + 32].copy_from_slice(slice);
+            *i += 32;
+        }
+        let mut buf = [0u8; Self::HASH_PREIMAGE_LEN];
+        let mut i = 0usize;
+        put(&mut buf, &mut i, &self.version.to_le_bytes());
+        put(&mut buf, &mut i, &self.height.to_le_bytes());
+        put(&mut buf, &mut i, &self.epoch.to_le_bytes());
+        put(&mut buf, &mut i, self.parent_hash.as_ref());
+        put(&mut buf, &mut i, self.state_root.as_ref());
+        put(&mut buf, &mut i, self.spends_root.as_ref());
+        put(&mut buf, &mut i, self.additions_root.as_ref());
+        put(&mut buf, &mut i, self.removals_root.as_ref());
+        put(&mut buf, &mut i, self.receipts_root.as_ref());
+        put(&mut buf, &mut i, &self.l1_height.to_le_bytes());
+        put(&mut buf, &mut i, self.l1_hash.as_ref());
+        put(&mut buf, &mut i, &self.timestamp.to_le_bytes());
+        put(&mut buf, &mut i, &self.proposer_index.to_le_bytes());
+        put(&mut buf, &mut i, &self.spend_bundle_count.to_le_bytes());
+        put(&mut buf, &mut i, &self.total_cost.to_le_bytes());
+        put(&mut buf, &mut i, &self.total_fees.to_le_bytes());
+        put(&mut buf, &mut i, &self.additions_count.to_le_bytes());
+        put(&mut buf, &mut i, &self.removals_count.to_le_bytes());
+        put(&mut buf, &mut i, &self.block_size.to_le_bytes());
+        put(&mut buf, &mut i, self.filter_hash.as_ref());
+        put(&mut buf, &mut i, self.extension_data.as_ref());
+        put_opt(&mut buf, &mut i, &self.l1_collateral_coin_id);
+        put_opt(&mut buf, &mut i, &self.l1_reserve_coin_id);
+        put_opt(&mut buf, &mut i, &self.l1_prev_epoch_finalizer_coin_id);
+        put_opt(&mut buf, &mut i, &self.l1_curr_epoch_finalizer_coin_id);
+        put_opt(&mut buf, &mut i, &self.l1_network_coin_id);
+        put(&mut buf, &mut i, &self.slash_proposal_count.to_le_bytes());
+        put(&mut buf, &mut i, self.slash_proposals_root.as_ref());
+        put(&mut buf, &mut i, self.collateral_registry_root.as_ref());
+        put(&mut buf, &mut i, self.cid_state_root.as_ref());
+        put(&mut buf, &mut i, self.node_registry_root.as_ref());
+        put(&mut buf, &mut i, self.namespace_update_root.as_ref());
+        put(&mut buf, &mut i, self.dfsp_finalize_commitment_root.as_ref());
+        debug_assert_eq!(i, Self::HASH_PREIMAGE_LEN);
+        buf
+    }
+
+    /// Canonical block identity: SHA-256 over [`Self::hash_preimage_bytes`] ([HSH-001](docs/requirements/domains/hashing/specs/HSH-001.md)).
+    ///
+    /// **Requirement:** [SPEC §3.1](docs/resources/SPEC.md). Numeric fields are little-endian; each optional L1 anchor
     /// contributes 32 bytes of raw [`Bytes32`] or [`ZERO_HASH`] when `None` (malleability-safe encoding).
     ///
     /// **Primitive:** [`chia_sha2::Sha256`] only ([`crate::primitives`] / project crypto rules).
     pub fn hash(&self) -> Bytes32 {
         let mut hasher = Sha256::new();
-        hasher.update(self.version.to_le_bytes());
-        hasher.update(self.height.to_le_bytes());
-        hasher.update(self.epoch.to_le_bytes());
-        hasher.update(self.parent_hash.as_ref());
-        hasher.update(self.state_root.as_ref());
-        hasher.update(self.spends_root.as_ref());
-        hasher.update(self.additions_root.as_ref());
-        hasher.update(self.removals_root.as_ref());
-        hasher.update(self.receipts_root.as_ref());
-        hasher.update(self.l1_height.to_le_bytes());
-        hasher.update(self.l1_hash.as_ref());
-        hasher.update(self.timestamp.to_le_bytes());
-        hasher.update(self.proposer_index.to_le_bytes());
-        hasher.update(self.spend_bundle_count.to_le_bytes());
-        hasher.update(self.total_cost.to_le_bytes());
-        hasher.update(self.total_fees.to_le_bytes());
-        hasher.update(self.additions_count.to_le_bytes());
-        hasher.update(self.removals_count.to_le_bytes());
-        hasher.update(self.block_size.to_le_bytes());
-        hasher.update(self.filter_hash.as_ref());
-        hasher.update(self.extension_data.as_ref());
-        Self::hash_optional_l1(&mut hasher, &self.l1_collateral_coin_id);
-        Self::hash_optional_l1(&mut hasher, &self.l1_reserve_coin_id);
-        Self::hash_optional_l1(&mut hasher, &self.l1_prev_epoch_finalizer_coin_id);
-        Self::hash_optional_l1(&mut hasher, &self.l1_curr_epoch_finalizer_coin_id);
-        Self::hash_optional_l1(&mut hasher, &self.l1_network_coin_id);
-        hasher.update(self.slash_proposal_count.to_le_bytes());
-        hasher.update(self.slash_proposals_root.as_ref());
-        hasher.update(self.collateral_registry_root.as_ref());
-        hasher.update(self.cid_state_root.as_ref());
-        hasher.update(self.node_registry_root.as_ref());
-        hasher.update(self.namespace_update_root.as_ref());
-        hasher.update(self.dfsp_finalize_commitment_root.as_ref());
+        hasher.update(self.hash_preimage_bytes());
         Bytes32::new(hasher.finalize())
-    }
-
-    fn hash_optional_l1(hasher: &mut Sha256, o: &Option<Bytes32>) {
-        match o {
-            Some(b) => hasher.update(b.as_ref()),
-            None => hasher.update(ZERO_HASH.as_ref()),
-        }
     }
 
     /// Standard header constructor (SPEC §2.2 **Derived methods** / `new()`).
