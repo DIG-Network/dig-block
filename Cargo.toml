@@ -209,6 +209,11 @@ path = "tests/test_hsh_002_checkpoint_hash.rs"
 name = "hsh_003_spends_root"
 path = "tests/test_hsh_003_spends_root.rs"
 
+# HSH-004: additions_root — Merkle set over puzzle_hash groups + hash_coin_ids (chia-consensus).
+[[test]]
+name = "hsh_004_additions_root"
+path = "tests/test_hsh_004_additions_root.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"

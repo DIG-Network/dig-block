@@ -38,6 +38,7 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use chia_sha2::Sha256;
+use chia_streamable_macro::Streamable;
 use serde::{Deserialize, Serialize};
 
 use crate::constants::{DFSP_ACTIVATION_HEIGHT, EMPTY_ROOT, ZERO_HASH};
@@ -48,7 +49,7 @@ use crate::primitives::{Bytes32, Cost, VERSION_V1, VERSION_V2};
 ///
 /// Field layout and semantics follow SPEC §2.2 table **Field groups**; keep this definition in sync with
 /// that section when the wire format evolves.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Streamable)]
 pub struct L2BlockHeader {
     // ── Core identity ──
     /// Protocol version (`VERSION_V1` / `VERSION_V2`; BLK-007 selects from height).

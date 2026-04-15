@@ -3,6 +3,7 @@
 //! **Requirements:**
 //! - [BLK-003](docs/requirements/domains/block_types/specs/BLK-003.md) — struct + `new` / `hash` / `height` / `epoch`
 //! - [HSH-003](docs/requirements/domains/hashing/specs/HSH-003.md) — [`crate::compute_spends_root`] (spends Merkle root)
+//! - [HSH-004](docs/requirements/domains/hashing/specs/HSH-004.md) — [`crate::compute_additions_root`] (additions Merkle set)
 //! - [BLK-004](docs/requirements/domains/block_types/specs/BLK-004.md) — Merkle roots, BIP158 `filter_hash` preimage,
 //!   additions/removals collectors, duplicate / double-spend probes, serialized size
 //! - [SPEC §2.3](docs/resources/SPEC.md), [SPEC §3.3–§3.6](docs/resources/SPEC.md) — body commitments + filter
@@ -21,13 +22,11 @@
 
 use chia_protocol::{Coin, SpendBundle};
 use chia_streamable_macro::Streamable;
-use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
 use super::header::L2BlockHeader;
 use crate::merkle_util::{
-    bip158_filter_encoded, empty_on_additions_err, hash_coin_ids, merkle_set_root,
-    merkle_tree_root, slash_leaf_hash,
+    bip158_filter_encoded, empty_on_additions_err, merkle_set_root, merkle_tree_root, slash_leaf_hash,
 };
 use crate::primitives::{Bytes32, Signature};
 
@@ -99,27 +98,15 @@ impl L2Block {
         crate::compute_spends_root(&self.spend_bundles)
     }
 
-    /// Additions Merkle root: group created coins by `puzzle_hash`, pair each group with [`hash_coin_ids`],
-    /// then [`chia_consensus::merkle_set::compute_merkle_set_root`]-compatible set ([SPEC §3.4](docs/resources/SPEC.md)).
+    /// Additions Merkle root over [`Self::all_additions`] ([HSH-004](docs/requirements/domains/hashing/specs/HSH-004.md)).
     ///
-    /// **Order:** [`IndexMap`] preserves first-seen `puzzle_hash` order while aggregating coin IDs (Chia
-    /// `dict` insertion order parity).
+    /// **Delegation:** [`crate::compute_additions_root`] — `puzzle_hash` groups, `[ph, hash_coin_ids(ids)]` pairs in
+    /// first-seen order ([`indexmap::IndexMap`] inside that function), then [`merkle_set_root`] /
+    /// [`chia_consensus::merkle_set::compute_merkle_set_root`] ([SPEC §3.4](docs/resources/SPEC.md)).
     #[must_use]
     pub fn compute_additions_root(&self) -> Bytes32 {
-        let mut groups: IndexMap<Bytes32, Vec<Bytes32>> = IndexMap::new();
-        for coin in self.all_additions() {
-            let id = coin.coin_id();
-            groups.entry(coin.puzzle_hash).or_default().push(id);
-        }
-        if groups.is_empty() {
-            return merkle_set_root(&mut []);
-        }
-        let mut leafs: Vec<[u8; 32]> = Vec::with_capacity(groups.len() * 2);
-        for (ph, mut ids) in groups {
-            leafs.push(ph.to_bytes());
-            leafs.push(hash_coin_ids(&mut ids).to_bytes());
-        }
-        merkle_set_root(&mut leafs)
+        let additions = self.all_additions();
+        crate::compute_additions_root(&additions)
     }
 
     /// Removals Merkle set over all spent coin IDs in **spend-bundle then coin-spend order**.
