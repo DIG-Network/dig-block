@@ -39,8 +39,13 @@
 //!
 //! ## Status
 //!
-//! **BLD-001**–**BLD-004** are implemented (`new`, body accumulation, optional header setters). **`build`** follows in
-//! BLD-005 — BLD-007.
+//! **BLD-001**–**BLD-005** are implemented (`new`, body accumulation, optional header setters, [`Self::build`] /
+//! [`Self::build_with_dfsp_activation`]). **BLD-006** is exercised by signing inside `build` ([`crate::BlockSigner`]).
+//! **BLD-007** (every `build` output structurally valid) is partially evidenced by
+//! `tests/test_bld_005_build_pipeline.rs` calling [`crate::L2Block::validate_structure`] on successful builds; a full
+//! BLD-007 requirement pass remains for explicit negative cases and documentation tightening.
+
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use bincode;
 use chia_protocol::{Coin, SpendBundle};
@@ -48,11 +53,13 @@ use chia_protocol::{Coin, SpendBundle};
 use crate::error::BuilderError;
 use crate::merkle_util::empty_on_additions_err;
 use crate::primitives::{Bytes32, Cost, Signature};
+use crate::traits::BlockSigner;
 use crate::types::block::L2Block;
 use crate::types::header::L2BlockHeader;
 use crate::{
-    EMPTY_ROOT, MAX_BLOCK_SIZE, MAX_COST_PER_BLOCK, MAX_SLASH_PROPOSALS_PER_BLOCK,
-    MAX_SLASH_PROPOSAL_PAYLOAD_BYTES, ZERO_HASH,
+    compute_additions_root, compute_filter_hash, compute_removals_root, compute_spends_root,
+    DFSP_ACTIVATION_HEIGHT, EMPTY_ROOT, MAX_BLOCK_SIZE, MAX_COST_PER_BLOCK,
+    MAX_SLASH_PROPOSALS_PER_BLOCK, MAX_SLASH_PROPOSAL_PAYLOAD_BYTES, VERSION_V2, ZERO_HASH,
 };
 
 /// Incremental accumulator for a single L2 block body and header metadata ([SPEC §6.1–6.2](docs/resources/SPEC.md),
@@ -378,4 +385,150 @@ impl BlockBuilder {
     pub fn set_extension_data(&mut self, extension_data: Bytes32) {
         self.extension_data = extension_data;
     }
+
+    /// Finalize this builder into a signed [`L2Block`] ([BLD-005](docs/requirements/domains/block_production/specs/BLD-005.md)).
+    ///
+    /// **Parameters:** `state_root` / `receipts_root` come from the execution + receipt pipeline outside this crate
+    /// (see module-level **Rationale**). `signer` produces the BLS attestation over [`L2BlockHeader::hash`] (HSH-001).
+    ///
+    /// **Pipeline:** Computes Merkle roots and counts using the same public functions as [`L2Block::validate_structure`]
+    /// (`compute_spends_root`, `compute_additions_root`, `compute_removals_root`, [`L2Block::slash_proposals_root_from`],
+    /// [`compute_filter_hash`]), sets wall-clock [`L2BlockHeader::timestamp`], runs the two-pass `block_size` fill
+    /// (assemble with `block_size == 0`, measure [`L2Block::compute_size`], write), then signs.
+    ///
+    /// **Errors:** [`BuilderError::EmptyBlock`] if no spend bundles ([ERR-004](docs/requirements/domains/error_types/specs/ERR-004.md));
+    /// [`BuilderError::MissingDfspRoots`] when [`VERSION_V2`](crate::VERSION_V2) applies but all DFSP roots are still
+    /// [`EMPTY_ROOT`]; [`BuilderError::SigningFailed`] wraps [`crate::traits::SignerError`].
+    ///
+    /// **DFSP activation:** Uses [`crate::DFSP_ACTIVATION_HEIGHT`]. For tests or fork simulation with a different
+    /// activation height, call [`Self::build_with_dfsp_activation`] instead.
+    pub fn build(
+        self,
+        state_root: Bytes32,
+        receipts_root: Bytes32,
+        signer: &dyn BlockSigner,
+    ) -> Result<L2Block, BuilderError> {
+        self.build_with_dfsp_activation(state_root, receipts_root, signer, DFSP_ACTIVATION_HEIGHT)
+    }
+
+    /// Like [`Self::build`], but supplies an explicit `dfsp_activation_height` for BLK-007 / SVL-001 version selection and
+    /// the BLD-005 DFSP-root precondition ([`BuilderError::MissingDfspRoots`]).
+    ///
+    /// **Rationale:** Crate tests keep [`DFSP_ACTIVATION_HEIGHT`] at `u64::MAX` (DFSP off) so normal `build()` always
+    /// selects [`crate::VERSION_V1`]. Passing a finite `dfsp_activation_height` **≤** [`Self::height`] forces V2 in
+    /// integration tests without recompiling constants.
+    pub fn build_with_dfsp_activation(
+        self,
+        state_root: Bytes32,
+        receipts_root: Bytes32,
+        signer: &dyn BlockSigner,
+        dfsp_activation_height: u64,
+    ) -> Result<L2Block, BuilderError> {
+        if self.spend_bundles.is_empty() {
+            return Err(BuilderError::EmptyBlock);
+        }
+
+        let spends_root = compute_spends_root(&self.spend_bundles);
+        let additions_root = compute_additions_root(&self.additions);
+        let removals_root = compute_removals_root(&self.removals);
+        let slash_proposals_root =
+            L2Block::slash_proposals_root_from(&self.slash_proposal_payloads);
+        let filter_hash = compute_filter_hash(self.parent_hash, &self.additions, &self.removals);
+
+        let version = L2BlockHeader::protocol_version_for_height_with_activation(
+            self.height,
+            dfsp_activation_height,
+        );
+        if version == VERSION_V2 {
+            let dfsp = [
+                self.collateral_registry_root,
+                self.cid_state_root,
+                self.node_registry_root,
+                self.namespace_update_root,
+                self.dfsp_finalize_commitment_root,
+            ];
+            if dfsp.iter().all(|r| *r == EMPTY_ROOT) {
+                return Err(BuilderError::MissingDfspRoots);
+            }
+        }
+
+        let spend_bundle_count = usize_to_u32_count(self.spend_bundles.len());
+        let additions_count = usize_to_u32_count(self.additions.len());
+        let removals_rows: usize = self
+            .spend_bundles
+            .iter()
+            .map(|sb| sb.coin_spends.len())
+            .sum();
+        let removals_count = usize_to_u32_count(removals_rows);
+        let slash_proposal_count = usize_to_u32_count(self.slash_proposal_payloads.len());
+
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+
+        let mut header = L2BlockHeader::new(
+            self.height,
+            self.epoch,
+            self.parent_hash,
+            state_root,
+            spends_root,
+            additions_root,
+            removals_root,
+            receipts_root,
+            self.l1_height,
+            self.l1_hash,
+            self.proposer_index,
+            spend_bundle_count,
+            self.total_cost,
+            self.total_fees,
+            additions_count,
+            removals_count,
+            0,
+            filter_hash,
+        );
+        header.version = version;
+        header.timestamp = timestamp;
+        header.slash_proposal_count = slash_proposal_count;
+        header.slash_proposals_root = slash_proposals_root;
+        header.extension_data = self.extension_data;
+        header.l1_collateral_coin_id = self.l1_collateral_coin_id;
+        header.l1_reserve_coin_id = self.l1_reserve_coin_id;
+        header.l1_prev_epoch_finalizer_coin_id = self.l1_prev_epoch_finalizer_coin_id;
+        header.l1_curr_epoch_finalizer_coin_id = self.l1_curr_epoch_finalizer_coin_id;
+        header.l1_network_coin_id = self.l1_network_coin_id;
+        header.collateral_registry_root = self.collateral_registry_root;
+        header.cid_state_root = self.cid_state_root;
+        header.node_registry_root = self.node_registry_root;
+        header.namespace_update_root = self.namespace_update_root;
+        header.dfsp_finalize_commitment_root = self.dfsp_finalize_commitment_root;
+
+        let spend_bundles = self.spend_bundles;
+        let slash_proposal_payloads = self.slash_proposal_payloads;
+
+        let mut block = L2Block::new(
+            header,
+            spend_bundles,
+            slash_proposal_payloads,
+            Signature::default(),
+        );
+
+        // Two-pass `block_size` (BLD-005): measure with placeholder zero, then store the full `bincode(L2Block)` length.
+        let measured = block.compute_size();
+        block.header.block_size = usize_to_u32_count(measured);
+
+        let header_hash = block.header.hash();
+        let sig = signer
+            .sign_block(&header_hash)
+            .map_err(|e| BuilderError::SigningFailed(e.to_string()))?;
+        block.proposer_signature = sig;
+
+        Ok(block)
+    }
+}
+
+/// Header/body count fields are `u32` on wire; saturate when `usize` exceeds `u32::MAX` (same helper pattern as BLK-004).
+#[inline]
+fn usize_to_u32_count(n: usize) -> u32 {
+    u32::try_from(n).unwrap_or(u32::MAX)
 }
