@@ -13,6 +13,7 @@
 //! - [SVL-004](docs/requirements/domains/structural_validation/specs/SVL-004.md) — [`L2BlockHeader::timestamp`] vs wall clock + [`crate::MAX_FUTURE_TIMESTAMP_SECONDS`]; production [`validate`]/[`L2BlockHeader::validate_with_dfsp_activation`], tests [`L2BlockHeader::validate_with_dfsp_activation_at_unix`]
 //! - [HSH-001](docs/requirements/domains/hashing/specs/HSH-001.md) — header `hash()` (SPEC §3.1 field order;
 //!   preimage length [`L2BlockHeader::HASH_PREIMAGE_LEN`])
+//! - [SER-002](docs/requirements/domains/serialization/specs/SER-002.md) — [`Self::to_bytes`] / [`Self::from_bytes`] (SPEC §8.2; bincode + [`BlockError::InvalidData`](crate::BlockError::InvalidData) on decode)
 //! - [SPEC §2.2](docs/resources/SPEC.md), [SPEC §8.3 Genesis](docs/resources/SPEC.md#83-genesis-block)
 //!
 //! ## Usage
@@ -24,7 +25,8 @@
 //! that needs wall-clock timestamps should set `timestamp` after `new()` or use [`crate::builder::BlockBuilder`]
 //! (BLD-005): [`L2BlockHeader::new`] leaves `timestamp` at **0** per SPEC’s derived-`new()` parameter list.
 //!
-//! Field order matches SPEC §2.2 so **bincode** layout stays deterministic (SER-001, HSH-001).
+//! Field order matches SPEC §2.2 so **bincode** layout stays deterministic (SER-001, HSH-001). Canonical
+//! encode/decode helpers live on [`Self::to_bytes`] / [`Self::from_bytes`] (SER-002).
 //!
 //! ## Rationale
 //!
@@ -371,6 +373,24 @@ impl L2BlockHeader {
         let mut hasher = Sha256::new();
         hasher.update(self.hash_preimage_bytes());
         Bytes32::new(hasher.finalize())
+    }
+
+    /// Serialize this header to **bincode** bytes for wire / storage ([SER-002](docs/requirements/domains/serialization/specs/SER-002.md),
+    /// [NORMATIVE § SER-002](docs/requirements/domains/serialization/NORMATIVE.md#ser-002-to_bytes-and-from_bytes-conventions), SPEC §8.2).
+    ///
+    /// **Infallible:** Uses [`Result::expect`] because an in-memory, well-formed [`L2BlockHeader`] should always serialize
+    /// with the crate’s serde schema; a panic indicates programmer error or schema drift, not recoverable I/O.
+    #[must_use]
+    pub fn to_bytes(&self) -> Vec<u8> {
+        bincode::serialize(self).expect("L2BlockHeader serialization should never fail")
+    }
+
+    /// Deserialize a header from **bincode** bytes ([SER-002](docs/requirements/domains/serialization/specs/SER-002.md)).
+    ///
+    /// **Errors:** Any `bincode` failure maps to [`BlockError::InvalidData`] (message includes the decoder error) —
+    /// covers empty input, truncated payloads, corrupted bytes, and schema mismatches.
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, BlockError> {
+        bincode::deserialize(bytes).map_err(|e| BlockError::InvalidData(e.to_string()))
     }
 
     /// Standard header constructor (SPEC §2.2 **Derived methods** / `new()`).

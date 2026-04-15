@@ -23,7 +23,8 @@ use thiserror::Error;
 ///
 /// **Derivation:** `Debug` + `Clone` + `thiserror::Error` — same rationale as ERR-001 ([acceptance criteria](docs/requirements/domains/error_types/specs/ERR-002.md#acceptance-criteria)).
 ///
-/// **Semantic links:** Serialization still uses [`BlockError::InvalidData`] for decode failures ([SER-001](docs/requirements/domains/serialization/specs/SER-001.md)).
+/// **Semantic links:** Bincode decode failures from [`crate::L2BlockHeader::from_bytes`], [`crate::L2Block::from_bytes`],
+/// and [`crate::AttestedBlock::from_bytes`] map to [`BlockError::InvalidData`] ([SER-002](docs/requirements/domains/serialization/specs/SER-002.md); wire serde in [SER-001](docs/requirements/domains/serialization/specs/SER-001.md)).
 #[derive(Debug, Clone, Error)]
 pub enum BlockError {
     // --- Tier 1: Structural validation (ERR-001) ---

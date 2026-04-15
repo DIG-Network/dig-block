@@ -14,10 +14,11 @@ items:
   - id: SER-002
     section: "8.2"
     summary: "to_bytes and from_bytes Conventions"
-    status: gap
+    status: implemented
     spec_ref: "SPEC Section 8.2"
-    tests: []
-    notes: ""
+    tests:
+      - tests/test_ser_002_to_from_bytes.rs
+    notes: "Block types -> BlockError::InvalidData; checkpoint types -> CheckpointError::InvalidData."
 
   - id: SER-003
     section: "8.3"

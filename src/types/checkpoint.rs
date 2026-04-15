@@ -11,6 +11,8 @@
 //! - **[CKP-006](docs/requirements/domains/checkpoint/specs/CKP-006.md)** — [`crate::CheckpointBuilder`] accumulates block / withdrawal hashes and produces `block_root` / `withdrawals_root` using the same internal Merkle helper as BLK-004 (`merkle_tree_root` in `merkle_util.rs`).
 //! - **[HSH-002](docs/requirements/domains/hashing/specs/HSH-002.md)** / **[SPEC §3.2](docs/resources/SPEC.md)** — [`Checkpoint::hash`]: SHA-256 over 160-byte fixed-order preimage ([`chia_sha2::Sha256`]).
 //! - **[SER-001](docs/requirements/domains/serialization/specs/SER-001.md)** — bincode via [`Serialize`] / [`Deserialize`] on wire-bearing structs.
+//! - **[SER-002](docs/requirements/domains/serialization/specs/SER-002.md)** — [`Checkpoint::to_bytes`] / [`Checkpoint::from_bytes`] and [`CheckpointSubmission::to_bytes`] / [`CheckpointSubmission::from_bytes`]
+//!   with [`CheckpointError::InvalidData`](crate::CheckpointError::InvalidData) on decode failures.
 //!
 //! ## Rationale
 //!
@@ -23,6 +25,7 @@ use chia_sha2::Sha256;
 use serde::{Deserialize, Serialize};
 
 use super::signer_bitmap::SignerBitmap;
+use crate::error::CheckpointError;
 use crate::primitives::{Bytes32, PublicKey, Signature};
 
 /// Epoch summary checkpoint: aggregate stats and Merkle roots for one L1-anchored epoch ([SPEC §2.6](docs/resources/SPEC.md), [CKP-001](docs/requirements/domains/checkpoint/specs/CKP-001.md)).
@@ -137,6 +140,17 @@ impl Checkpoint {
         hasher.update(self.hash_preimage_bytes());
         Bytes32::new(hasher.finalize())
     }
+
+    /// Serialize checkpoint summary to **bincode** bytes ([SER-002](docs/requirements/domains/serialization/specs/SER-002.md), SPEC §8.2).
+    #[must_use]
+    pub fn to_bytes(&self) -> Vec<u8> {
+        bincode::serialize(self).expect("Checkpoint serialization should never fail")
+    }
+
+    /// Deserialize a checkpoint from **bincode** bytes ([SER-002](docs/requirements/domains/serialization/specs/SER-002.md)).
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, CheckpointError> {
+        bincode::deserialize(bytes).map_err(|e| CheckpointError::InvalidData(e.to_string()))
+    }
 }
 
 impl Default for Checkpoint {
@@ -239,5 +253,16 @@ impl CheckpointSubmission {
     #[must_use]
     pub fn is_submitted(&self) -> bool {
         self.submission_height.is_some()
+    }
+
+    /// Serialize submission (checkpoint + attestation material) to **bincode** bytes ([SER-002](docs/requirements/domains/serialization/specs/SER-002.md)).
+    #[must_use]
+    pub fn to_bytes(&self) -> Vec<u8> {
+        bincode::serialize(self).expect("CheckpointSubmission serialization should never fail")
+    }
+
+    /// Deserialize a submission from **bincode** bytes ([SER-002](docs/requirements/domains/serialization/specs/SER-002.md)).
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, CheckpointError> {
+        bincode::deserialize(bytes).map_err(|e| CheckpointError::InvalidData(e.to_string()))
     }
 }

@@ -5,6 +5,7 @@
 //! - **[ATT-001](docs/requirements/domains/attestation/specs/ATT-001.md)** — struct fields + [`AttestedBlock::new`].
 //! - **[ATT-002](docs/requirements/domains/attestation/specs/ATT-002.md)** — [`AttestedBlock::signing_percentage`],
 //!   [`AttestedBlock::has_soft_finality`], [`AttestedBlock::hash`] (delegate to [`SignerBitmap`] / [`L2Block::hash`]).
+//! - **[SER-002](docs/requirements/domains/serialization/specs/SER-002.md)** — [`Self::to_bytes`] / [`Self::from_bytes`] (bincode; decode errors → [`BlockError::InvalidData`](crate::BlockError::InvalidData)).
 //! - **[NORMATIVE § ATT-001 / ATT-002](docs/requirements/domains/attestation/NORMATIVE.md)** — constructor + query API.
 //! - **[SPEC §2.4](docs/resources/SPEC.md)** — wire / semantic context for attested payloads.
 //!
@@ -30,6 +31,7 @@ use super::block::L2Block;
 use super::receipt::ReceiptList;
 use super::signer_bitmap::SignerBitmap;
 use super::status::BlockStatus;
+use crate::error::BlockError;
 use crate::primitives::{Bytes32, Signature};
 
 /// L2 block wrapped with attestation state: who signed, aggregate BLS signature, receipts, lifecycle status.
@@ -98,5 +100,18 @@ impl AttestedBlock {
     #[must_use]
     pub fn hash(&self) -> Bytes32 {
         self.block.hash()
+    }
+
+    /// Serialize attested block (inner [`L2Block`] + bitmap + signatures + receipts + status) to **bincode** ([SER-002](docs/requirements/domains/serialization/specs/SER-002.md)).
+    ///
+    /// **Infallible:** Mirrors [`L2Block::to_bytes`] — struct must encode; panics only on invariant violation.
+    #[must_use]
+    pub fn to_bytes(&self) -> Vec<u8> {
+        bincode::serialize(self).expect("AttestedBlock serialization should never fail")
+    }
+
+    /// Deserialize from **bincode** bytes ([SER-002](docs/requirements/domains/serialization/specs/SER-002.md)).
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, BlockError> {
+        bincode::deserialize(bytes).map_err(|e| BlockError::InvalidData(e.to_string()))
     }
 }
