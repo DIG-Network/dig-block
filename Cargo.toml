@@ -47,6 +47,7 @@ thiserror = "2"
 bincode = "1"
 bitcoin = { version = "0.32", default-features = false, features = ["std"] }
 chia-sha2 = "0.26"
+clvmr = "0.14"
 hex = "0.4.3"
 hex-literal = "0.4"
 
@@ -254,6 +255,11 @@ path = "tests/test_svl_004_timestamp_future_bound.rs"
 [[test]]
 name = "svl_005_block_count_agreement"
 path = "tests/test_svl_005_block_count_agreement.rs"
+
+# SVL-006: Merkle roots, duplicate/double-spend, slash limits, filter hash, bincode size (SPEC §5.2 steps 3, 6–15).
+[[test]]
+name = "svl_006_merkle_root_integrity"
+path = "tests/test_svl_006_merkle_root_integrity.rs"
 
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
