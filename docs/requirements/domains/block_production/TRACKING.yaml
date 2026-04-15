@@ -49,12 +49,15 @@ items:
   - id: BLD-005
     section: "6.4"
     summary: Build Pipeline
-    status: Not Started
+    status: implemented
     spec_ref: specs/BLD-005.md
-    tests: []
+    tests:
+      - tests/test_bld_005_build_pipeline.rs
     notes: >
-      Multi-step build pipeline computing roots, filter, version, timestamp,
-      size (two-pass), and signature. Rejects if DFSP roots missing when required.
+      build / build_with_dfsp_activation: Merkle roots + filter from public compute_* helpers,
+      counts, BLK-007 version + MissingDfspRoots for V2+all-EMPTY, wall-clock timestamp, two-pass block_size,
+      BlockSigner integration, EmptyBlock when no spends. Integration tests assert body-derived roots,
+      validate_structure Ok, and signer error mapping.
 
   - id: BLD-006
     section: "6.4 Step 6"

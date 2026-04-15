@@ -281,6 +281,11 @@ path = "tests/test_bld_003_add_slash_proposal_limits.rs"
 name = "bld_004_optional_setters"
 path = "tests/test_bld_004_optional_setters.rs"
 
+# BLD-005: BlockBuilder build() / build_with_dfsp_activation — roots, counts, version, timestamp, block_size, signing.
+[[test]]
+name = "bld_005_build_pipeline"
+path = "tests/test_bld_005_build_pipeline.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"
