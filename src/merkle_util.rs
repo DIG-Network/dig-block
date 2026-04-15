@@ -13,6 +13,9 @@
 //!
 //! **HSH-004 ([`compute_additions_root`]):** additions roots use **`chia_consensus::merkle_set`** (radix Merkle **set**),
 //! not the tagged binary [`MerkleTree`] from HSH-007 — see [HSH-004](docs/requirements/domains/hashing/specs/HSH-004.md).
+//!
+//! **HSH-005 ([`compute_removals_root`]):** removals roots are a Merkle **set** over **raw removal coin IDs** (one leaf per
+//! ID) — see [HSH-005](docs/requirements/domains/hashing/specs/HSH-005.md).
 
 use bitcoin::bip158::GcsFilterWriter;
 use chia_consensus::merkle_set::compute_merkle_set_root;
@@ -133,6 +136,32 @@ pub fn compute_additions_root(additions: &[Coin]) -> Bytes32 {
         leafs.push(ph.to_bytes());
         leafs.push(hash_coin_ids(&mut ids).to_bytes());
     }
+    merkle_set_root(&mut leafs)
+}
+
+/// **`removals_root`** (header field, SPEC §3.5) — Merkle-set root over all spent coin IDs in the block.
+///
+/// **Normative:** [HSH-005](docs/requirements/domains/hashing/specs/HSH-005.md) and Chia
+/// [`block_body_validation`](https://github.com/Chia-Network/chia-blockchain/blob/main/chia/consensus/block_body_validation.py)
+/// (~185, removal coin name set).  
+/// **Algorithm:** Empty slice → [`EMPTY_ROOT`]. Otherwise each [`Bytes32`] removal ID is one **leaf** in the radix Merkle
+/// set ([`merkle_set_root`] → [`compute_merkle_set_root`]). Unlike [`compute_additions_root`], there is **no** grouping:
+/// each spent coin ID is inserted directly.
+///
+/// **Order:** [`chia_consensus::merkle_set::compute_merkle_set_root`] defines a **set** hash: the same multiset of IDs
+/// yields the same root regardless of slice order (validated in `tests/test_hsh_005_removals_root.rs`).
+///
+/// **Callers:** [`crate::L2Block::compute_removals_root`](crate::L2Block::compute_removals_root) delegates here using
+/// [`crate::L2Block::all_removals`] order as the canonical body walk; permuting the input slice must not change the root
+/// when the set of IDs is unchanged.
+#[must_use]
+pub fn compute_removals_root(removals: &[Bytes32]) -> Bytes32 {
+    if removals.is_empty() {
+        return EMPTY_ROOT;
+    }
+    // UFCS / ownership: inherent [`Bytes32::to_bytes`] takes `self` (Copy); avoid resolving to
+    // [`Streamable::to_bytes`] (`Result`) while `chia_traits::Streamable` is in scope for HSH-003.
+    let mut leafs: Vec<[u8; 32]> = removals.iter().map(|b| (*b).to_bytes()).collect();
     merkle_set_root(&mut leafs)
 }
 

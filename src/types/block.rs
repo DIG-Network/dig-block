@@ -4,6 +4,7 @@
 //! - [BLK-003](docs/requirements/domains/block_types/specs/BLK-003.md) — struct + `new` / `hash` / `height` / `epoch`
 //! - [HSH-003](docs/requirements/domains/hashing/specs/HSH-003.md) — [`crate::compute_spends_root`] (spends Merkle root)
 //! - [HSH-004](docs/requirements/domains/hashing/specs/HSH-004.md) — [`crate::compute_additions_root`] (additions Merkle set)
+//! - [HSH-005](docs/requirements/domains/hashing/specs/HSH-005.md) — [`crate::compute_removals_root`] (removals Merkle set)
 //! - [BLK-004](docs/requirements/domains/block_types/specs/BLK-004.md) — Merkle roots, BIP158 `filter_hash` preimage,
 //!   additions/removals collectors, duplicate / double-spend probes, serialized size
 //! - [SPEC §2.3](docs/resources/SPEC.md), [SPEC §3.3–§3.6](docs/resources/SPEC.md) — body commitments + filter
@@ -26,7 +27,7 @@ use serde::{Deserialize, Serialize};
 
 use super::header::L2BlockHeader;
 use crate::merkle_util::{
-    bip158_filter_encoded, empty_on_additions_err, merkle_set_root, merkle_tree_root, slash_leaf_hash,
+    bip158_filter_encoded, empty_on_additions_err, merkle_tree_root, slash_leaf_hash,
 };
 use crate::primitives::{Bytes32, Signature};
 
@@ -109,15 +110,15 @@ impl L2Block {
         crate::compute_additions_root(&additions)
     }
 
-    /// Removals Merkle set over all spent coin IDs in **spend-bundle then coin-spend order**.
+    /// Removals Merkle set over all spent coin IDs ([HSH-005](docs/requirements/domains/hashing/specs/HSH-005.md)).
+    ///
+    /// **Body order:** IDs come from [`Self::all_removals`] (spend-bundle then coin-spend order). **Root:** delegates to
+    /// [`crate::compute_removals_root`], which uses [`chia_consensus::merkle_set::compute_merkle_set_root`] — the same
+    /// multiset of IDs yields the same root regardless of slice order ([SPEC §3.5](docs/resources/SPEC.md)).
     #[must_use]
     pub fn compute_removals_root(&self) -> Bytes32 {
         let ids = self.all_removals();
-        if ids.is_empty() {
-            return merkle_set_root(&mut []);
-        }
-        let mut leafs: Vec<[u8; 32]> = ids.iter().map(|b| b.to_bytes()).collect();
-        merkle_set_root(&mut leafs)
+        crate::compute_removals_root(&ids)
     }
 
     /// SHA-256 of the BIP-158–encoded element set (SPEC §3.6, Chia `std_hash(encoded)`).

@@ -214,6 +214,11 @@ path = "tests/test_hsh_003_spends_root.rs"
 name = "hsh_004_additions_root"
 path = "tests/test_hsh_004_additions_root.rs"
 
+# HSH-005: removals_root — Merkle set over removal coin IDs (chia-consensus).
+[[test]]
+name = "hsh_005_removals_root"
+path = "tests/test_hsh_005_removals_root.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"

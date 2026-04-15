@@ -37,10 +37,11 @@ items:
   - id: HSH-005
     section: "3.5"
     summary: "Removals Root Construction"
-    status: gap
+    status: implemented
     spec_ref: "SPEC.md#section-35"
-    tests: []
-    notes: ""
+    tests:
+      - tests/test_hsh_005_removals_root.rs
+    notes: "dig_block::compute_removals_root; L2Block delegates; Bytes32 leaf bytes via inherent to_bytes (UFCS vs Streamable)."
   - id: HSH-006
     section: "3.6"
     summary: "Filter Hash Construction"
