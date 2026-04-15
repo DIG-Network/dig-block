@@ -62,11 +62,14 @@ items:
   - id: BLD-006
     section: "6.4 Step 6"
     summary: BlockSigner Trait Integration
-    status: Not Started
+    status: implemented
     spec_ref: specs/BLD-006.md
-    tests: []
+    tests:
+      - tests/test_bld_006_block_signer_integration.rs
     notes: >
-      Calls signer.sign_block() and maps failure to BuilderError::SigningFailed.
+      build() hashes finalized header (post block_size), calls sign_block(&header_hash),
+      assigns L2Block.proposer_signature; SigningFailed(String) from SignerError Display (ERR-004).
+      Integration tests: BLS verify, hash capture vs header.hash(), block_size ordering, dyn signer.
 
   - id: BLD-007
     section: "1.1, 12.2"
