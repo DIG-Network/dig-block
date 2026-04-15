@@ -20,6 +20,8 @@ chia-bls = "0.26"
 chia-consensus = "0.26"
 chia-sha2 = "0.26"
 chia-traits = "0.26"
+# SER-003 / gossip: `Streamable` derive for [`L2Block`] / [`L2BlockHeader`] wire encoding (dig-blockstore).
+chia_streamable_macro = "0.26"
 clvm-utils = "0.26"
 clvmr = "0.14"
 
@@ -201,6 +203,11 @@ path = "tests/test_hsh_001_block_header_hash.rs"
 [[test]]
 name = "hsh_002_checkpoint_hash"
 path = "tests/test_hsh_002_checkpoint_hash.rs"
+
+# HSH-003: spends_root — MerkleTree over SHA-256(serialized SpendBundle) leaves in order.
+[[test]]
+name = "hsh_003_spends_root"
+path = "tests/test_hsh_003_spends_root.rs"
 
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]

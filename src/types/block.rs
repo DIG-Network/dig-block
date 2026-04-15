@@ -2,6 +2,7 @@
 //!
 //! **Requirements:**
 //! - [BLK-003](docs/requirements/domains/block_types/specs/BLK-003.md) — struct + `new` / `hash` / `height` / `epoch`
+//! - [HSH-003](docs/requirements/domains/hashing/specs/HSH-003.md) — [`crate::compute_spends_root`] (spends Merkle root)
 //! - [BLK-004](docs/requirements/domains/block_types/specs/BLK-004.md) — Merkle roots, BIP158 `filter_hash` preimage,
 //!   additions/removals collectors, duplicate / double-spend probes, serialized size
 //! - [SPEC §2.3](docs/resources/SPEC.md), [SPEC §3.3–§3.6](docs/resources/SPEC.md) — body commitments + filter
@@ -19,6 +20,7 @@
 //! - **`slash_proposal_payloads`** are `Vec<Vec<u8>>` for opaque slash evidence (encoding evolves independently).
 
 use chia_protocol::{Coin, SpendBundle};
+use chia_streamable_macro::Streamable;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
@@ -32,7 +34,8 @@ use crate::primitives::{Bytes32, Signature};
 /// Complete L2 block: header plus body (spend bundles, slash payloads) and proposer attestation.
 ///
 /// See [BLK-003](docs/requirements/domains/block_types/specs/BLK-003.md) and [`SPEC §2.3`](docs/resources/SPEC.md).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// **Chia [`Streamable`] (wire):** see [`L2BlockHeader`] — gossip uses this encoding; persistence uses bincode + zstd in dig-blockstore.
+#[derive(Debug, Clone, Serialize, Deserialize, Streamable)]
 pub struct L2Block {
     /// Block header (identity hash, Merkle roots, metadata).
     pub header: L2BlockHeader,
@@ -86,13 +89,14 @@ impl L2Block {
 
     // --- BLK-004: Merkle roots (SPEC §3.3–§3.5) ---
 
-    /// Merkle root over [`SpendBundle::name`] digests in **block order**; empty body → [`crate::EMPTY_ROOT`].
+    /// Merkle root over spend-bundle leaf digests in **block order**; empty body → [`crate::EMPTY_ROOT`].
     ///
-    /// **Algorithm:** [`chia_sdk_types::MerkleTree`] with tagged leaves (SPEC §3.3, `spends_root` row).
+    /// **Delegation:** [`crate::compute_spends_root`] ([HSH-003](docs/requirements/domains/hashing/specs/HSH-003.md)) —
+    /// each leaf is SHA-256 of serialized [`SpendBundle`] bytes; [`chia_sdk_types::MerkleTree`] applies tagged hashing
+    /// (HSH-007, SPEC §3.3 `spends_root` row).
     #[must_use]
     pub fn compute_spends_root(&self) -> Bytes32 {
-        let leaves: Vec<Bytes32> = self.spend_bundles.iter().map(SpendBundle::name).collect();
-        merkle_tree_root(&leaves)
+        crate::compute_spends_root(&self.spend_bundles)
     }
 
     /// Additions Merkle root: group created coins by `puzzle_hash`, pair each group with [`hash_coin_ids`],
@@ -211,9 +215,7 @@ impl L2Block {
     #[must_use]
     pub fn has_double_spends(&self) -> Option<Bytes32> {
         let mut seen = std::collections::HashSet::<Bytes32>::new();
-        self.all_removals()
-            .into_iter()
-            .find(|&id| !seen.insert(id))
+        self.all_removals().into_iter().find(|&id| !seen.insert(id))
     }
 
     /// Full `bincode` body size (header + spends + slash payloads + signature), per SPEC serialization rules.
