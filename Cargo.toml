@@ -291,6 +291,11 @@ path = "tests/test_bld_005_build_pipeline.rs"
 name = "bld_006_block_signer_integration"
 path = "tests/test_bld_006_block_signer_integration.rs"
 
+# BLD-007: every successful build() output passes L2Block::validate_structure (SVL-005/006 parity).
+[[test]]
+name = "bld_007_builder_validity_guarantee"
+path = "tests/test_bld_007_builder_validity_guarantee.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"

@@ -39,11 +39,9 @@
 //!
 //! ## Status
 //!
-//! **BLD-001**–**BLD-006** are implemented (`new`, body accumulation, optional header setters, [`Self::build`] /
-//! [`Self::build_with_dfsp_activation`], [`crate::BlockSigner`] hook).
-//! **BLD-007** (every `build` output structurally valid) is partially evidenced by
-//! `tests/test_bld_005_build_pipeline.rs` calling [`crate::L2Block::validate_structure`] on successful builds; a full
-//! BLD-007 requirement pass remains for explicit negative cases and documentation tightening.
+//! **BLD-001**–**BLD-007** are implemented: successful [`Self::build`] / [`Self::build_with_dfsp_activation`] outputs
+//! pass [`crate::L2Block::validate_structure`] ([BLD-007](docs/requirements/domains/block_production/specs/BLD-007.md),
+//! `tests/test_bld_007_builder_validity_guarantee.rs`).
 
 use std::time::{SystemTime, UNIX_EPOCH};
 

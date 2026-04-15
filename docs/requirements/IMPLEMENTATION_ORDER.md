@@ -81,7 +81,7 @@ After completing a requirement: write tests, verify they pass, update TRACKING.y
 - [x] BLD-004 — set_l1_proofs(), set_dfsp_roots(), set_extension_data()
 - [x] BLD-005 — build() pipeline (compute all derived fields, assemble header)
 - [x] BLD-006 — BlockSigner trait and signing in build()
-- [ ] BLD-007 — Builder produces structurally valid blocks by construction
+- [x] BLD-007 — Builder produces structurally valid blocks by construction
 - [x] CKP-006 — CheckpointBuilder (new, add_block, set_state_root, add_withdrawal, build)
 
 ## Phase 8: Serialization
