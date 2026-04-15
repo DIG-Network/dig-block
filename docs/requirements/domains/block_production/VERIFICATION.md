@@ -10,7 +10,7 @@
 | ID      | Status      | Summary                                  | Verification Approach                                                                    |
 |---------|-------------|------------------------------------------|------------------------------------------------------------------------------------------|
 | BLD-001 | implemented | BlockBuilder Struct and Constructor      | `tests/test_bld_001_builder_struct_constructor.rs`: identity args preserved; empty `spend_bundles` / `slash_proposal_payloads` / `additions` / `removals`; `total_cost` and `total_fees` zero (BLD-001 test plan). |
-| BLD-002 | Not Started | add_spend_bundle with Budget Enforcement | Unit tests at cost/size boundaries; verify additions/removals extraction and totals       |
+| BLD-002 | implemented | add_spend_bundle with Budget Enforcement | `tests/test_bld_002_add_spend_bundle_budget.rs`: `CostBudgetExceeded` / `SizeBudgetExceeded`; no mutation on `Err`; additions/removals/totals/`spend_bundle_count` / `remaining_cost` (BLD-002 test plan). |
 | BLD-003 | Not Started | add_slash_proposal with Limits           | Unit tests exceeding MAX_SLASH_PROPOSALS_PER_BLOCK and MAX_SLASH_PROPOSAL_PAYLOAD_BYTES   |
 | BLD-004 | Not Started | Optional Setters                         | Unit tests verifying each setter stores the provided values correctly                     |
 | BLD-005 | Not Started | Build Pipeline                           | Integration test: build a block, inspect all computed fields match expected values         |
