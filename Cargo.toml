@@ -286,6 +286,11 @@ path = "tests/test_bld_004_optional_setters.rs"
 name = "bld_005_build_pipeline"
 path = "tests/test_bld_005_build_pipeline.rs"
 
+# BLD-006: BlockSigner in build() — hash passed to signer, BLS verify, failure mapping, object safety.
+[[test]]
+name = "bld_006_block_signer_integration"
+path = "tests/test_bld_006_block_signer_integration.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"

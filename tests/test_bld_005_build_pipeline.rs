@@ -29,13 +29,11 @@
 //! - **Two-pass `block_size`:** [`dig_block::L2BlockHeader::block_size`] (as `u64` / `u32`) equals
 //!   [`dig_block::L2Block::compute_size`] on the final block — the field participates in serialization so the second
 //!   pass must match the measured `bincode` length (spec step 9).
-//! - **Signing (BLD-006 overlap):** [`chia_bls::verify`] on `header.hash()`, the [`dig_block::MockBlockSigner`] public
-//!   key, and [`dig_block::L2Block::proposer_signature`] proves `sign_block` was invoked with the **post-size** header
-//!   preimage (HSH-001).
+//! - **Signing:** [`chia_bls::verify`] on `header.hash()`, [`dig_block::MockBlockSigner`], and
+//!   [`dig_block::L2Block::proposer_signature`] in the full-pipeline test; dedicated BLD-006 coverage lives in
+//!   `tests/test_bld_006_block_signer_integration.rs`.
 //! - **Structural tier:** [`dig_block::L2Block::validate_structure`] returns `Ok` — forward-looking proof obligation
 //!   for BLD-007 (builder output is SVL-005/006-consistent when only builder APIs were used).
-//! - **Signer failure mapping:** A local [`dig_block::BlockSigner`] returning [`dig_block::traits::SignerError::SigningFailed`]
-//!   becomes [`dig_block::BuilderError::SigningFailed`] (ERR-004).
 //!
 //! **Tooling:** Repomix packs under `.repomix/` for `src/`, `tests/`, `docs/requirements/domains/block_production`.
 //! `npx gitnexus impact BlockBuilder` → **LOW** (no upstream crate callers at index time).
@@ -47,8 +45,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use chia_bls::verify;
 use chia_protocol::Bytes32;
 
-use dig_block::traits::{BlockSigner, SignerError};
-use dig_block::{BlockBuilder, BuilderError, Signature, EMPTY_ROOT, VERSION_V1, VERSION_V2};
+use dig_block::{BlockBuilder, BuilderError, EMPTY_ROOT, VERSION_V1, VERSION_V2};
 
 use common::{test_spend_bundle, MockBlockSigner};
 
@@ -206,35 +203,6 @@ fn bld005_build_missing_dfsp_roots_when_v2_required() {
         .build_with_dfsp_activation(EMPTY_ROOT, EMPTY_ROOT, &signer, 0)
         .expect_err("V2 without DFSP data must fail");
     assert!(matches!(err, BuilderError::MissingDfspRoots));
-}
-
-/// **Test plan:** signing failure path (BLD-006 / ERR-004 overlap).
-#[test]
-fn bld005_build_maps_signer_error_to_signing_failed() {
-    struct AlwaysFailSigner;
-
-    impl BlockSigner for AlwaysFailSigner {
-        fn sign_block(&self, _header_hash: &Bytes32) -> Result<Signature, SignerError> {
-            Err(SignerError::SigningFailed("injected failure".into()))
-        }
-    }
-
-    let mut b = mk_builder_v1_height();
-    b.add_spend_bundle(test_spend_bundle(), 1, 0)
-        .expect("fixture");
-    let signer = AlwaysFailSigner;
-    let err = b
-        .build(EMPTY_ROOT, EMPTY_ROOT, &signer)
-        .expect_err("signer must fail");
-    match err {
-        BuilderError::SigningFailed(msg) => {
-            assert!(
-                msg.contains("injected failure") || msg.contains("signing failed"),
-                "message should carry signer diagnostic: {msg}"
-            );
-        }
-        other => panic!("unexpected error: {other:?}"),
-    }
 }
 
 /// **Test plan:** `test_build_two_pass_block_size` — explicit relationship between header field and `compute_size`.

@@ -7,7 +7,7 @@
 //! - **[BLD-003](docs/requirements/domains/block_production/specs/BLD-003.md)** — `add_slash_proposal()` with count/size limits.
 //! - **[BLD-004](docs/requirements/domains/block_production/specs/BLD-004.md)** — `set_l1_proofs()`, `set_dfsp_roots()`, `set_extension_data()`.
 //! - **[BLD-005](docs/requirements/domains/block_production/specs/BLD-005.md)** — `build()` pipeline: compute all derived fields, sign header.
-//! - **[BLD-006](docs/requirements/domains/block_production/specs/BLD-006.md)** — [`crate::BlockSigner`] integration in `build()`.
+//! - **[BLD-006](docs/requirements/domains/block_production/specs/BLD-006.md)** — [`crate::BlockSigner`] integration in `build()` (see `tests/test_bld_006_block_signer_integration.rs`).
 //! - **[BLD-007](docs/requirements/domains/block_production/specs/BLD-007.md)** — structural validity guarantee: output always passes `validate_structure()`.
 //! - **[NORMATIVE](docs/requirements/domains/block_production/NORMATIVE.md)** — full block production domain.
 //! - **[SPEC §6](docs/resources/SPEC.md)** — block production lifecycle.
@@ -39,8 +39,8 @@
 //!
 //! ## Status
 //!
-//! **BLD-001**–**BLD-005** are implemented (`new`, body accumulation, optional header setters, [`Self::build`] /
-//! [`Self::build_with_dfsp_activation`]). **BLD-006** is exercised by signing inside `build` ([`crate::BlockSigner`]).
+//! **BLD-001**–**BLD-006** are implemented (`new`, body accumulation, optional header setters, [`Self::build`] /
+//! [`Self::build_with_dfsp_activation`], [`crate::BlockSigner`] hook).
 //! **BLD-007** (every `build` output structurally valid) is partially evidenced by
 //! `tests/test_bld_005_build_pipeline.rs` calling [`crate::L2Block::validate_structure`] on successful builds; a full
 //! BLD-007 requirement pass remains for explicit negative cases and documentation tightening.
@@ -517,6 +517,9 @@ impl BlockBuilder {
         let measured = block.compute_size();
         block.header.block_size = usize_to_u32_count(measured);
 
+        // BLD-006: sign the **final** header digest (includes two-pass `block_size`; HSH-001 preimage omits BLS sig —
+        // see BLK-003 `L2Block::proposer_signature`). ERR-004 stores `SignerError` as `String` via `Display` so
+        // [`crate::BuilderError`] stays `Clone` without wrapping a nested `thiserror` source type.
         let header_hash = block.header.hash();
         let sig = signer
             .sign_block(&header_hash)
