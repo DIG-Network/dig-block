@@ -45,6 +45,7 @@ thiserror = "2"
 
 [dev-dependencies]
 bincode = "1"
+bitcoin = { version = "0.32", default-features = false, features = ["std"] }
 chia-sha2 = "0.26"
 hex = "0.4.3"
 hex-literal = "0.4"
@@ -218,6 +219,11 @@ path = "tests/test_hsh_004_additions_root.rs"
 [[test]]
 name = "hsh_005_removals_root"
 path = "tests/test_hsh_005_removals_root.rs"
+
+# HSH-006: filter_hash — SHA-256(BIP-158 GCS over addition puzzle_hashes + removal coin_ids).
+[[test]]
+name = "hsh_006_filter_hash"
+path = "tests/test_hsh_006_filter_hash.rs"
 
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
