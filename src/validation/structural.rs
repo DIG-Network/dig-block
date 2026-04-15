@@ -14,6 +14,7 @@
 //! |----|----------------|-------------|
 //! | [SVL-001](docs/requirements/domains/structural_validation/specs/SVL-001.md) | Header `version` vs `height` / DFSP activation | [`crate::L2BlockHeader::validate`], [`crate::L2BlockHeader::validate_with_dfsp_activation`] |
 //! | [SVL-002](docs/requirements/domains/structural_validation/specs/SVL-002.md) | DFSP roots empty before activation height | [`crate::L2BlockHeader::validate_with_dfsp_activation`] (chained from [`crate::L2BlockHeader::validate`]) |
+//! | [SVL-003](docs/requirements/domains/structural_validation/specs/SVL-003.md) | Declared `total_cost` / `block_size` vs protocol caps | [`crate::L2BlockHeader::validate_with_dfsp_activation`] (chained from [`crate::L2BlockHeader::validate`]) |
 //!
 //! **Rationale:** Keeping SVL-001 on [`crate::L2BlockHeader`](crate::types::header::L2BlockHeader) reuses the existing
 //! BLK-007 helpers [`L2BlockHeader::protocol_version_for_height_with_activation`] and

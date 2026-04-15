@@ -68,7 +68,7 @@ After completing a requirement: write tests, verify they pass, update TRACKING.y
 
 - [x] SVL-001 — Header validation: version check
 - [x] SVL-002 — Header validation: DFSP root pre-activation check
-- [ ] SVL-003 — Header validation: cost and size limit checks
+- [x] SVL-003 — Header validation: cost and size limit checks
 - [ ] SVL-004 — Header validation: timestamp future bound (MAX_FUTURE_TIMESTAMP_SECONDS)
 - [ ] SVL-005 — Block structural validation: count agreement (spend_bundle_count, additions_count, removals_count, slash_proposal_count)
 - [ ] SVL-006 — Block structural validation: Merkle root checks and duplicate/double-spend detection

@@ -240,6 +240,11 @@ path = "tests/test_svl_001_header_version_check.rs"
 name = "svl_002_dfsp_root_pre_activation"
 path = "tests/test_svl_002_dfsp_root_pre_activation.rs"
 
+# SVL-003: header declared total_cost / block_size vs MAX_COST_PER_BLOCK / MAX_BLOCK_SIZE (SPEC §5.1 Steps 3–4).
+[[test]]
+name = "svl_003_cost_and_size_checks"
+path = "tests/test_svl_003_cost_and_size_checks.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"

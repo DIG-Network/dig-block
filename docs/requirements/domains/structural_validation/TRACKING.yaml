@@ -27,12 +27,13 @@ items:
   - id: SVL-003
     section: "5.1 Steps 3-4"
     summary: Header Cost and Size Checks
-    status: Not Started
+    status: implemented
     spec_ref: specs/SVL-003.md
-    tests: []
+    tests:
+      - tests/test_svl_003_cost_and_size_checks.rs
     notes: >
-      Reject with CostExceeded if total_cost > MAX_COST_PER_BLOCK;
-      reject with TooLarge if block_size > MAX_BLOCK_SIZE.
+      L2BlockHeader::validate_with_dfsp_activation after SVL-002: CostExceeded when total_cost > MAX_COST_PER_BLOCK;
+      TooLarge when block_size > MAX_BLOCK_SIZE (cost checked first). Chained from validate().
 
   - id: SVL-004
     section: "5.1 Step 5"
