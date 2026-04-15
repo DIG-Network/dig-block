@@ -75,7 +75,7 @@ After completing a requirement: write tests, verify they pass, update TRACKING.y
 
 ## Phase 7: Block Production
 
-- [ ] BLD-001 — BlockBuilder struct and new() constructor
+- [x] BLD-001 — BlockBuilder struct and new() constructor
 - [ ] BLD-002 — add_spend_bundle() with cost and size budget enforcement
 - [ ] BLD-003 — add_slash_proposal() with count and size limits
 - [ ] BLD-004 — set_l1_proofs(), set_dfsp_roots(), set_extension_data()

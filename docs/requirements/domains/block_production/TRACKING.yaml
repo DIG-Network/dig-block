@@ -5,12 +5,14 @@ items:
   - id: BLD-001
     section: "6.1, 6.2"
     summary: BlockBuilder Struct and Constructor
-    status: Not Started
+    status: implemented
     spec_ref: specs/BLD-001.md
-    tests: []
+    tests:
+      - tests/test_bld_001_builder_struct_constructor.rs
     notes: >
-      BlockBuilder must contain all specified fields;
-      new() initializes with empty collections and zero totals.
+      BlockBuilder: 12 public fields per SPEC §6.1; new(height, epoch, parent_hash, l1_height, l1_hash, proposer_index)
+      clears spend_bundles, slash_proposal_payloads, additions, removals and zeros total_cost/total_fees.
+      removals use Vec<Bytes32> (NORMATIVE CoinId ≡ coin_id bytes; no CoinId type in pinned chia-protocol).
 
   - id: BLD-002
     section: "6.3"

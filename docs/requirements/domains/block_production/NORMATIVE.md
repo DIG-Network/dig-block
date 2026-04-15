@@ -24,7 +24,7 @@
 - `total_cost`: `Cost`
 - `total_fees`: `u64`
 - `additions`: `Vec<Coin>`
-- `removals`: `Vec<CoinId>`
+- `removals`: `Vec<CoinId>` (Rust surface: `Vec<Bytes32>` — coin id bytes; see BLD-001 spec notes)
 
 `new()` MUST initialize with empty collections and zero totals.
 
