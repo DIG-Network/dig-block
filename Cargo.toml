@@ -192,6 +192,11 @@ path = "tests/test_receipt_error.rs"
 name = "hsh_007_tagged_merkle"
 path = "tests/test_hsh_007_tagged_merkle.rs"
 
+# HSH-001: L2BlockHeader hash (SHA-256 over SPEC §3.1 preimage).
+[[test]]
+name = "hsh_001_block_header_hash"
+path = "tests/test_hsh_001_block_header_hash.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"
