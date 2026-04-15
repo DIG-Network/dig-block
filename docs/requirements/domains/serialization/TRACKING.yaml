@@ -5,10 +5,11 @@ items:
   - id: SER-001
     section: "8.1"
     summary: "Bincode Serialization for All Types"
-    status: gap
+    status: implemented
     spec_ref: "SPEC Section 8.1"
-    tests: []
-    notes: ""
+    tests:
+      - tests/test_ser_001_bincode_all_types.rs
+    notes: "Round-trip via bincode; L2Block/AttestedBlock/CheckpointSubmission use byte-stable check (SpendBundle lacks PartialEq)."
 
   - id: SER-002
     section: "8.2"

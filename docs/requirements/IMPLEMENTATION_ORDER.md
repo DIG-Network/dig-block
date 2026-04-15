@@ -86,7 +86,7 @@ After completing a requirement: write tests, verify they pass, update TRACKING.y
 
 ## Phase 8: Serialization
 
-- [ ] SER-001 — Bincode serialization for all block types
+- [x] SER-001 — Bincode serialization for all block types
 - [ ] SER-002 — to_bytes() infallible, from_bytes() fallible with error mapping
 - [ ] SER-003 — Genesis block construction via L2BlockHeader::genesis()
 - [ ] SER-004 — Serde default attributes for backwards compatibility

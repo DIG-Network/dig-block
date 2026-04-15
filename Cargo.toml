@@ -50,6 +50,8 @@ chia-sha2 = "0.26"
 clvmr = "0.14"
 hex = "0.4.3"
 hex-literal = "0.4"
+# SER-001: JSON size probe only (wire remains bincode per NORMATIVE).
+serde_json = "1"
 
 # BLK-005: dedicated integration test crate (flat `tests/` path; see spec test plan).
 [[test]]
@@ -295,6 +297,11 @@ path = "tests/test_bld_006_block_signer_integration.rs"
 [[test]]
 name = "bld_007_builder_validity_guarantee"
 path = "tests/test_bld_007_builder_validity_guarantee.rs"
+
+# SER-001: bincode round-trip for wire types + bincode vs JSON size probe (flat `tests/` path).
+[[test]]
+name = "ser_001_bincode_all_types"
+path = "tests/test_ser_001_bincode_all_types.rs"
 
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]

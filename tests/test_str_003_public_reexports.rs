@@ -81,6 +81,16 @@ fn execution_result_import() {
     let _: Option<ExecutionResult> = None;
 }
 
+/// SER-001 / EXE-009: height/time assertion surface re-exported for bincode + Tier-3 plumbing.
+#[test]
+fn pending_assertion_and_kind_import() {
+    use dig_block::AssertionKind;
+    use dig_block::PendingAssertion;
+
+    let _: Option<PendingAssertion> = None;
+    let _ = AssertionKind::HeightAbsolute(0);
+}
+
 #[test]
 fn glob_import_all_public_types() {
     use dig_block::*;
