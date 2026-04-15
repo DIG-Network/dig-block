@@ -225,6 +225,11 @@ path = "tests/test_hsh_005_removals_root.rs"
 name = "hsh_006_filter_hash"
 path = "tests/test_hsh_006_filter_hash.rs"
 
+# HSH-008: receipts_root — MerkleTree over SHA-256(bincode(Receipt)) leaves (ReceiptList uses same fn).
+[[test]]
+name = "hsh_008_receipts_root"
+path = "tests/test_hsh_008_receipts_root.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"

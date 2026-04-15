@@ -62,7 +62,7 @@ After completing a requirement: write tests, verify they pass, update TRACKING.y
 - [x] HSH-004 — Additions root construction (chia-consensus compute_merkle_set_root, grouped by puzzle_hash)
 - [x] HSH-005 — Removals root construction (chia-consensus compute_merkle_set_root of coin IDs)
 - [x] HSH-006 — Filter hash construction (BIP158 compact filter)
-- [ ] HSH-008 — Receipts root computation (MerkleTree of receipt hashes, used by ReceiptList)
+- [x] HSH-008 — Receipts root computation (MerkleTree of receipt hashes, used by ReceiptList)
 
 ## Phase 6: Structural Validation (Tier 1)
 
