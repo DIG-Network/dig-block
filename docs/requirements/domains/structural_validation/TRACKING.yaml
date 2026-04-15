@@ -5,12 +5,13 @@ items:
   - id: SVL-001
     section: "5.1 Step 1"
     summary: Header Version Check
-    status: Not Started
+    status: implemented
     spec_ref: specs/SVL-001.md
-    tests: []
+    tests:
+      - tests/test_svl_001_header_version_check.rs
     notes: >
-      Compute expected_version from height vs DFSP_ACTIVATION_HEIGHT;
-      reject with BlockError::InvalidVersion on mismatch.
+      L2BlockHeader::validate / validate_with_dfsp_activation; BlockError::InvalidVersion { expected, actual };
+      BLK-007 protocol_version_for_height_with_activation.
 
   - id: SVL-002
     section: "5.1 Step 2"

@@ -30,9 +30,9 @@ pub enum BlockError {
     #[error("invalid data: {0}")]
     InvalidData(String),
 
-    /// Header `version` does not match the epoch / activation rules.
-    #[error("invalid version: {0}")]
-    InvalidVersion(u16),
+    /// Header `version` does not match the height / DFSP activation rule ([SVL-001](docs/requirements/domains/structural_validation/specs/SVL-001.md)).
+    #[error("invalid version: expected {expected}, got {actual}")]
+    InvalidVersion { expected: u16, actual: u16 },
 
     /// Serialized block size exceeds [`crate::MAX_BLOCK_SIZE`](crate::constants) or configured limit.
     #[error("block too large: {size} bytes exceeds max {max}")]

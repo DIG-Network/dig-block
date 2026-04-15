@@ -7,6 +7,7 @@
 //!   [NORMATIVE § BLK-002](docs/requirements/domains/block_types/NORMATIVE.md#blk-002-l2blockheader-constructors)
 //! - [BLK-007](docs/requirements/domains/block_types/specs/BLK-007.md) — version auto-detection /
 //!   [NORMATIVE](docs/requirements/domains/block_types/NORMATIVE.md) (BLK-007)
+//! - [SVL-001](docs/requirements/domains/structural_validation/specs/SVL-001.md) — header `version` vs height / DFSP activation ([`L2BlockHeader::validate`])
 //! - [HSH-001](docs/requirements/domains/hashing/specs/HSH-001.md) — header `hash()` (SPEC §3.1 field order;
 //!   preimage length [`L2BlockHeader::HASH_PREIMAGE_LEN`])
 //! - [SPEC §2.2](docs/resources/SPEC.md), [SPEC §8.3 Genesis](docs/resources/SPEC.md#83-genesis-block)
@@ -42,6 +43,7 @@ use chia_streamable_macro::Streamable;
 use serde::{Deserialize, Serialize};
 
 use crate::constants::{DFSP_ACTIVATION_HEIGHT, EMPTY_ROOT, ZERO_HASH};
+use crate::error::BlockError;
 use crate::primitives::{Bytes32, Cost, VERSION_V1, VERSION_V2};
 
 /// DIG L2 block header: identity, Merkle commitments, L1 anchor, metadata, optional L1 proofs, slash
@@ -166,6 +168,39 @@ impl L2BlockHeader {
         Self::protocol_version_for_height_with_activation(height, DFSP_ACTIVATION_HEIGHT)
     }
 
+    /// **SVL-001 / SPEC §5.1 Step 1:** ensure [`L2BlockHeader::version`] matches the protocol rule for this header’s
+    /// [`L2BlockHeader::height`] and an explicit DFSP activation height.
+    ///
+    /// **Algorithm:** `expected = `[`Self::protocol_version_for_height_with_activation`]`(height, dfsp_activation_height)`;
+    /// reject with [`BlockError::InvalidVersion`] when `version != expected` ([structural_validation NORMATIVE](docs/requirements/domains/structural_validation/NORMATIVE.md#svl-001-header-version-check)).
+    ///
+    /// **Production:** Prefer [`Self::validate`], which passes [`DFSP_ACTIVATION_HEIGHT`](crate::constants::DFSP_ACTIVATION_HEIGHT)
+    /// (BLK-005 sentinel `u64::MAX` ⇒ always expect [`VERSION_V1`](crate::primitives::VERSION_V1) until governance changes the constant).
+    /// This method stays **public** so tests can simulate a finite fork height without recompiling the crate.
+    pub fn validate_with_dfsp_activation(
+        &self,
+        dfsp_activation_height: u64,
+    ) -> Result<(), BlockError> {
+        let expected =
+            Self::protocol_version_for_height_with_activation(self.height, dfsp_activation_height);
+        if self.version != expected {
+            return Err(BlockError::InvalidVersion {
+                expected,
+                actual: self.version,
+            });
+        }
+        Ok(())
+    }
+
+    /// Tier 1 header structural validation using crate-wide constants ([SVL-*](docs/requirements/domains/structural_validation/NORMATIVE.md)).
+    ///
+    /// **Current steps:** [SVL-001](docs/requirements/domains/structural_validation/specs/SVL-001.md) only — additional
+    /// header checks (DFSP roots, cost/size, timestamp) will chain here in implementation order.
+    pub fn validate(&self) -> Result<(), BlockError> {
+        self.validate_with_dfsp_activation(DFSP_ACTIVATION_HEIGHT)?;
+        Ok(())
+    }
+
     /// Byte length of the fixed preimage fed to [`Self::hash`] (all 33 rows of [SPEC §3.1](docs/resources/SPEC.md)).
     ///
     /// **Accounting:** 20×[`Bytes32`] fields + `u16` + 6×`u64` + 7×`u32` = 640 + 70 = **710** bytes.
@@ -184,7 +219,11 @@ impl L2BlockHeader {
             buf[*i..*i + bytes.len()].copy_from_slice(bytes);
             *i += bytes.len();
         }
-        fn put_opt(buf: &mut [u8; L2BlockHeader::HASH_PREIMAGE_LEN], i: &mut usize, o: &Option<Bytes32>) {
+        fn put_opt(
+            buf: &mut [u8; L2BlockHeader::HASH_PREIMAGE_LEN],
+            i: &mut usize,
+            o: &Option<Bytes32>,
+        ) {
             let slice = match o {
                 Some(b) => b.as_ref(),
                 None => ZERO_HASH.as_ref(),
@@ -226,7 +265,11 @@ impl L2BlockHeader {
         put(&mut buf, &mut i, self.cid_state_root.as_ref());
         put(&mut buf, &mut i, self.node_registry_root.as_ref());
         put(&mut buf, &mut i, self.namespace_update_root.as_ref());
-        put(&mut buf, &mut i, self.dfsp_finalize_commitment_root.as_ref());
+        put(
+            &mut buf,
+            &mut i,
+            self.dfsp_finalize_commitment_root.as_ref(),
+        );
         debug_assert_eq!(i, Self::HASH_PREIMAGE_LEN);
         buf
     }
