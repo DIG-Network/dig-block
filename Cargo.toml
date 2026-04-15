@@ -271,6 +271,11 @@ path = "tests/test_bld_001_builder_struct_constructor.rs"
 name = "bld_002_add_spend_bundle_budget"
 path = "tests/test_bld_002_add_spend_bundle_budget.rs"
 
+# BLD-003: BlockBuilder add_slash_proposal count and per-payload size limits.
+[[test]]
+name = "bld_003_add_slash_proposal_limits"
+path = "tests/test_bld_003_add_slash_proposal_limits.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"

@@ -28,9 +28,10 @@ items:
   - id: BLD-003
     section: "6.3"
     summary: add_slash_proposal with Limits
-    status: Not Started
+    status: implemented
     spec_ref: specs/BLD-003.md
-    tests: []
+    tests:
+      - tests/test_bld_003_add_slash_proposal_limits.rs
     notes: >
       Enforces count and payload size limits for slash proposals.
 
