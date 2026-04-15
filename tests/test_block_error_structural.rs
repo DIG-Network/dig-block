@@ -130,9 +130,18 @@ fn err001_unit_variants_non_empty_display() {
         BlockError::InvalidAdditionsRoot,
         BlockError::InvalidRemovalsRoot,
         BlockError::InvalidFilterHash,
-        BlockError::AdditionsCountMismatch,
-        BlockError::RemovalsCountMismatch,
-        BlockError::SlashProposalCountMismatch,
+        BlockError::AdditionsCountMismatch {
+            header: 0,
+            actual: 1,
+        },
+        BlockError::RemovalsCountMismatch {
+            header: 0,
+            actual: 1,
+        },
+        BlockError::SlashProposalCountMismatch {
+            header: 0,
+            actual: 1,
+        },
     ];
     for e in cases {
         assert!(!e.to_string().trim().is_empty(), "{e:?}");

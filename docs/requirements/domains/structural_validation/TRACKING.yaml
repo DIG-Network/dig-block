@@ -51,12 +51,14 @@ items:
   - id: SVL-005
     section: "5.2 Steps 2, 4, 5, 13"
     summary: Block Count Agreement
-    status: Not Started
+    status: implemented
     spec_ref: specs/SVL-005.md
-    tests: []
+    tests:
+      - tests/test_svl_005_block_count_agreement.rs
     notes: >
-      Four count fields in header must match actual block contents;
-      each mismatch produces a distinct error variant.
+      L2Block::validate_structure: spend_bundle_count vs len; additions_count vs all_additions().len();
+      removals_count vs sum of coin_spends per bundle; slash_proposal_count vs slash_proposal_payloads.len().
+      SVL-006 extends validate_structure with Merkle/integrity. BlockError count mismatches carry {header, actual}.
 
   - id: SVL-006
     section: "5.2 Steps 3, 6-15"

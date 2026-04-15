@@ -8,6 +8,8 @@
 //! - [HSH-006](docs/requirements/domains/hashing/specs/HSH-006.md) — [`crate::compute_filter_hash`] (BIP-158 compact filter)
 //! - [BLK-004](docs/requirements/domains/block_types/specs/BLK-004.md) — Merkle roots, BIP158 `filter_hash` preimage,
 //!   additions/removals collectors, duplicate / double-spend probes, serialized size
+//! - [SVL-005](docs/requirements/domains/structural_validation/specs/SVL-005.md) — header/body **count agreement**
+//!   ([`L2Block::validate_structure`]; SPEC §5.2 steps 2, 4, 5, 13) before expensive Merkle checks ([SVL-006](docs/requirements/domains/structural_validation/specs/SVL-006.md))
 //! - [SPEC §2.3](docs/resources/SPEC.md), [SPEC §3.3–§3.6](docs/resources/SPEC.md) — body commitments + filter
 //!
 //! ## Usage
@@ -27,6 +29,7 @@ use chia_streamable_macro::Streamable;
 use serde::{Deserialize, Serialize};
 
 use super::header::L2BlockHeader;
+use crate::error::BlockError;
 use crate::merkle_util::{empty_on_additions_err, merkle_tree_root, slash_leaf_hash};
 use crate::primitives::{Bytes32, Signature};
 
@@ -201,6 +204,67 @@ impl L2Block {
     pub fn compute_size(&self) -> usize {
         bincode::serialize(self).map(|b| b.len()).unwrap_or(0)
     }
+
+    /// Tier 1 **structural** validation: cheap consistency checks that need no chain state ([SPEC §5.2](docs/resources/SPEC.md)).
+    ///
+    /// **Current scope — [SVL-005](docs/requirements/domains/structural_validation/specs/SVL-005.md):** the four header
+    /// counters `spend_bundle_count`, `additions_count`, `removals_count`, and `slash_proposal_count` MUST equal the
+    /// counts implied by `spend_bundles`, flattened CLVM additions ([`Self::all_additions`]), total [`CoinSpend`] rows,
+    /// and `slash_proposal_payloads` respectively. Order matches the spec’s fail-fast intent: spend-bundle cardinality
+    /// first, then additions/removals derived from spends, then slash payload count.
+    ///
+    /// **Not yet implemented here (SVL-006):** Merkle root recomputation, duplicate/double-spend probes, slash byte caps,
+    /// filter hash, and bincode size vs [`crate::MAX_BLOCK_SIZE`]. Callers should treat `Ok(())` today as “counts only”
+    /// unless SVL-006 is merged—see [structural_validation NORMATIVE](docs/requirements/domains/structural_validation/NORMATIVE.md).
+    ///
+    /// **Rationale:** Keeping count agreement separate from Merkle work lets invalid headers fail without hashing large
+    /// bodies; [`crate::validation::structural`](crate::validation::structural) documents the full SVL matrix.
+    pub fn validate_structure(&self) -> Result<(), BlockError> {
+        let actual_spend_bundles = u32_len(self.spend_bundles.len());
+        if self.header.spend_bundle_count != actual_spend_bundles {
+            return Err(BlockError::SpendBundleCountMismatch {
+                header: self.header.spend_bundle_count,
+                actual: actual_spend_bundles,
+            });
+        }
+
+        let computed_additions = u32_len(self.all_additions().len());
+        if self.header.additions_count != computed_additions {
+            return Err(BlockError::AdditionsCountMismatch {
+                header: self.header.additions_count,
+                actual: computed_additions,
+            });
+        }
+
+        let computed_removals: usize = self
+            .spend_bundles
+            .iter()
+            .map(|sb| sb.coin_spends.len())
+            .sum();
+        let computed_removals = u32_len(computed_removals);
+        if self.header.removals_count != computed_removals {
+            return Err(BlockError::RemovalsCountMismatch {
+                header: self.header.removals_count,
+                actual: computed_removals,
+            });
+        }
+
+        let actual_slash = u32_len(self.slash_proposal_payloads.len());
+        if self.header.slash_proposal_count != actual_slash {
+            return Err(BlockError::SlashProposalCountMismatch {
+                header: self.header.slash_proposal_count,
+                actual: actual_slash,
+            });
+        }
+
+        Ok(())
+    }
+}
+
+/// Convert slice lengths to `u32` for header/count fields; saturates at `u32::MAX` if the platform `usize` exceeds it.
+#[inline]
+fn u32_len(n: usize) -> u32 {
+    u32::try_from(n).unwrap_or(u32::MAX)
 }
 
 /// First repeated [`Coin::coin_id`] in a slice of additions (shared by [`L2Block::has_duplicate_outputs`]).
