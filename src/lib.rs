@@ -41,6 +41,9 @@ pub use merkle_util::compute_spends_root;
 // Additions Merkle set root over `Coin` additions (HSH-004); implementation in [`crate::merkle_util`].
 pub use merkle_util::compute_additions_root;
 
+// Removals Merkle set root over coin IDs (HSH-005); implementation in [`crate::merkle_util`].
+pub use merkle_util::compute_removals_root;
+
 // Traits
 pub use traits::{BlockSigner, CoinLookup};
 
