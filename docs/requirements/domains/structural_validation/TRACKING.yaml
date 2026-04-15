@@ -16,12 +16,13 @@ items:
   - id: SVL-002
     section: "5.1 Step 2"
     summary: Header DFSP Root Pre-Activation Check
-    status: Not Started
+    status: implemented
     spec_ref: specs/SVL-002.md
-    tests: []
+    tests:
+      - tests/test_svl_002_dfsp_root_pre_activation.rs
     notes: >
-      All five DFSP roots must equal EMPTY_ROOT when height < DFSP_ACTIVATION_HEIGHT;
-      reject with BlockError::InvalidData otherwise.
+      L2BlockHeader::validate_with_dfsp_activation: when height < dfsp_activation_height, all five DFSP roots
+      must equal EMPTY_ROOT; else BlockError::InvalidData (fixed message). Chained after SVL-001 version check.
 
   - id: SVL-003
     section: "5.1 Steps 3-4"
