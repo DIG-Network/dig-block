@@ -276,6 +276,11 @@ path = "tests/test_bld_002_add_spend_bundle_budget.rs"
 name = "bld_003_add_slash_proposal_limits"
 path = "tests/test_bld_003_add_slash_proposal_limits.rs"
 
+# BLD-004: BlockBuilder set_l1_proofs, set_dfsp_roots, set_extension_data.
+[[test]]
+name = "bld_004_optional_setters"
+path = "tests/test_bld_004_optional_setters.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"

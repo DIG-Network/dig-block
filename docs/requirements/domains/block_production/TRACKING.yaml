@@ -38,11 +38,13 @@ items:
   - id: BLD-004
     section: "6.3"
     summary: Optional Setters
-    status: Not Started
+    status: implemented
     spec_ref: specs/BLD-004.md
-    tests: []
+    tests:
+      - tests/test_bld_004_optional_setters.rs
     notes: >
-      Three setter methods for L1 proofs, DFSP roots, and extension data.
+      set_l1_proofs / set_dfsp_roots / set_extension_data on public BlockBuilder fields matching L2BlockHeader;
+      BLD-002 size probe merges these into probe header (Option discriminant + roots).
 
   - id: BLD-005
     section: "6.4"
