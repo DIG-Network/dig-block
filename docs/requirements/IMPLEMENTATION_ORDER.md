@@ -58,7 +58,7 @@ After completing a requirement: write tests, verify they pass, update TRACKING.y
 - [x] HSH-007 — Tagged Merkle hashing (0x01 leaf prefix, 0x02 node prefix domain separation)
 - [x] HSH-001 — Block header hash (SHA-256, fixed-order SPEC §3.1 preimage; 710 bytes — see `L2BlockHeader::HASH_PREIMAGE_LEN`)
 - [x] HSH-002 — Checkpoint hash (SHA-256, fixed-order, 160 bytes)
-- [ ] HSH-003 — Spends root computation (MerkleTree of SpendBundle hashes)
+- [x] HSH-003 — Spends root computation (MerkleTree of SpendBundle hashes)
 - [ ] HSH-004 — Additions root construction (chia-consensus compute_merkle_set_root, grouped by puzzle_hash)
 - [ ] HSH-005 — Removals root construction (chia-consensus compute_merkle_set_root of coin IDs)
 - [ ] HSH-006 — Filter hash construction (BIP158 compact filter)

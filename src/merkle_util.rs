@@ -6,12 +6,17 @@
 //!
 //! **HSH-007 nuance:** [`MerkleTree`] leaves/nodes use `0x01`/`0x02` tagging ([`crate::hash`]); [`compute_merkle_set_root`] is a
 //! **different** radix-tree hash (see `chia_consensus::merkle_set`) for sorted coin-id sets — do not mix the two formulas.
+//!
+//! **HSH-003 ([`compute_spends_root`]):** spends roots use **binary** [`MerkleTree`] over per-bundle digests; each leaf is
+//! SHA-256 of the streamable [`SpendBundle`](chia_protocol::SpendBundle) bytes (same digest as [`SpendBundle::name`] /
+//! [`chia_traits::Streamable::hash`]) — see [HSH-003](docs/requirements/domains/hashing/specs/HSH-003.md).
 
 use bitcoin::bip158::GcsFilterWriter;
 use chia_consensus::merkle_set::compute_merkle_set_root;
-use chia_protocol::Bytes32;
+use chia_protocol::{Bytes32, SpendBundle};
 use chia_sdk_types::MerkleTree;
 use chia_sha2::Sha256;
+use chia_traits::Streamable;
 use clvmr::reduction::EvalErr;
 
 use crate::constants::EMPTY_ROOT;
@@ -57,6 +62,37 @@ pub fn merkle_tree_root(leaves: &[Bytes32]) -> Bytes32 {
         return EMPTY_ROOT;
     }
     MerkleTree::new(leaves).root()
+}
+
+/// **Spends root** (header `spends_root`, SPEC §3.3) — Merkle root over ordered spend-bundle leaf digests.
+///
+/// **Normative:** [HSH-003](docs/requirements/domains/hashing/specs/HSH-003.md).  
+/// **Algorithm:** empty slice → [`EMPTY_ROOT`]; else [`MerkleTree::new`] over leaves
+/// `SHA-256(bundle.to_bytes())` in **slice order** (block order). Tagged hashing inside the tree follows HSH-007 /
+/// `chia-sdk-types` ([`merkle_tree_root`]).
+///
+/// **Equivalence:** For valid in-memory bundles, `SHA-256(to_bytes())` matches [`SpendBundle::name`] because Chia’s
+/// streamable `hash()` hashes the same serialized bytes ([`Streamable::hash`](chia_traits::Streamable::hash)).
+///
+/// **Callers:** [`crate::L2Block::compute_spends_root`](crate::L2Block::compute_spends_root) delegates here so block
+/// bodies and standalone bundle slices share one definition.
+#[must_use]
+pub fn compute_spends_root(spend_bundles: &[SpendBundle]) -> Bytes32 {
+    if spend_bundles.is_empty() {
+        return EMPTY_ROOT;
+    }
+    let leaves: Vec<Bytes32> = spend_bundles
+        .iter()
+        .map(|bundle| {
+            let bytes = bundle.to_bytes().unwrap_or_else(|e| {
+                panic!("SpendBundle::to_bytes failed for Merkle leaf (invariant): {e:?}")
+            });
+            let mut h = Sha256::new();
+            h.update(&bytes);
+            Bytes32::new(h.finalize())
+        })
+        .collect();
+    merkle_tree_root(&leaves)
 }
 
 /// [`L2Block::slash_proposal_leaf_hash`](crate::types::block::L2Block::slash_proposal_leaf_hash) — SHA-256 over raw payload.
