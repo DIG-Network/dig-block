@@ -59,10 +59,11 @@ items:
   - id: EXE-007
     section: "7.4.6"
     summary: "Cost Consistency Verification"
-    status: gap
+    status: implemented
     spec_ref: "SPEC Section 7.4.6"
-    tests: []
-    notes: ""
+    tests:
+      - tests/test_exe_007_cost_consistency.rs
+    notes: "Block-level sum(SpendResult.conditions.cost) == header.total_cost enforced in L2Block::validate_execution[_with_context]; rejects CostMismatch{header,computed}. Distinct from per-bundle ClvmCostExceeded (which maps from dig-clvm::ValidationError::CostExceeded). Chia parity: Check 9 INVALID_BLOCK_COST."
 
   - id: EXE-008
     section: "7.4.7"

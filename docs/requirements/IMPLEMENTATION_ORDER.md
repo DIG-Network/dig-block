@@ -100,7 +100,7 @@ After completing a requirement: write tests, verify they pass, update TRACKING.y
 - [x] EXE-004 — Condition parsing and assertion checking (announcements, concurrent spend, self-assertions)
 - [x] EXE-005 — BLS aggregate signature verification (via dig-clvm)
 - [x] EXE-006 — Coin conservation and fee consistency verification
-- [ ] EXE-007 — Cost consistency verification (computed vs header)
+- [x] EXE-007 — Cost consistency verification (computed vs header)
 - [x] EXE-008 — ExecutionResult output type
 - [x] EXE-009 — PendingAssertion type definition (AssertionKind enum, from_condition factory)
 
