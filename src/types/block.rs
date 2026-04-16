@@ -521,9 +521,20 @@ impl L2Block {
                 .total_cost
                 .saturating_add(spend_result.conditions.cost);
             result.total_fees = result.total_fees.saturating_add(spend_result.fee);
-            // EXE-004 / EXE-009 condition-to-PendingAssertion collection + per-bundle Receipt
-            // construction land in follow-on commits; leave collections untouched here so the
-            // struct shape stays truthful about what EXE-003 alone delivers.
+
+            // EXE-004: collect height / time pending assertions from this bundle's parsed
+            // conditions (block-level absolutes + per-spend relatives). Tier-3 (STV-005)
+            // evaluates them against chain context.
+            result.pending_assertions.extend(
+                crate::collect_pending_assertions_from_conditions(&spend_result.conditions),
+            );
+
+            // EXE-004 Pass 2 (announcement / concurrent-spend / self-assertions) + EXE-005
+            // (BLS) run inside `dig_clvm::validate_spend_bundle` → `run_spendbundle`; rejection
+            // surfaces via the mapped `ValidationError::Clvm` / `SignatureFailed` paths above.
+            //
+            // Per-bundle Receipt construction lives outside this commit; Tier-2 callers that
+            // need receipts build them from the SpendResult + bundle metadata (RCP-002).
         }
 
         // EXE-006 — block-level fee consistency.
