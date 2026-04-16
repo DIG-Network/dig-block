@@ -884,12 +884,28 @@ impl L2Block {
         Ok(())
     }
 
-    /// STV-006 proposer signature — stub. No-op until STV-006 wires `chia_bls::verify`.
+    /// STV-006 proposer signature verification ([SPEC §7.5.5](docs/resources/SPEC.md)).
+    ///
+    /// Verify `self.proposer_signature` against `pubkey` + `self.header.hash()` using
+    /// [`chia_bls::verify`]. Reject with [`BlockError::InvalidProposerSignature`] on failure.
+    ///
+    /// ## Why the header hash
+    ///
+    /// The header hash is canonical block identity ([`L2BlockHeader::hash`], HSH-001). Signing
+    /// it (not the full body) lets light clients and attestors verify proposer authorship
+    /// without downloading `SpendBundle` bytes — same design as `AttestedBlock::new` seeding
+    /// `aggregate_signature` from `proposer_signature`
+    /// ([ATT-001](docs/requirements/domains/attestation/specs/ATT-001.md)).
     fn verify_proposer_signature_stub(
         &self,
-        _pubkey: &crate::primitives::PublicKey,
+        pubkey: &crate::primitives::PublicKey,
     ) -> Result<(), BlockError> {
-        Ok(())
+        let header_hash: Bytes32 = self.header.hash();
+        if chia_bls::verify(&self.proposer_signature, pubkey, header_hash.as_ref()) {
+            Ok(())
+        } else {
+            Err(BlockError::InvalidProposerSignature)
+        }
     }
 
     /// STV-007 state-root recomputation — stub. Returns `header.state_root` directly so the

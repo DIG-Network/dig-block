@@ -50,10 +50,11 @@ items:
   - id: STV-006
     section: "7.5.5"
     summary: "Proposer Signature Verification"
-    status: gap
+    status: implemented
     spec_ref: "SPEC Section 7.5.5"
-    tests: []
-    notes: ""
+    tests:
+      - tests/test_stv_006_proposer_signature.rs
+    notes: "chia_bls::verify(proposer_signature, pubkey, header.hash()) inside validate_state; InvalidProposerSignature on failure. EXE-005 BLS lint only forbids aggregate_verify / BlsCache / chia_bls::sign — chia_bls::verify (scalar) is allowed. Shared STV test helpers stv_test_proposer_keypair / stv_sign_proposer in tests/common.rs align signed blocks with CoinLookup-free state tests."
 
   - id: STV-007
     section: "7.5.6"

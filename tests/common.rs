@@ -135,16 +135,12 @@ pub fn test_header_at_height(height: u64) -> L2BlockHeader {
     )
 }
 
-/// Create a test [`L2Block`] with [`test_header`], one [`test_spend_bundle`], no slash payloads, default signature.
-///
-/// **Spec:** [BLK-003](docs/requirements/domains/block_types/specs/BLK-003.md) — exercises real header + body fields
-/// for integration tests (STR-005).
+/// Create a test L2Block containing a header and empty body.
 pub fn test_block() -> L2Block {
     L2Block::new(
         test_header(),
-        vec![test_spend_bundle()],
         Vec::new(),
-        // Same type as `dig_block::Signature` (chia-bls re-export, BLK-006).
+        Vec::new(),
         Signature::default(),
     )
 }
@@ -179,7 +175,7 @@ pub fn test_coin_state(coin: Coin, created_height: u32, spent_height: Option<u32
 }
 
 // ---------------------------------------------------------------------------
-// Structural validation fixtures (SVL-005 / SVL-006)
+// Validate-structure alignment helper
 // ---------------------------------------------------------------------------
 
 /// Recompute SVL-005 **count** fields and SVL-006 **Merkle / filter / slash-root / block_size** header fields from the
@@ -209,4 +205,37 @@ pub fn sync_block_header_for_validate_structure(b: &mut L2Block) {
     b.header.slash_proposals_root = b.compute_slash_proposals_root();
     b.header.filter_hash = b.compute_filter_hash();
     b.header.block_size = u32::try_from(b.compute_size()).unwrap_or(u32::MAX);
+}
+
+// ---------------------------------------------------------------------------
+// STV-006 test helpers: deterministic BLS key pair + proposer signing
+// ---------------------------------------------------------------------------
+
+/// Deterministic BLS key pair shared by state-validation integration tests so
+/// [`L2Block::validate_state`] / [`L2Block::validate_full`] can verify the proposer signature
+/// without importing chia-bls directly in each test file. Returns `(secret_key, public_key)`.
+///
+/// **Requirement:** [STV-006](docs/requirements/domains/state_validation/specs/STV-006.md)
+/// (proposer signature verification via [`chia_bls::verify`]).
+pub fn stv_test_proposer_keypair() -> (SecretKey, PublicKey) {
+    let seed: [u8; 32] = [
+        0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f,
+        0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3a, 0x3b, 0x3c, 0x3d, 0x3e,
+        0x3f, 0x40,
+    ];
+    let sk = SecretKey::from_seed(&seed);
+    let pk = sk.public_key();
+    (sk, pk)
+}
+
+/// Sign `block.header.hash()` with `sk` and store the result in `block.proposer_signature`, so
+/// [`L2Block::validate_state`] / [`L2Block::validate_full`] pass STV-006. Idempotent under
+/// unchanged header.
+///
+/// **Call order:** After [`sync_block_header_for_validate_structure`] (the header hash depends
+/// on Merkle roots / counts / filter) and after any deliberate header mutation by a test — the
+/// signature binds the final header.
+pub fn stv_sign_proposer(block: &mut L2Block, sk: &SecretKey) {
+    let header_hash = block.header.hash();
+    block.proposer_signature = sign(sk, header_hash.as_ref());
 }
