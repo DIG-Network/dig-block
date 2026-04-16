@@ -375,6 +375,11 @@ path = "tests/test_exe_007_cost_consistency.rs"
 name = "stv_001_validate_state_api"
 path = "tests/test_stv_001_validate_state_api.rs"
 
+# STV-002: coin existence checks for removals (SPEC §7.5.1 / Chia Check 15).
+[[test]]
+name = "stv_002_coin_existence"
+path = "tests/test_stv_002_coin_existence.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"

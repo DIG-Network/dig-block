@@ -628,12 +628,44 @@ impl L2Block {
 
     // --- STV-002..007 stub sub-checks (STV-001 dispatcher shape) ---
 
-    /// STV-002 coin existence — stub. For empty `exec.removals` this is a no-op. Tightens in STV-002.
+    /// STV-002 coin existence ([SPEC §7.5.1](docs/resources/SPEC.md), Chia Check 15).
+    ///
+    /// For every coin id in [`crate::ExecutionResult::removals`]:
+    /// 1. Look up via [`crate::CoinLookup::get_coin_state`].
+    /// 2. If `Some(state)` and `state.spent_height.is_some()` -> [`BlockError::CoinAlreadySpent`].
+    /// 3. If `None`, must be ephemeral — present as a coin id in `exec.additions`.
+    ///    Otherwise [`BlockError::CoinNotFound`].
+    ///
+    /// **Ephemeral lookup:** built as a `HashSet<Bytes32>` over `exec.additions.iter().map(|c| c.coin_id())`
+    /// once per invocation so iteration over `removals` is O(n + m), not O(n*m).
     fn check_coin_existence_stub(
         &self,
-        _exec: &crate::ExecutionResult,
-        _coins: &dyn crate::CoinLookup,
+        exec: &crate::ExecutionResult,
+        coins: &dyn crate::CoinLookup,
     ) -> Result<(), BlockError> {
+        // Ephemeral coin IDs: coins created and spent within the same block.
+        let ephemeral_ids: std::collections::HashSet<Bytes32> =
+            exec.additions.iter().map(|c| c.coin_id()).collect();
+
+        for removal_id in &exec.removals {
+            match coins.get_coin_state(removal_id) {
+                Some(state) => {
+                    if let Some(height) = state.spent_height {
+                        return Err(BlockError::CoinAlreadySpent {
+                            coin_id: *removal_id,
+                            spent_height: u64::from(height),
+                        });
+                    }
+                }
+                None => {
+                    if !ephemeral_ids.contains(removal_id) {
+                        return Err(BlockError::CoinNotFound {
+                            coin_id: *removal_id,
+                        });
+                    }
+                }
+            }
+        }
         Ok(())
     }
 

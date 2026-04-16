@@ -14,10 +14,11 @@ items:
   - id: STV-002
     section: "7.5.1"
     summary: "Coin Existence Checks"
-    status: gap
+    status: implemented
     spec_ref: "SPEC Section 7.5.1"
-    tests: []
-    notes: ""
+    tests:
+      - tests/test_stv_002_coin_existence.rs
+    notes: "Per removal: CoinLookup.get_coin_state -> (Some with spent_height set) CoinAlreadySpent; (None, not in exec.additions) CoinNotFound; (None, in exec.additions) passes (ephemeral). Ephemeral set built once as HashSet<Bytes32> for O(n+m). Chia parity Check 15 UNKNOWN_UNSPENT / DOUBLE_SPEND."
 
   - id: STV-003
     section: "7.5.2"

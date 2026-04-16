@@ -107,7 +107,7 @@ After completing a requirement: write tests, verify they pass, update TRACKING.y
 ## Phase 10: State Validation (Tier 3)
 
 - [x] STV-001 — validate_state() API and CoinLookup trait integration
-- [ ] STV-002 — Coin existence checks (removals must exist and be unspent, or be ephemeral)
+- [x] STV-002 — Coin existence checks (removals must exist and be unspent, or be ephemeral)
 - [ ] STV-003 — Puzzle hash cross-check from coin state
 - [ ] STV-004 — Addition non-existence check
 - [ ] STV-005 — Height/time lock evaluation (8 assertion types)
