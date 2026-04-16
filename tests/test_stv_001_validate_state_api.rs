@@ -49,7 +49,20 @@ impl CoinLookup for EmptyCoins {
     }
 }
 
-fn empty_block() -> L2Block {
+/// Build a deterministic BLS key pair; used to sign the empty block's header hash so STV-006
+/// passes. Every test in this file uses the same pair for `proposer_signature` and `pubkey`.
+fn test_key_pair() -> (chia_bls::SecretKey, PublicKey) {
+    let seed: [u8; 32] = [
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
+        0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e,
+        0x1f, 0x20,
+    ];
+    let sk = chia_bls::SecretKey::from_seed(&seed);
+    let pk = sk.public_key();
+    (sk, pk)
+}
+
+fn empty_block(sk: &chia_bls::SecretKey) -> L2Block {
     let network_id = Bytes32::new([0x55; 32]);
     let l1_hash = Bytes32::new([0x66; 32]);
     let header = L2BlockHeader::genesis(network_id, 1, l1_hash);
@@ -58,6 +71,10 @@ fn empty_block() -> L2Block {
     // Without this, `genesis()` leaves `filter_hash = EMPTY_ROOT` but the BIP-158 filter over
     // an empty body has a distinct hash; validate_structure would reject with InvalidFilterHash.
     common::sync_block_header_for_validate_structure(&mut block);
+    // Sign the (now stable) header hash so STV-006 passes. Tests that tamper with the header
+    // after this point will break the signature by design.
+    let header_hash = block.header.hash();
+    block.proposer_signature = chia_bls::sign(sk, header_hash.as_ref());
     block
 }
 
@@ -89,10 +106,10 @@ fn validate_full_signature_matches_normative() {
 /// committed state root.
 #[test]
 fn empty_block_validate_state_returns_committed_state_root() {
-    let block = empty_block();
+    let (sk, pk) = test_key_pair();
+    let block = empty_block(&sk);
     let exec = ExecutionResult::default();
     let coins = EmptyCoins;
-    let pk = PublicKey::default();
 
     let returned = block
         .validate_state(&exec, &coins, &pk)
@@ -107,11 +124,11 @@ fn empty_block_validate_state_returns_committed_state_root() {
 /// **STV-001 test plan: `validate_full_all_pass`:** Empty block through all three tiers.
 #[test]
 fn empty_block_validate_full_passes() {
-    let block = empty_block();
+    let (sk, pk) = test_key_pair();
+    let block = empty_block(&sk);
     let config = ValidationConfig::default();
     let genesis = Bytes32::new([0x42; 32]);
     let coins = EmptyCoins;
-    let pk = PublicKey::default();
 
     let returned = block
         .validate_full(&config, &genesis, &coins, &pk)
@@ -123,12 +140,12 @@ fn empty_block_validate_full_passes() {
 /// Tier 2/3 never run. Force failure by mismatching spend_bundle_count.
 #[test]
 fn validate_full_short_circuits_on_tier1_failure() {
-    let mut block = empty_block();
+    let (sk, pk) = test_key_pair();
+    let mut block = empty_block(&sk);
     block.header.spend_bundle_count = 99; // lie — body has 0 bundles → SVL-005 fails
 
     let config = ValidationConfig::default();
     let coins = EmptyCoins;
-    let pk = PublicKey::default();
 
     let err = block
         .validate_full(&config, &Bytes32::default(), &coins, &pk)
@@ -147,12 +164,12 @@ fn validate_full_short_circuits_on_tier1_failure() {
 /// `FeesMismatch` before Tier 3 runs.
 #[test]
 fn validate_full_short_circuits_on_tier2_failure() {
-    let mut block = empty_block();
+    let (sk, pk) = test_key_pair();
+    let mut block = empty_block(&sk);
     block.header.total_fees = 123;
 
     let config = ValidationConfig::default();
     let coins = EmptyCoins;
-    let pk = PublicKey::default();
 
     let err = block
         .validate_full(&config, &Bytes32::default(), &coins, &pk)
@@ -170,10 +187,10 @@ fn validate_full_short_circuits_on_tier2_failure() {
 /// produced by Tier 2. Threading both sequentially yields the same result as `validate_full`.
 #[test]
 fn tier2_output_feeds_tier3_input() {
-    let block = empty_block();
+    let (sk, pk) = test_key_pair();
+    let block = empty_block(&sk);
     let config = ValidationConfig::default();
     let coins = EmptyCoins;
-    let pk = PublicKey::default();
 
     let exec = block
         .validate_execution(&config, &Bytes32::default())
@@ -193,10 +210,10 @@ fn tier2_output_feeds_tier3_input() {
 /// the value as the parent-state commitment.
 #[test]
 fn success_returns_bytes32_state_root() {
-    let block = empty_block();
+    let (sk, pk) = test_key_pair();
+    let block = empty_block(&sk);
     let exec = ExecutionResult::default();
     let coins = EmptyCoins;
-    let pk = PublicKey::default();
 
     let out: Result<Bytes32, BlockError> = block.validate_state(&exec, &coins, &pk);
     assert!(out.is_ok());
@@ -207,10 +224,10 @@ fn success_returns_bytes32_state_root() {
 /// passing `EmptyCoins` through a trait object.
 #[test]
 fn coin_lookup_dispatched_via_trait_object() {
-    let block = empty_block();
+    let (sk, pk) = test_key_pair();
+    let block = empty_block(&sk);
     let exec = ExecutionResult::default();
     let boxed: Box<dyn CoinLookup> = Box::new(EmptyCoins);
-    let pk = PublicKey::default();
 
     let out = block.validate_state(&exec, &*boxed, &pk);
     assert!(out.is_ok());

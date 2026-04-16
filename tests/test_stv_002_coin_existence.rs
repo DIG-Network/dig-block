@@ -69,19 +69,24 @@ impl dig_block::CoinLookup for Coins {
     }
 }
 
-fn empty_block() -> L2Block {
+/// Build an empty L2Block with a matching proposer signature and return `(block, pk)` so
+/// tests call `validate_state(..., &pk)` — STV-006 runs inside validate_state and requires
+/// `chia_bls::verify(sig, pk, header.hash()) == true`.
+fn empty_block_with_pk() -> (L2Block, PublicKey) {
     let network_id = Bytes32::new([0xAB; 32]);
     let l1_hash = Bytes32::new([0xCD; 32]);
     let header = L2BlockHeader::genesis(network_id, 1, l1_hash);
     let mut block = L2Block::new(header, Vec::new(), Vec::new(), Signature::default());
     common::sync_block_header_for_validate_structure(&mut block);
-    block
+    let (sk, pk) = common::stv_test_proposer_keypair();
+    common::stv_sign_proposer(&mut block, &sk);
+    (block, pk)
 }
 
 /// **STV-002 `coin_exists_unspent`:** Coin exists in lookup with `spent_height=None` → passes.
 #[test]
 fn persistent_unspent_coin_passes() {
-    let block = empty_block();
+    let (block, pk) = empty_block_with_pk();
     let coin = Coin::new(Bytes32::new([1; 32]), Bytes32::new([2; 32]), 100);
     let mut coins = Coins::new();
     coins.add(coin, None);
@@ -90,7 +95,6 @@ fn persistent_unspent_coin_passes() {
         removals: vec![coin.coin_id()],
         ..Default::default()
     };
-    let pk = PublicKey::default();
 
     block
         .validate_state(&exec, &coins, &pk)
@@ -100,7 +104,7 @@ fn persistent_unspent_coin_passes() {
 /// **STV-002 `coin_exists_spent`:** Coin in lookup with `spent_height=Some(42)` → `CoinAlreadySpent`.
 #[test]
 fn persistent_already_spent_coin_rejected() {
-    let block = empty_block();
+    let (block, pk) = empty_block_with_pk();
     let coin = Coin::new(Bytes32::new([3; 32]), Bytes32::new([4; 32]), 50);
     let coin_id = coin.coin_id();
     let mut coins = Coins::new();
@@ -110,7 +114,6 @@ fn persistent_already_spent_coin_rejected() {
         removals: vec![coin_id],
         ..Default::default()
     };
-    let pk = PublicKey::default();
 
     let err = block
         .validate_state(&exec, &coins, &pk)
@@ -128,7 +131,7 @@ fn persistent_already_spent_coin_rejected() {
 /// **STV-002 `coin_not_found`:** Coin not in lookup AND not in `exec.additions` → `CoinNotFound`.
 #[test]
 fn missing_non_ephemeral_coin_rejected() {
-    let block = empty_block();
+    let (block, pk) = empty_block_with_pk();
     let missing_id = Bytes32::new([0xEE; 32]);
     let coins = Coins::new(); // empty
 
@@ -136,7 +139,6 @@ fn missing_non_ephemeral_coin_rejected() {
         removals: vec![missing_id],
         ..Default::default()
     };
-    let pk = PublicKey::default();
 
     let err = block
         .validate_state(&exec, &coins, &pk)
@@ -151,7 +153,7 @@ fn missing_non_ephemeral_coin_rejected() {
 /// Ephemeral = created and spent in the same block; never in persistent state.
 #[test]
 fn ephemeral_coin_passes_without_coin_lookup_entry() {
-    let block = empty_block();
+    let (block, pk) = empty_block_with_pk();
     let ephemeral = Coin::new(Bytes32::new([5; 32]), Bytes32::new([6; 32]), 7);
     let coins = Coins::new(); // empty
 
@@ -160,7 +162,6 @@ fn ephemeral_coin_passes_without_coin_lookup_entry() {
         removals: vec![ephemeral.coin_id()],
         ..Default::default()
     };
-    let pk = PublicKey::default();
 
     block
         .validate_state(&exec, &coins, &pk)
@@ -170,7 +171,7 @@ fn ephemeral_coin_passes_without_coin_lookup_entry() {
 /// **STV-002 `mixed_removals`:** Persistent unspent + ephemeral coexist in the same block.
 #[test]
 fn mixed_persistent_and_ephemeral_all_pass() {
-    let block = empty_block();
+    let (block, pk) = empty_block_with_pk();
     let persistent = Coin::new(Bytes32::new([7; 32]), Bytes32::new([8; 32]), 10);
     let ephemeral = Coin::new(Bytes32::new([9; 32]), Bytes32::new([0xA; 32]), 20);
 
@@ -182,7 +183,6 @@ fn mixed_persistent_and_ephemeral_all_pass() {
         removals: vec![persistent.coin_id(), ephemeral.coin_id()],
         ..Default::default()
     };
-    let pk = PublicKey::default();
 
     block
         .validate_state(&exec, &coins, &pk)
@@ -193,7 +193,7 @@ fn mixed_persistent_and_ephemeral_all_pass() {
 /// vector still works — the check iterates and each lookup is independent.
 #[test]
 fn removal_order_does_not_matter() {
-    let block = empty_block();
+    let (block, pk) = empty_block_with_pk();
     let persistent = Coin::new(Bytes32::new([0xB; 32]), Bytes32::new([0xC; 32]), 10);
     let ephemeral = Coin::new(Bytes32::new([0xD; 32]), Bytes32::new([0xE; 32]), 20);
 
@@ -205,7 +205,6 @@ fn removal_order_does_not_matter() {
         removals: vec![ephemeral.coin_id(), persistent.coin_id()],
         ..Default::default()
     };
-    let pk = PublicKey::default();
 
     block
         .validate_state(&exec, &coins, &pk)
@@ -216,7 +215,7 @@ fn removal_order_does_not_matter() {
 /// Implementation iterates `exec.removals` in order; this documents that behavior.
 #[test]
 fn first_failing_removal_is_reported() {
-    let block = empty_block();
+    let (block, pk) = empty_block_with_pk();
     let coin_a = Coin::new(Bytes32::new([0x10; 32]), Bytes32::new([0x11; 32]), 1);
     let coin_b = Coin::new(Bytes32::new([0x12; 32]), Bytes32::new([0x13; 32]), 2);
 
@@ -228,7 +227,6 @@ fn first_failing_removal_is_reported() {
         removals: vec![coin_a.coin_id(), coin_b.coin_id()],
         ..Default::default()
     };
-    let pk = PublicKey::default();
 
     let err = block
         .validate_state(&exec, &coins, &pk)

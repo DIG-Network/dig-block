@@ -395,6 +395,11 @@ path = "tests/test_stv_004_addition_uniqueness.rs"
 name = "stv_005_height_time_locks"
 path = "tests/test_stv_005_height_time_locks.rs"
 
+# STV-006: proposer signature verification via chia_bls::verify (SPEC §7.5.5).
+[[test]]
+name = "stv_006_proposer_signature"
+path = "tests/test_stv_006_proposer_signature.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"

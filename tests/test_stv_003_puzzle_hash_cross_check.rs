@@ -67,8 +67,9 @@ impl dig_block::CoinLookup for Coins {
 
 /// Build a block with one `CoinSpend` whose committed `coin` uses `declared_puzzle_hash`
 /// (may differ from whatever the CoinLookup returns) — isolates STV-003 behavior from the
-/// coin-existence STV-002 path.
-fn block_with_spend(coin: Coin) -> L2Block {
+/// coin-existence STV-002 path. Returns `(block, proposer_pk)` with the block signed so
+/// STV-006 passes inside `validate_state`.
+fn block_with_spend(coin: Coin) -> (L2Block, PublicKey) {
     let network_id = Bytes32::new([0x77; 32]);
     let l1_hash = Bytes32::new([0x88; 32]);
     let header = L2BlockHeader::genesis(network_id, 1, l1_hash);
@@ -76,7 +77,9 @@ fn block_with_spend(coin: Coin) -> L2Block {
     let bundle = SpendBundle::new(vec![cs], Signature::default());
     let mut block = L2Block::new(header, vec![bundle], Vec::new(), Signature::default());
     common::sync_block_header_for_validate_structure(&mut block);
-    block
+    let (sk, pk) = common::stv_test_proposer_keypair();
+    common::stv_sign_proposer(&mut block, &sk);
+    (block, pk)
 }
 
 /// **STV-003 `matching_puzzle_hash`:** Database and spend agree — passes.
@@ -87,12 +90,11 @@ fn matching_puzzle_hash_passes() {
     let puzzle = Bytes32::new([0x22; 32]);
     let coin = coins.add_with_puzzle(parent, puzzle, 50);
 
-    let block = block_with_spend(coin);
+    let (block, pk) = block_with_spend(coin);
     let exec = ExecutionResult {
         removals: vec![coin.coin_id()],
         ..Default::default()
     };
-    let pk = PublicKey::default();
 
     block
         .validate_state(&exec, &coins, &pk)
@@ -127,12 +129,11 @@ fn mismatched_puzzle_hash_rejected() {
     // Insert under the real coin_id so STV-002 finds it, but the puzzle_hash inside differs.
     coins.0.insert(on_chain_coin.coin_id(), state_with_wrong_puzzle);
 
-    let block = block_with_spend(on_chain_coin);
+    let (block, pk) = block_with_spend(on_chain_coin);
     let exec = ExecutionResult {
         removals: vec![on_chain_coin.coin_id()],
         ..Default::default()
     };
-    let pk = PublicKey::default();
 
     let err = block
         .validate_state(&exec, &coins, &pk)
@@ -158,14 +159,13 @@ fn mismatched_puzzle_hash_rejected() {
 fn ephemeral_coin_not_checked_by_stv003() {
     let coins = Coins::new(); // empty
     let ephemeral = Coin::new(Bytes32::new([0x66; 32]), Bytes32::new([0x77; 32]), 10);
-    let block = block_with_spend(ephemeral);
+    let (block, pk) = block_with_spend(ephemeral);
 
     let exec = ExecutionResult {
         additions: vec![ephemeral], // makes STV-002 treat it as ephemeral
         removals: vec![ephemeral.coin_id()],
         ..Default::default()
     };
-    let pk = PublicKey::default();
 
     // Should pass: STV-002 sees it as ephemeral; STV-003 skips when get_coin_state = None.
     block
@@ -208,12 +208,13 @@ fn multiple_spends_one_bad_halts() {
         Signature::default(),
     );
     common::sync_block_header_for_validate_structure(&mut block);
+    let (sk, pk) = common::stv_test_proposer_keypair();
+    common::stv_sign_proposer(&mut block, &sk);
 
     let exec = ExecutionResult {
         removals: vec![good_coin.coin_id(), bad_coin.coin_id()],
         ..Default::default()
     };
-    let pk = PublicKey::default();
 
     let err = block
         .validate_state(&exec, &coins, &pk)

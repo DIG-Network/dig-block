@@ -92,12 +92,17 @@ impl dig_block::CoinLookup for Chain {
     }
 }
 
+/// Build an empty L2Block signed by the shared STV test key pair. The returned block's
+/// `proposer_signature` matches `stv_test_proposer_keypair().1` so STV-006 passes inside
+/// `validate_state`.
 fn empty_block() -> L2Block {
     let network_id = Bytes32::new([0x55; 32]);
     let l1_hash = Bytes32::new([0x66; 32]);
     let header = L2BlockHeader::genesis(network_id, 1, l1_hash);
     let mut block = L2Block::new(header, Vec::new(), Vec::new(), Signature::default());
     common::sync_block_header_for_validate_structure(&mut block);
+    let (sk, _pk) = common::stv_test_proposer_keypair();
+    common::stv_sign_proposer(&mut block, &sk);
     block
 }
 
@@ -110,7 +115,7 @@ fn run(
         pending_assertions: pending,
         ..Default::default()
     };
-    let pk = PublicKey::default();
+    let (_sk, pk) = common::stv_test_proposer_keypair();
     block.validate_state(&exec, chain, &pk).map(|_| ())
 }
 
