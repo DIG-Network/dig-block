@@ -23,10 +23,11 @@ items:
   - id: STV-003
     section: "7.5.2"
     summary: "Puzzle Hash Cross-Check"
-    status: gap
+    status: implemented
     spec_ref: "SPEC Section 7.5.2"
-    tests: []
-    notes: ""
+    tests:
+      - tests/test_stv_003_puzzle_hash_cross_check.rs
+    notes: "Per CoinSpend: CoinLookup entry's coin.puzzle_hash must equal CoinSpend.coin.puzzle_hash, else PuzzleHashMismatch{coin_id, expected=state, computed=declared}. Ephemeral coins (get_coin_state=None) skipped — STV-002 handles existence. Complementary to EXE-002 (which proves tree_hash(puzzle_reveal) == CoinSpend.puzzle_hash). Chia parity Check 20."
 
   - id: STV-004
     section: "7.5.3"

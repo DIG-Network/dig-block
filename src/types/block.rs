@@ -669,12 +669,40 @@ impl L2Block {
         Ok(())
     }
 
-    /// STV-003 puzzle-hash cross-check — stub. No-op on empty.
+    /// STV-003 puzzle-hash cross-check ([SPEC §7.5.2](docs/resources/SPEC.md), Chia Check 20).
+    ///
+    /// For every `CoinSpend` in every `SpendBundle`:
+    /// - Look up the persistent coin via [`crate::CoinLookup::get_coin_state`].
+    /// - If `Some`, require `state.coin.puzzle_hash == coin_spend.coin.puzzle_hash`; else
+    ///   reject with [`BlockError::PuzzleHashMismatch`] carrying `expected` (state) / `computed`
+    ///   (declared).
+    /// - If `None` (ephemeral), skip — STV-002 covers existence; the ephemeral coin was
+    ///   committed in this block's `exec.additions` with its puzzle_hash already bound.
+    ///
+    /// ## Complementary to EXE-002
+    ///
+    /// EXE-002 proves `tree_hash(puzzle_reveal) == coin_spend.coin.puzzle_hash`. STV-003 closes
+    /// the chain to `coin_state.puzzle_hash == coin_spend.coin.puzzle_hash`.
     fn check_puzzle_hashes_stub(
         &self,
         _exec: &crate::ExecutionResult,
-        _coins: &dyn crate::CoinLookup,
+        coins: &dyn crate::CoinLookup,
     ) -> Result<(), BlockError> {
+        for bundle in &self.spend_bundles {
+            for coin_spend in &bundle.coin_spends {
+                let coin_id = coin_spend.coin.coin_id();
+                if let Some(state) = coins.get_coin_state(&coin_id) {
+                    if state.coin.puzzle_hash != coin_spend.coin.puzzle_hash {
+                        return Err(BlockError::PuzzleHashMismatch {
+                            coin_id,
+                            expected: state.coin.puzzle_hash,
+                            computed: coin_spend.coin.puzzle_hash,
+                        });
+                    }
+                }
+                // None => ephemeral (spent-in-same-block); STV-002 handled existence.
+            }
+        }
         Ok(())
     }
 
