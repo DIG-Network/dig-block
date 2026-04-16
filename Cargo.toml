@@ -330,6 +330,11 @@ path = "tests/test_ser_005_roundtrip_integrity.rs"
 name = "exe_008_execution_result"
 path = "tests/test_exe_008_execution_result.rs"
 
+# EXE-009: PendingAssertion + AssertionKind (8 height/time variants) + from_condition factory.
+[[test]]
+name = "exe_009_pending_assertion"
+path = "tests/test_exe_009_pending_assertion.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"
