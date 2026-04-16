@@ -32,10 +32,11 @@ items:
   - id: STV-004
     section: "7.5.3"
     summary: "Addition Non-Existence"
-    status: gap
+    status: implemented
     spec_ref: "SPEC Section 7.5.3"
-    tests: []
-    notes: ""
+    tests:
+      - tests/test_stv_004_addition_uniqueness.rs
+    notes: "Per addition: CoinLookup.get_coin_state=Some AND coin_id not in exec.removals -> CoinAlreadyExists. Ephemeral exception (id in both additions and removals) passes even when a persistent entry exists. O(n+m) with HashSet-backed ephemeral check."
 
   - id: STV-005
     section: "7.5.4"
