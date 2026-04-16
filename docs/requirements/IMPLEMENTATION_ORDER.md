@@ -101,7 +101,7 @@ After completing a requirement: write tests, verify they pass, update TRACKING.y
 - [ ] EXE-005 — BLS aggregate signature verification (via dig-clvm)
 - [ ] EXE-006 — Coin conservation and fee consistency verification
 - [ ] EXE-007 — Cost consistency verification (computed vs header)
-- [ ] EXE-008 — ExecutionResult output type
+- [x] EXE-008 — ExecutionResult output type
 - [ ] EXE-009 — PendingAssertion type definition (AssertionKind enum, from_condition factory)
 
 ## Phase 10: State Validation (Tier 3)

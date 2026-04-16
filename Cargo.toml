@@ -325,6 +325,11 @@ path = "tests/test_ser_004_serde_defaults.rs"
 name = "ser_005_roundtrip_integrity"
 path = "tests/test_ser_005_roundtrip_integrity.rs"
 
+# EXE-008: ExecutionResult output struct — Tier-2 → Tier-3 bridge (SPEC §7.4.7).
+[[test]]
+name = "exe_008_execution_result"
+path = "tests/test_exe_008_execution_result.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"
