@@ -365,6 +365,11 @@ path = "tests/test_exe_005_bls_delegation.rs"
 name = "exe_006_fee_consistency"
 path = "tests/test_exe_006_fee_consistency.rs"
 
+# EXE-007: block-level cost consistency (SPEC §7.4.6 / Chia Check 9).
+[[test]]
+name = "exe_007_cost_consistency"
+path = "tests/test_exe_007_cost_consistency.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"
