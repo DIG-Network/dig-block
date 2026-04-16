@@ -50,10 +50,11 @@ items:
   - id: EXE-006
     section: "7.4.6"
     summary: "Coin Conservation and Fee Consistency"
-    status: gap
+    status: implemented
     spec_ref: "SPEC Section 7.4.6"
-    tests: []
-    notes: ""
+    tests:
+      - tests/test_exe_006_fee_consistency.rs
+    notes: "Per-bundle conservation (total_input >= total_output) enforced by dig-clvm; ValidationError::ConservationViolation maps to BlockError::CoinMinting preserving removed/added. Block-level fee consistency: L2Block::validate_execution compares sum(SpendResult.fee) with header.total_fees, rejects FeesMismatch{header,computed}. Reserve fee enforced inside dig-clvm (surfaces as ClvmExecutionFailed). Chia parity: Check 16 MINTING_COIN + Check 19 INVALID_BLOCK_FEE_AMOUNT."
 
   - id: EXE-007
     section: "7.4.6"
