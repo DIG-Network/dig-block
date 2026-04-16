@@ -162,5 +162,7 @@ fn accepts_dig_clvm_validation_config() {
     let config = ValidationConfig::default();
     assert_eq!(config.max_cost_per_block, dig_clvm::L2_MAX_COST_PER_BLOCK);
 
-    let _ = block.validate_execution(&config, &Bytes32::default()).unwrap();
+    let _ = block
+        .validate_execution(&config, &Bytes32::default())
+        .unwrap();
 }

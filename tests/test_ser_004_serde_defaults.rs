@@ -128,7 +128,11 @@ fn all_defaults_produce_valid_header() {
     // Genesis header should pass structural validation
     // (timestamp is wall-clock, so validate_with_dfsp_activation is used with generous bounds)
     let result = header.validate();
-    assert!(result.is_ok(), "genesis header with defaults should validate: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "genesis header with defaults should validate: {:?}",
+        result.err()
+    );
 }
 
 /// **SER-004 acceptance:** Checkpoint round-trip preserves all nine fields.

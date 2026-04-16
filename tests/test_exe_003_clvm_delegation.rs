@@ -95,7 +95,9 @@ fn error_mapping_cost_exceeded() {
         consumed: 200,
     });
     match mapped {
-        BlockError::ClvmCostExceeded { cost, remaining, .. } => {
+        BlockError::ClvmCostExceeded {
+            cost, remaining, ..
+        } => {
             assert_eq!(cost, 200);
             assert_eq!(remaining, 100);
         }

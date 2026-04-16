@@ -43,8 +43,8 @@ mod common;
 
 use chia_protocol::{Bytes32, Coin};
 use dig_block::{
-    compute_state_root_from_delta, BlockError, CoinLookup, ExecutionResult, L2Block,
-    L2BlockHeader, PublicKey, Signature, EMPTY_ROOT,
+    compute_state_root_from_delta, BlockError, CoinLookup, ExecutionResult, L2Block, L2BlockHeader,
+    PublicKey, Signature, EMPTY_ROOT,
 };
 
 struct NoCoins;

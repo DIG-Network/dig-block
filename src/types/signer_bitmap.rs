@@ -4,35 +4,36 @@
 //!
 //! - **[ATT-004](docs/requirements/domains/attestation/specs/ATT-004.md)** — struct shape, `MAX_VALIDATORS`,
 //!   `new` / `from_bytes` / bit accessors / counts / thresholds / `as_bytes`.
-//! - **[ATT-005](docs/requirements/domains/attestation/specs/ATT-005.md)** — [`Self::merge`], [`Self::signer_indices`]
-//!   (bitwise OR aggregation + sorted index list).
+//! - **[ATT-005](docs/requirements/domains/attestation/specs/ATT-005.md)** — [`SignerBitmap::merge`],
+//!   [`SignerBitmap::signer_indices`] (bitwise OR aggregation + sorted index list).
 //! - **[NORMATIVE](docs/requirements/domains/attestation/NORMATIVE.md)** — ATT-004 / ATT-005 API obligations.
 //!
 //! ## Encoding
 //!
-//! - **Byte length:** `ceil(validator_count / 8)` — see [`Self::new`].
+//! - **Byte length:** `ceil(validator_count / 8)` — see [`SignerBitmap::new`].
 //! - **Bit order:** LSB-first within each byte (validator `i` → byte `i/8`, bit `i % 8`). This matches the
-//!   pseudocode in ATT-004 and keeps popcount-based [`Self::signer_count`] aligned with the spec.
+//!   pseudocode in ATT-004 and keeps popcount-based [`SignerBitmap::signer_count`] aligned with the spec.
 //!
 //! ## Usage
 //!
-//! Construct with [`Self::new`], mark signers with [`Self::set_signed`], query with [`Self::has_signed`],
-//! [`Self::signer_count`], [`Self::signing_percentage`], and [`Self::has_threshold`]. Combine peer views with
-//! [`Self::merge`] and enumerate participants in order via [`Self::signer_indices`]. Raw wire bytes are exposed
-//! through [`Self::as_bytes`] / [`Self::from_bytes`] for bincode payloads ([SER-001](docs/requirements/domains/serialization/specs/SER-001.md)).
+//! Construct with [`SignerBitmap::new`], mark signers with [`SignerBitmap::set_signed`], query with
+//! [`SignerBitmap::has_signed`], [`SignerBitmap::signer_count`], [`SignerBitmap::signing_percentage`], and
+//! [`SignerBitmap::has_threshold`]. Combine peer views with [`SignerBitmap::merge`] and enumerate participants
+//! in order via [`SignerBitmap::signer_indices`]. Raw wire bytes are exposed through [`SignerBitmap::as_bytes`]
+//! / [`SignerBitmap::from_bytes`] for bincode payloads ([SER-001](docs/requirements/domains/serialization/specs/SER-001.md)).
 //!
 //! ## Safety / limits
 //!
-//! [`Self::new`] and [`Self::from_bytes`] **assert** `validator_count <= MAX_VALIDATORS` so a single `u32`
-//! cannot force multi-gigabyte allocations in this crate; the protocol cap is **65536** validators.
+//! [`SignerBitmap::new`] and [`SignerBitmap::from_bytes`] **assert** `validator_count <= MAX_VALIDATORS` so a
+//! single `u32` cannot force multi-gigabyte allocations in this crate; the protocol cap is **65536** validators.
 
 use crate::SignerBitmapError;
 use serde::{Deserialize, Serialize};
 
-/// Maximum number of validators representable in protocol bitmaps (ATT-004 / NORMATIVE).
+/// Maximum number of validators representable in protocol bitmaps ([SPEC §2.10](docs/resources/SPEC.md), ATT-004).
 pub const MAX_VALIDATORS: u32 = 65_536;
 
-/// Bit vector of “which validators signed,” sized for a fixed validator set.
+/// Bit vector of “which validators signed,” sized for a fixed validator set ([SPEC §2.10](docs/resources/SPEC.md)).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SignerBitmap {
     /// Raw little-endian bit-packed bytes (see module docs).
@@ -119,7 +120,8 @@ impl SignerBitmap {
         self.bits.iter().map(|b| b.count_ones()).sum()
     }
 
-    /// Integer percentage `0..=100`: `(signer_count * 100) / validator_count`, or `0` if `validator_count == 0`.
+    /// Integer percentage `0..=100`: `(signer_count * 100) / validator_count`, or `0` if `validator_count == 0`
+    /// ([SPEC §2.10](docs/resources/SPEC.md) `signing_percentage` method).
     #[must_use]
     pub fn signing_percentage(&self) -> u64 {
         if self.validator_count == 0 {

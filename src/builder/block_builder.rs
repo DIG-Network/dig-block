@@ -39,8 +39,9 @@
 //!
 //! ## Status
 //!
-//! **BLD-001**–**BLD-007** are implemented: successful [`Self::build`] / [`Self::build_with_dfsp_activation`] outputs
-//! pass [`crate::L2Block::validate_structure`] ([BLD-007](docs/requirements/domains/block_production/specs/BLD-007.md),
+//! **BLD-001**–**BLD-007** are implemented: successful [`BlockBuilder::build`] / [`BlockBuilder::build_with_dfsp_activation`]
+//! outputs pass [`crate::L2Block::validate_structure`]
+//! ([BLD-007](docs/requirements/domains/block_production/specs/BLD-007.md),
 //! `tests/test_bld_007_builder_validity_guarantee.rs`).
 
 use std::time::{SystemTime, UNIX_EPOCH};

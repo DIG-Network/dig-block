@@ -83,8 +83,9 @@ fn height_relative_variant() {
 #[test]
 fn seconds_absolute_variant() {
     let (spend, coin_id) = test_spend();
-    let cond: Condition<()> =
-        Condition::AssertSecondsAbsolute(AssertSecondsAbsolute { seconds: 1_700_000_000 });
+    let cond: Condition<()> = Condition::AssertSecondsAbsolute(AssertSecondsAbsolute {
+        seconds: 1_700_000_000,
+    });
     let p = PendingAssertion::from_condition(&cond, &spend).expect("must map");
     assert_eq!(p.kind, AssertionKind::SecondsAbsolute(1_700_000_000));
     assert_eq!(p.coin_id, coin_id);
@@ -107,9 +108,8 @@ fn seconds_relative_variant() {
 #[test]
 fn before_height_absolute_variant() {
     let (spend, coin_id) = test_spend();
-    let cond: Condition<()> = Condition::AssertBeforeHeightAbsolute(AssertBeforeHeightAbsolute {
-        height: 9000,
-    });
+    let cond: Condition<()> =
+        Condition::AssertBeforeHeightAbsolute(AssertBeforeHeightAbsolute { height: 9000 });
     let p = PendingAssertion::from_condition(&cond, &spend).expect("must map");
     assert_eq!(p.kind, AssertionKind::BeforeHeightAbsolute(9000));
     assert_eq!(p.coin_id, coin_id);
@@ -119,9 +119,8 @@ fn before_height_absolute_variant() {
 #[test]
 fn before_height_relative_variant() {
     let (spend, coin_id) = test_spend();
-    let cond: Condition<()> = Condition::AssertBeforeHeightRelative(AssertBeforeHeightRelative {
-        height: 10,
-    });
+    let cond: Condition<()> =
+        Condition::AssertBeforeHeightRelative(AssertBeforeHeightRelative { height: 10 });
     let p = PendingAssertion::from_condition(&cond, &spend).expect("must map");
     assert_eq!(p.kind, AssertionKind::BeforeHeightRelative(10));
     assert_eq!(p.coin_id, coin_id);
@@ -143,9 +142,8 @@ fn before_seconds_absolute_variant() {
 #[test]
 fn before_seconds_relative_variant() {
     let (spend, coin_id) = test_spend();
-    let cond: Condition<()> = Condition::AssertBeforeSecondsRelative(AssertBeforeSecondsRelative {
-        seconds: 120,
-    });
+    let cond: Condition<()> =
+        Condition::AssertBeforeSecondsRelative(AssertBeforeSecondsRelative { seconds: 120 });
     let p = PendingAssertion::from_condition(&cond, &spend).expect("must map");
     assert_eq!(p.kind, AssertionKind::BeforeSecondsRelative(120));
     assert_eq!(p.coin_id, coin_id);

@@ -161,5 +161,9 @@ fn cost_mismatch_display_includes_both_values() {
     };
     let s = format!("{}", err);
     assert!(s.contains("42"), "display must include header value: {}", s);
-    assert!(s.contains("7"), "display must include computed value: {}", s);
+    assert!(
+        s.contains("7"),
+        "display must include computed value: {}",
+        s
+    );
 }

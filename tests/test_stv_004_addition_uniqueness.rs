@@ -31,9 +31,7 @@
 mod common;
 
 use chia_protocol::{Bytes32, Coin, CoinState};
-use dig_block::{
-    BlockError, ExecutionResult, L2Block, L2BlockHeader, PublicKey, Signature,
-};
+use dig_block::{BlockError, ExecutionResult, L2Block, L2BlockHeader, PublicKey, Signature};
 
 struct Coins(std::collections::HashMap<Bytes32, CoinState>);
 impl Coins {

@@ -5,18 +5,19 @@
 //! - **[ATT-001](docs/requirements/domains/attestation/specs/ATT-001.md)** — struct fields + [`AttestedBlock::new`].
 //! - **[ATT-002](docs/requirements/domains/attestation/specs/ATT-002.md)** — [`AttestedBlock::signing_percentage`],
 //!   [`AttestedBlock::has_soft_finality`], [`AttestedBlock::hash`] (delegate to [`SignerBitmap`] / [`L2Block::hash`]).
-//! - **[SER-002](docs/requirements/domains/serialization/specs/SER-002.md)** — [`Self::to_bytes`] / [`Self::from_bytes`] (bincode; decode errors → [`BlockError::InvalidData`](crate::BlockError::InvalidData)).
+//! - **[SER-002](docs/requirements/domains/serialization/specs/SER-002.md)** — [`AttestedBlock::to_bytes`] / [`AttestedBlock::from_bytes`] (bincode; decode errors → [`BlockError::InvalidData`](crate::BlockError::InvalidData)).
 //! - **[NORMATIVE § ATT-001 / ATT-002](docs/requirements/domains/attestation/NORMATIVE.md)** — constructor + query API.
 //! - **[SPEC §2.4](docs/resources/SPEC.md)** — wire / semantic context for attested payloads.
 //!
 //! ## Usage
 //!
 //! Wrap a finalized [`crate::L2Block`] once execution produces [`crate::ReceiptList`] entries; [`AttestedBlock::new`]
-//! seeds [`Self::aggregate_signature`] with the **proposer** signature ([`L2Block::proposer_signature`]) before
-//! validators aggregate their BLS shares (implementation notes in ATT-001). [`Self::signer_bitmap`] starts
+//! seeds the `aggregate_signature` field with the **proposer** signature (`L2Block::proposer_signature`) before
+//! validators aggregate their BLS shares (implementation notes in ATT-001). The `signer_bitmap` field starts
 //! empty; consensus layers record attestations via [`SignerBitmap::set_signed`](crate::SignerBitmap::set_signed)
-//! / [`SignerBitmap::merge`](crate::SignerBitmap::merge) (ATT-004 / ATT-005). Use [`Self::signing_percentage`] and
-//! [`Self::has_soft_finality`] for quorum checks; [`Self::hash`] is the same [`Bytes32`] as [`L2Block::hash`] (ATT-002).
+//! / [`SignerBitmap::merge`](crate::SignerBitmap::merge) (ATT-004 / ATT-005). Use [`AttestedBlock::signing_percentage`]
+//! and [`AttestedBlock::has_soft_finality`] for quorum checks; [`AttestedBlock::hash`] is the same [`Bytes32`] as
+//! [`L2Block::hash`] (ATT-002).
 //!
 //! ## Rationale
 //!

@@ -93,11 +93,7 @@ fn spend_single_create_hex_coin() -> SpendBundle {
 fn bundle_unique_spend_create_coin(removal_idx: u64, output_ph: Bytes32) -> SpendBundle {
     let mut parent = [0x44u8; 32];
     parent[24..32].copy_from_slice(&removal_idx.to_le_bytes());
-    let spent = Coin::new(
-        Bytes32::new(parent),
-        Bytes32::new([0x33; 32]),
-        1,
-    );
+    let spent = Coin::new(Bytes32::new(parent), Bytes32::new([0x33; 32]), 1);
     let mut sol = vec![0xffu8, 0xff, 0x33, 0xff, 0xa0];
     sol.extend_from_slice(output_ph.as_ref());
     sol.extend_from_slice(&[0xff, 0x01, 0x80, 0x80]);

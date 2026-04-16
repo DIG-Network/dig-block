@@ -4,7 +4,7 @@
 //! binary Merkle trees, `chia-sha2`, and `bitcoin::bip158::GcsFilterWriter` (BIP-158 parameters `M`, `P`
 //! matching Bitcoin Core / [`bitcoin::bip158`](https://docs.rs/bitcoin/latest/bitcoin/bip158/index.html)).
 //!
-//! **HSH-007 nuance:** [`MerkleTree`] leaves/nodes use `0x01`/`0x02` tagging ([`crate::hash`]); [`compute_merkle_set_root`] is a
+//! **HSH-007 nuance:** `chia_sdk_types::MerkleTree` leaves/nodes use `0x01`/`0x02` tagging ([`crate::hash`]); `chia_consensus::merkle_set::compute_merkle_set_root` is a
 //! **different** radix-tree hash (see `chia_consensus::merkle_set`) for sorted coin-id sets — do not mix the two formulas.
 //!
 //! **HSH-003 ([`compute_spends_root`]):** spends roots use **binary** [`MerkleTree`] over per-bundle digests; each leaf is
@@ -76,10 +76,10 @@ pub fn merkle_tree_root(leaves: &[Bytes32]) -> Bytes32 {
 
 /// **Spends root** (header `spends_root`, SPEC §3.3) — Merkle root over ordered spend-bundle leaf digests.
 ///
-/// **Normative:** [HSH-003](docs/requirements/domains/hashing/specs/HSH-003.md).  
-/// **Algorithm:** empty slice → [`EMPTY_ROOT`]; else [`MerkleTree::new`] over leaves
-/// `SHA-256(bundle.to_bytes())` in **slice order** (block order). Tagged hashing inside the tree follows HSH-007 /
-/// `chia-sdk-types` ([`merkle_tree_root`]).
+/// **Normative:** [HSH-003](docs/requirements/domains/hashing/specs/HSH-003.md).
+/// **Algorithm:** empty slice → [`EMPTY_ROOT`]; else a binary Merkle tree (`chia_sdk_types::MerkleTree::new`) over
+/// leaves `SHA-256(bundle.to_bytes())` in **slice order** (block order). Tagged hashing inside the tree follows
+/// HSH-007 using the same `chia-sdk-types` implementation.
 ///
 /// **Equivalence:** For valid in-memory bundles, `SHA-256(to_bytes())` matches [`SpendBundle::name`] because Chia’s
 /// streamable `hash()` hashes the same serialized bytes ([`Streamable::hash`](chia_traits::Streamable::hash)).
@@ -111,15 +111,17 @@ pub fn compute_spends_root(spend_bundles: &[SpendBundle]) -> Bytes32 {
 /// [`block_body_validation`](https://github.com/Chia-Network/chia-blockchain/blob/main/chia/consensus/block_body_validation.py)
 /// (additions handling ~158–175).  
 /// **Algorithm:** Walk `additions` in **slice order**; bucket coin IDs by [`Coin::puzzle_hash`]. Emit **two** 32-byte
-/// leaves per group, in **first-seen `puzzle_hash` order**: `[puzzle_hash, hash_coin_ids(ids…)]`, then [`merkle_set_root`]
-/// → [`compute_merkle_set_root`] with DIG empty-set semantics ([`EMPTY_ROOT`] when there are no additions).
+/// leaves per group, in **first-seen `puzzle_hash` order**: `[puzzle_hash, hash_coin_ids(ids…)]`, then
+/// `chia_consensus::merkle_set::compute_merkle_set_root` with DIG empty-set semantics ([`EMPTY_ROOT`] when there are
+/// no additions).
 ///
 /// **Why [`IndexMap`] instead of `HashMap`:** HSH-004’s pseudocode uses a map for grouping; Chia’s Python uses dict
 /// **insertion order** when flattening groups. Rust’s `HashMap` iteration order is nondeterministic, which would make roots
 /// non-reproducible. [`IndexMap`] matches insertion-order semantics and the existing [`crate::L2Block::compute_additions_root`]
 /// behavior exercised by BLK-004 tests.
 ///
-/// **`hash_coin_ids`:** sorts multiple IDs descending by bytes, concatenates, SHA-256 — see [`hash_coin_ids`] and Chia
+/// **`hash_coin_ids`:** sorts multiple IDs descending by bytes, concatenates, SHA-256 — see the crate-internal
+/// `hash_coin_ids` helper and Chia
 /// [`coin.py`](https://github.com/Chia-Network/chia-blockchain/blob/main/chia/types/blockchain_format/coin.py).
 ///
 /// **Callers:** [`crate::L2Block::compute_additions_root`](crate::L2Block::compute_additions_root) delegates here after
@@ -148,7 +150,7 @@ pub fn compute_additions_root(additions: &[Coin]) -> Bytes32 {
 /// [`block_body_validation`](https://github.com/Chia-Network/chia-blockchain/blob/main/chia/consensus/block_body_validation.py)
 /// (~185, removal coin name set).  
 /// **Algorithm:** Empty slice → [`EMPTY_ROOT`]. Otherwise each [`Bytes32`] removal ID is one **leaf** in the radix Merkle
-/// set ([`merkle_set_root`] → [`compute_merkle_set_root`]). Unlike [`compute_additions_root`], there is **no** grouping:
+/// set (`chia_consensus::merkle_set::compute_merkle_set_root`). Unlike [`compute_additions_root`], there is **no** grouping:
 /// each spent coin ID is inserted directly.
 ///
 /// **Order:** [`chia_consensus::merkle_set::compute_merkle_set_root`] defines a **set** hash: the same multiset of IDs
@@ -179,11 +181,11 @@ pub fn slash_leaf_hash(payload: &[u8]) -> Bytes32 {
 /// BIP-158 **encoded filter bytes** (Golomb–Rice GCS) for block light-client filtering ([HSH-006](docs/requirements/domains/hashing/specs/HSH-006.md)).
 ///
 /// **Element order:** each [`Coin::puzzle_hash`] for `additions` in slice order, then each removal [`Bytes32`] in
-/// `removals` slice order — matches [`L2Block::all_additions`] / [`L2Block::all_removals`] when those slices are built
+/// `removals` slice order — matches [`crate::L2Block::all_additions`] / [`crate::L2Block::all_removals`] when those slices are built
 /// the same way ([SPEC §3.6](docs/resources/SPEC.md)).
 ///
 /// **Wire:** [`compact_block_filter_encoded`] is a thin wrapper assembling the `[[u8;32]; n]` table and calling
-/// [`bip158_filter_encoded`]. **Commitment:** [`compute_filter_hash`] is **SHA-256** of the returned bytes (Chia
+/// the crate-internal `bip158_filter_encoded` helper. **Commitment:** [`compute_filter_hash`] is **SHA-256** of the returned bytes (Chia
 /// `std_hash(encoded)` pattern).
 ///
 /// **Downstream:** Light clients need these bytes (not only the hash) to run membership queries via
@@ -208,9 +210,10 @@ pub fn compact_block_filter_encoded(
 ///
 /// **Normative:** [HSH-006](docs/requirements/domains/hashing/specs/HSH-006.md).  
 /// **Algorithm:** [`compact_block_filter_encoded`] then [`Sha256`] over the wire (empty IO error → hash of empty encoding,
-/// matching previous [`L2Block::compute_filter_hash`] behavior via `unwrap_or_default()`).
+/// matching previous [`crate::L2Block::compute_filter_hash`] behavior via `unwrap_or_default()`).
 ///
-/// **SipHash keys:** First 8 + next 8 bytes (LE `u64`) of `block_identity` — same as [`bip158_filter_encoded`] /
+/// **SipHash keys:** First 8 + next 8 bytes (LE `u64`) of `block_identity` — same as the crate-internal
+/// `bip158_filter_encoded` helper /
 /// Bitcoin [`GcsFilterWriter`](bitcoin::bip158::GcsFilterWriter) initialization used in this crate.
 ///
 /// **Callers:** [`crate::L2Block::compute_filter_hash`](crate::L2Block::compute_filter_hash) passes
@@ -234,8 +237,8 @@ pub fn compute_filter_hash(
 ///
 /// **Chia parity:** [`block_creation.py`](https://github.com/Chia-Network/chia-blockchain/blob/main/chia/consensus/block_creation.py)
 /// builds `byte_array_tx` from puzzle hashes / coin names, then `filter_hash = std_hash(PyBIP158(...).GetEncoded())`.
-/// Elements should follow block semantics: addition puzzle hashes in [`L2Block::all_additions`] order, then
-/// removal coin IDs in [`L2Block::all_removals`] order (SPEC §3.6).
+/// Elements should follow block semantics: addition puzzle hashes in [`crate::L2Block::all_additions`] order, then
+/// removal coin IDs in [`crate::L2Block::all_removals`] order (SPEC §3.6).
 pub fn bip158_filter_encoded(
     block_identity: Bytes32,
     elements: &[[u8; 32]],

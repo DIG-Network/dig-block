@@ -33,9 +33,7 @@
 mod common;
 
 use chia_protocol::{Bytes32, Coin, CoinSpend, CoinState, Program, SpendBundle};
-use dig_block::{
-    BlockError, ExecutionResult, L2Block, L2BlockHeader, PublicKey, Signature,
-};
+use dig_block::{BlockError, ExecutionResult, L2Block, L2BlockHeader, PublicKey, Signature};
 
 struct Coins(std::collections::HashMap<Bytes32, CoinState>);
 impl Coins {
@@ -137,7 +135,9 @@ fn mismatched_puzzle_hash_rejected() {
         spent_height: None,
     };
     // Insert under the real coin_id so STV-002 finds it, but the puzzle_hash inside differs.
-    coins.0.insert(on_chain_coin.coin_id(), state_with_wrong_puzzle);
+    coins
+        .0
+        .insert(on_chain_coin.coin_id(), state_with_wrong_puzzle);
 
     let (block, pk) = block_with_spend(on_chain_coin);
     let exec = ExecutionResult {
@@ -189,8 +189,7 @@ fn ephemeral_coin_not_checked_by_stv003() {
 #[test]
 fn multiple_spends_one_bad_halts() {
     let mut coins = Coins::new();
-    let good_coin =
-        coins.add_with_puzzle(Bytes32::new([0xA1; 32]), Bytes32::new([0xA2; 32]), 10);
+    let good_coin = coins.add_with_puzzle(Bytes32::new([0xA1; 32]), Bytes32::new([0xA2; 32]), 10);
 
     // Bad path: insert a state whose puzzle_hash differs from what the spend declares.
     let bad_parent = Bytes32::new([0xB1; 32]);

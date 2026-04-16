@@ -301,16 +301,18 @@ fn checkpoint_status_strategy() -> impl Strategy<Value = CheckpointStatus> {
         Just(CheckpointStatus::Pending),
         Just(CheckpointStatus::Collecting),
         Just(CheckpointStatus::Failed),
-        (any_bytes32(), any::<u64>())
-            .prop_map(|(winner_hash, winner_score)| CheckpointStatus::WinnerSelected {
+        (any_bytes32(), any::<u64>()).prop_map(|(winner_hash, winner_score)| {
+            CheckpointStatus::WinnerSelected {
                 winner_hash,
-                winner_score
-            }),
-        (any_bytes32(), any::<u32>())
-            .prop_map(|(winner_hash, l1_height)| CheckpointStatus::Finalized {
+                winner_score,
+            }
+        }),
+        (any_bytes32(), any::<u32>()).prop_map(|(winner_hash, l1_height)| {
+            CheckpointStatus::Finalized {
                 winner_hash,
-                l1_height
-            }),
+                l1_height,
+            }
+        }),
     ]
 }
 
@@ -530,24 +532,7 @@ fn edge_max_values_roundtrip() {
 fn edge_zero_hash_fields_roundtrip() {
     let zero = Bytes32::new([0u8; 32]);
     let header = L2BlockHeader::new(
-        42,
-        1,
-        zero,
-        zero,
-        zero,
-        zero,
-        zero,
-        zero,
-        0,
-        zero,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        zero,
+        42, 1, zero, zero, zero, zero, zero, zero, 0, zero, 0, 0, 0, 0, 0, 0, 0, zero,
     );
     let bytes = header.to_bytes();
     let decoded = L2BlockHeader::from_bytes(&bytes).unwrap();

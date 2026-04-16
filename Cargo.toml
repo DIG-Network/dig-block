@@ -7,6 +7,9 @@ description = "DIG L2 block format, production, and validation"
 license = "MIT"
 authors = ["DIG Network"]
 repository = "https://github.com/DIG-Network/dig-block"
+readme = "README.md"
+keywords = ["blockchain", "l2", "chia", "clvm", "dig"]
+categories = ["cryptography::cryptocurrencies"]
 # Only explicit `[[test]]` targets run as integration tests; `tests/common.rs` is a submodule (not its own crate).
 autotests = false
 
@@ -425,3 +428,9 @@ path = "tests/test_str_004_coin_lookup_block_signer.rs"
 [[test]]
 name = "str_005_test_infrastructure"
 path = "tests/test_str_005_test_infrastructure.rs"
+
+# Public-API smoke test — exercises the crate as a downstream consumer would (prelude,
+# re-exports, builder -> validate_full round-trip, wire serde, trait object safety).
+[[test]]
+name = "public_api_smoke"
+path = "tests/test_public_api_smoke.rs"

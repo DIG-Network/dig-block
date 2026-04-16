@@ -31,9 +31,7 @@
 
 use chia_protocol::{Bytes32, Coin};
 
-use dig_block::{
-    AssertionKind, Cost, ExecutionResult, PendingAssertion, Receipt, ReceiptStatus,
-};
+use dig_block::{AssertionKind, Cost, ExecutionResult, PendingAssertion, Receipt, ReceiptStatus};
 
 /// Build a sample [`PendingAssertion`] via the EXE-009 enum without touching CLVM.
 fn sample_assertion(coin_id: Bytes32, height: u64) -> PendingAssertion {

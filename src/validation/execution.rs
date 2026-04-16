@@ -388,12 +388,16 @@ pub fn map_clvm_validation_error(err: dig_clvm::ValidationError) -> crate::error
             expected: coin_id,
             computed: coin_id,
         },
-        dig_clvm::ValidationError::SignatureFailed => BlockError::SignatureFailed { bundle_index: 0 },
-        dig_clvm::ValidationError::CostExceeded { limit, consumed } => BlockError::ClvmCostExceeded {
-            coin_id: Bytes32::default(),
-            cost: consumed,
-            remaining: limit,
-        },
+        dig_clvm::ValidationError::SignatureFailed => {
+            BlockError::SignatureFailed { bundle_index: 0 }
+        }
+        dig_clvm::ValidationError::CostExceeded { limit, consumed } => {
+            BlockError::ClvmCostExceeded {
+                coin_id: Bytes32::default(),
+                cost: consumed,
+                remaining: limit,
+            }
+        }
         dig_clvm::ValidationError::ConservationViolation { input, output } => {
             BlockError::CoinMinting {
                 removed: input,

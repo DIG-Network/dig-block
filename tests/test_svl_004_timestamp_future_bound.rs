@@ -59,6 +59,7 @@ fn header_with_timestamp(ts: u64) -> L2BlockHeader {
         0,
         0,
         0,
+        0,
         tag(0x08),
     );
     assert_eq!(h.version, VERSION_V1);

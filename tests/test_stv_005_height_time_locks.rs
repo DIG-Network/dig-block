@@ -106,11 +106,7 @@ fn empty_block() -> L2Block {
     block
 }
 
-fn run(
-    block: &L2Block,
-    chain: &Chain,
-    pending: Vec<PendingAssertion>,
-) -> Result<(), BlockError> {
+fn run(block: &L2Block, chain: &Chain, pending: Vec<PendingAssertion>) -> Result<(), BlockError> {
     let exec = ExecutionResult {
         pending_assertions: pending,
         ..Default::default()
