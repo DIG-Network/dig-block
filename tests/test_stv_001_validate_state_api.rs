@@ -92,13 +92,12 @@ fn validate_state_signature_matches_normative() {
 /// **STV-001 acceptance:** `validate_full` signature matches NORMATIVE.
 #[test]
 fn validate_full_signature_matches_normative() {
-    let _fn_ptr: fn(
-        &L2Block,
-        &ValidationConfig,
-        &Bytes32,
-        &dyn CoinLookup,
-        &PublicKey,
-    ) -> Result<Bytes32, BlockError> = L2Block::validate_full;
+    // Type alias keeps the function pointer signature readable and avoids
+    // clippy::type_complexity for a type that we intentionally want to spell out as
+    // an acceptance check of the NORMATIVE API shape.
+    type ValidateFullFn =
+        fn(&L2Block, &ValidationConfig, &Bytes32, &dyn CoinLookup, &PublicKey) -> Result<Bytes32, BlockError>;
+    let _fn_ptr: ValidateFullFn = L2Block::validate_full;
 }
 
 /// **STV-001 test plan: `valid_state_validation`:** Empty ExecutionResult, empty CoinLookup,

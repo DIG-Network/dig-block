@@ -11,7 +11,7 @@
 //!
 //! - **Empty body:** [`dig_block::BuilderError::EmptyBlock`] when `spend_bundles` is empty proves the builder refuses
 //!   to emit a header-only block without an explicit product decision elsewhere ([`dig_block::BlockBuilder::build`] doc
-//! in `src/builder/block_builder.rs`).
+//!   in `src/builder/block_builder.rs`).
 //! - **Merkle / filter commitments:** After a successful `build`, recomputing [`dig_block::L2Block::compute_spends_root`],
 //!   [`dig_block::L2Block::compute_additions_root`], [`dig_block::L2Block::compute_removals_root`],
 //!   [`dig_block::L2Block::compute_filter_hash`], and [`dig_block::L2Block::compute_slash_proposals_root`] on the
