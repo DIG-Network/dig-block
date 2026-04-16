@@ -5,10 +5,11 @@ items:
   - id: EXE-001
     section: "7.4"
     summary: "validate_execution API"
-    status: gap
+    status: implemented
     spec_ref: "SPEC Section 7.4"
-    tests: []
-    notes: ""
+    tests:
+      - tests/test_exe_001_validate_execution_api.rs
+    notes: "L2Block::validate_execution(&self, &ValidationConfig, &Bytes32) -> Result<ExecutionResult, BlockError>; block-order bundle loop (no-op until EXE-003); block-level EXE-006 fee consistency + EXE-007 cost consistency. Full CLVM execution / condition parsing / BLS verify deferred to EXE-003/004/005."
 
   - id: EXE-002
     section: "7.4.2"
