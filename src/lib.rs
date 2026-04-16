@@ -131,10 +131,15 @@ pub mod validation;
 // Block types (SPEC §2.2–§2.4, §2.6–§2.7)
 pub use types::attested::AttestedBlock;
 pub use types::block::L2Block;
-#[doc(hidden)]
-pub use types::block::__blk004_first_duplicate_addition_coin_id;
 pub use types::checkpoint::{Checkpoint, CheckpointSubmission};
 pub use types::header::L2BlockHeader;
+
+// Test-only helper re-export (BLK-004). Kept in its own re-export block so rustfmt cannot
+// mingle the `#[doc(hidden)]` attribute with the public types above — different rustfmt
+// versions disagree on whether `__blk004…` sorts before or after `L2Block`, and splitting
+// the groups keeps the file stable across toolchains.
+#[doc(hidden)]
+pub use types::block::__blk004_first_duplicate_addition_coin_id;
 
 // Status and supporting types (SPEC §2.5, §2.8–§2.10)
 pub use types::receipt::{Receipt, ReceiptList, ReceiptStatus};
