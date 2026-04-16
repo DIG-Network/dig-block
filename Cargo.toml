@@ -52,6 +52,8 @@ hex = "0.4.3"
 hex-literal = "0.4"
 # SER-001: JSON size probe only (wire remains bincode per NORMATIVE).
 serde_json = "1"
+# SER-005: property-based round-trip testing.
+proptest = "1"
 
 # BLK-005: dedicated integration test crate (flat `tests/` path; see spec test plan).
 [[test]]
@@ -317,6 +319,11 @@ path = "tests/test_ser_003_genesis_header.rs"
 [[test]]
 name = "ser_004_serde_defaults"
 path = "tests/test_ser_004_serde_defaults.rs"
+
+# SER-005: property-based round-trip integrity (proptest) for all wire types (SPEC §12.1, §12.5).
+[[test]]
+name = "ser_005_roundtrip_integrity"
+path = "tests/test_ser_005_roundtrip_integrity.rs"
 
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]

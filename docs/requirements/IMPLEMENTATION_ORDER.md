@@ -90,7 +90,7 @@ After completing a requirement: write tests, verify they pass, update TRACKING.y
 - [x] SER-002 — to_bytes() infallible, from_bytes() fallible with error mapping
 - [x] SER-003 — Genesis block construction via L2BlockHeader::genesis()
 - [x] SER-004 — Serde default attributes for backwards compatibility
-- [ ] SER-005 — Serialization round-trip integrity for all types
+- [x] SER-005 — Serialization round-trip integrity for all types
 
 ## Phase 9: Execution Validation (Tier 2)
 

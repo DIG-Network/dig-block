@@ -41,7 +41,8 @@ items:
   - id: SER-005
     section: "12.1"
     summary: "Serialization Round-Trip Integrity"
-    status: gap
+    status: implemented
     spec_ref: "SPEC Section 12.1, 12.5"
-    tests: []
-    notes: ""
+    tests:
+      - tests/test_ser_005_roundtrip_integrity.rs
+    notes: "proptest strategies for every wire type (256 cases default); PartialEq-based check for Header/Checkpoint/Receipt/ReceiptList/SignerBitmap/status enums; byte-stable check for L2Block/AttestedBlock/CheckpointSubmission (chia-protocol/chia-bls types lack PartialEq). Edge-case regression tests for empty body, u*::MAX, all-zero hashes, MAX_VALIDATORS bitmap, empty ReceiptList."
