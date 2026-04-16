@@ -908,15 +908,33 @@ impl L2Block {
         }
     }
 
-    /// STV-007 state-root recomputation — stub. Returns `header.state_root` directly so the
-    /// outer method has a `Bytes32` to return. STV-007 will recompute from `exec` + `coins` and
-    /// compare.
+    /// STV-007 state-root recomputation ([SPEC §7.5.6](docs/resources/SPEC.md)).
+    ///
+    /// Computes a deterministic delta root from `exec.additions` + `exec.removals` via
+    /// [`crate::compute_state_root_from_delta`] and compares to `self.header.state_root`. On
+    /// match, returns the computed value so callers can thread it into the next block's
+    /// `header.parent_hash` / `header.state_root`. On mismatch, rejects with
+    /// [`BlockError::InvalidStateRoot`] carrying both values for diagnostic.
+    ///
+    /// ## Scope
+    ///
+    /// This is the **interim** state-root formula documented in
+    /// [`crate::compute_state_root_from_delta`]. A full sparse-Merkle / Patricia-trie state
+    /// computation is tracked as a follow-on extension to [`crate::CoinLookup`] — STV-007's
+    /// acceptance criteria (match/mismatch, empty-block, determinism) are met here.
     fn compute_and_verify_state_root_stub(
         &self,
-        _exec: &crate::ExecutionResult,
+        exec: &crate::ExecutionResult,
         _coins: &dyn crate::CoinLookup,
     ) -> Result<Bytes32, BlockError> {
-        Ok(self.header.state_root)
+        let computed = crate::compute_state_root_from_delta(&exec.additions, &exec.removals);
+        if computed != self.header.state_root {
+            return Err(BlockError::InvalidStateRoot {
+                expected: self.header.state_root,
+                computed,
+            });
+        }
+        Ok(computed)
     }
 }
 

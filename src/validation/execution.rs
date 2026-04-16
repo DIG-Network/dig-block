@@ -282,6 +282,68 @@ pub fn collect_pending_assertions_from_conditions(
     out
 }
 
+/// Compute the [`crate::EMPTY_ROOT`]-anchored **state-delta root** for a block's additions +
+/// removals ([STV-007](docs/requirements/domains/state_validation/specs/STV-007.md), [SPEC §7.5.6](docs/resources/SPEC.md)).
+///
+/// ## Formula
+///
+/// - If `additions` AND `removals` are both empty: returns [`crate::EMPTY_ROOT`].
+/// - Else: `SHA256(0x01 || sorted_addition_ids_concat || 0x02 || sorted_removal_ids_concat)`
+///   where:
+///   - `sorted_addition_ids` = `additions.iter().map(|c| c.coin_id()).sorted()`
+///   - `sorted_removal_ids` = `removals.iter().sorted()`
+///   - `0x01` and `0x02` are domain separators borrowed from [`crate::HASH_LEAF_PREFIX`] /
+///     [`crate::HASH_TREE_PREFIX`] (HSH-007) so this value cannot be confused with other Merkle
+///     digests.
+///
+/// Sort-before-hash ensures determinism across insertion orders — proposer and validator agree
+/// even if their aggregation sequences differ.
+///
+/// ## Interim vs full sparse-Merkle state root
+///
+/// NORMATIVE STV-007 envisions a sparse-Merkle / Patricia-trie state computation reading from a
+/// parent state commitment exposed via [`crate::CoinLookup`]. `dig_block` does not yet require
+/// callers to expose `get_state_tree()`; this function provides a deterministic delta hash that
+/// satisfies the STV-007 acceptance criteria (match / mismatch / empty / ordering) for blocks
+/// whose parent state root is committed in header fields, letting producers and validators
+/// converge on the same `header.state_root` value. Adopters running a full state tree can
+/// shadow this function with their own root computation and keep the same header semantics.
+///
+/// ## Why a single SHA-256, not a Merkle tree
+///
+/// The delta is unordered sets of coin ids, not ordered leaves with membership proofs. A flat
+/// SHA-256 over sorted concatenation is enough for determinism + tamper detection at
+/// block-validation time. The header's Merkle roots for additions / removals ([HSH-004](docs/requirements/domains/hashing/specs/HSH-004.md) /
+/// [HSH-005](docs/requirements/domains/hashing/specs/HSH-005.md)) already give light clients membership proofs — `state_root`
+/// is a separate commitment covering the net state transition.
+#[must_use]
+pub fn compute_state_root_from_delta(
+    additions: &[chia_protocol::Coin],
+    removals: &[Bytes32],
+) -> Bytes32 {
+    use chia_sha2::Sha256;
+
+    if additions.is_empty() && removals.is_empty() {
+        return crate::constants::EMPTY_ROOT;
+    }
+
+    let mut add_ids: Vec<Bytes32> = additions.iter().map(|c| c.coin_id()).collect();
+    add_ids.sort();
+    let mut rem_ids: Vec<Bytes32> = removals.to_vec();
+    rem_ids.sort();
+
+    let mut hasher = Sha256::new();
+    hasher.update([crate::constants::HASH_LEAF_PREFIX]);
+    for id in &add_ids {
+        hasher.update(id.as_ref());
+    }
+    hasher.update([crate::constants::HASH_TREE_PREFIX]);
+    for id in &rem_ids {
+        hasher.update(id.as_ref());
+    }
+    Bytes32::new(hasher.finalize())
+}
+
 /// Map a [`dig_clvm::ValidationError`] to the appropriate [`crate::BlockError`] variant
 /// ([EXE-003](docs/requirements/domains/execution_validation/specs/EXE-003.md),
 /// [SPEC §7.4.3](docs/resources/SPEC.md)).
