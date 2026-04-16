@@ -23,10 +23,11 @@ items:
   - id: EXE-003
     section: "7.4.3"
     summary: "CLVM Execution via dig-clvm"
-    status: gap
+    status: implemented
     spec_ref: "SPEC Section 7.4.3"
-    tests: []
-    notes: ""
+    tests:
+      - tests/test_exe_003_clvm_delegation.rs
+    notes: "map_clvm_validation_error maps 8 ValidationError variants to BlockError (puzzle hash, signature, cost, conservation, coin-not-found, already-spent, double-spend, CLVM, Driver). L2Block::validate_execution_with_context delegates to dig_clvm::validate_spend_bundle per bundle after EXE-002 puzzle-hash pre-check; aggregates additions/removals/cost/fees. Architectural boundary lint: src/ has no direct calls to chia-consensus CLVM entrypoints (run_spendbundle, validate_clvm_and_signature, spendbundle_conditions). Merkle set roots via chia-consensus remain allowed per HSH-004/005."
 
   - id: EXE-004
     section: "7.4.4"

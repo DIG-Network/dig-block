@@ -59,5 +59,6 @@ pub use builder::checkpoint_builder::CheckpointBuilder;
 
 // Validation result (Tier 2 — [`ExecutionResult`] placeholder + EXE-009 assertion types; SER-001 serde surface)
 pub use validation::execution::{
-    verify_coin_spend_puzzle_hash, AssertionKind, ExecutionResult, PendingAssertion,
+    map_clvm_validation_error, verify_coin_spend_puzzle_hash, AssertionKind, ExecutionResult,
+    PendingAssertion,
 };

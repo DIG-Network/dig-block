@@ -345,6 +345,11 @@ path = "tests/test_exe_001_validate_execution_api.rs"
 name = "exe_002_puzzle_hash_verification"
 path = "tests/test_exe_002_puzzle_hash_verification.rs"
 
+# EXE-003: dig-clvm delegation + ValidationError -> BlockError mapping (SPEC §7.4.3).
+[[test]]
+name = "exe_003_clvm_delegation"
+path = "tests/test_exe_003_clvm_delegation.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"
