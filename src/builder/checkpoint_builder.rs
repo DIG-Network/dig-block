@@ -6,7 +6,7 @@
 //!   `set_state_root`, `add_withdrawal`, `build`.
 //! - **[NORMATIVE § CKP-006](docs/requirements/domains/checkpoint/NORMATIVE.md)** — builder obligations for epoch summaries.
 //! - **[SPEC §6.6](docs/resources/SPEC.md)** — checkpoint builder in block production.
-//! - **Merkle roots:** [`Self::build`] uses [`crate::merkle_util::merkle_tree_root`] — same tagged binary Merkle tree as
+//! - **Merkle roots:** [`CheckpointBuilder::build`] uses the crate-internal `merkle_tree_root` helper — same tagged binary Merkle tree as
 //!   [`crate::L2Block::compute_spends_root`](crate::L2Block::compute_spends_root) /
 //!   [`crate::L2Block::compute_slash_proposals_root`](crate::L2Block::compute_slash_proposals_root)
 //!   ([BLK-004](docs/requirements/domains/block_types/specs/BLK-004.md), [HSH-007](docs/requirements/domains/hashing/specs/HSH-007.md)
@@ -17,11 +17,11 @@
 //!
 //! ## Rationale
 //!
-//! - **Consuming `build`:** [`Self::build`] takes `self` by value so a finalized [`crate::Checkpoint`] cannot be
+//! - **Consuming `build`:** [`CheckpointBuilder::build`] takes `self` by value so a finalized [`crate::Checkpoint`] cannot be
 //!   accidentally extended ([CKP-006](docs/requirements/domains/checkpoint/specs/CKP-006.md) implementation notes).
 //! - **Ordered leaves:** Block hashes and withdrawal hashes are Merkle leaves in **append order** — matches
-//!   [`Self::add_block`] / [`Self::add_withdrawal`] call order during the epoch.
-//! - **State root:** Defaults to [`Bytes32::default`] until [`Self::set_state_root`] runs; production code should set the
+//!   [`CheckpointBuilder::add_block`] / [`CheckpointBuilder::add_withdrawal`] call order during the epoch.
+//! - **State root:** Defaults to [`Bytes32::default`] until [`CheckpointBuilder::set_state_root`] runs; production code should set the
 //!   post-epoch trie root before signing.
 
 use crate::merkle_util::merkle_tree_root;
@@ -30,7 +30,7 @@ use crate::types::checkpoint::Checkpoint;
 
 /// Accumulates per-epoch block hashes, fees, tx counts, and withdrawal commitments.
 ///
-/// [`Self::build`] materializes a [`Checkpoint`] with Merkle `block_root` / `withdrawals_root` ([CKP-006](docs/requirements/domains/checkpoint/specs/CKP-006.md)).
+/// [`CheckpointBuilder::build`] materializes a [`Checkpoint`] with Merkle `block_root` / `withdrawals_root` ([CKP-006](docs/requirements/domains/checkpoint/specs/CKP-006.md)).
 pub struct CheckpointBuilder {
     epoch: u64,
     prev_checkpoint: Bytes32,

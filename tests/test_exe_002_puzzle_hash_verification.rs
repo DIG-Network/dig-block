@@ -79,9 +79,15 @@ fn tampered_puzzle_reveal_rejected_with_full_context() {
             expected,
             computed,
         } => {
-            assert_eq!(got_id, coin_id, "coin_id in error identifies offending spend");
+            assert_eq!(
+                got_id, coin_id,
+                "coin_id in error identifies offending spend"
+            );
             assert_eq!(expected, expected_hash, "expected matches coin.puzzle_hash");
-            assert_eq!(computed, tampered_hash, "computed matches tree_hash(tampered_reveal)");
+            assert_eq!(
+                computed, tampered_hash,
+                "computed matches tree_hash(tampered_reveal)"
+            );
         }
         other => panic!("expected PuzzleHashMismatch, got {:?}", other),
     }
@@ -99,8 +105,8 @@ fn empty_puzzle_with_zero_hash_rejected() {
         Program::from(vec![0x80]),
     );
 
-    let err =
-        verify_coin_spend_puzzle_hash(&spend).expect_err("zero puzzle_hash vs nil reveal must differ");
+    let err = verify_coin_spend_puzzle_hash(&spend)
+        .expect_err("zero puzzle_hash vs nil reveal must differ");
     assert!(matches!(err, BlockError::PuzzleHashMismatch { .. }));
 }
 

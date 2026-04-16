@@ -15,11 +15,10 @@
 //! cannot have reordered checks silently.
 //!
 //! **Flat test path:** `tests/test_svl_003_cost_and_size_checks.rs` per [STR-002](docs/requirements/domains/crate_structure/specs/STR-002.md)
-//! (the SVL-003 spec’s nested `tests/structural_validation/…` path is not used in this repo).
+//! (the SVL-003 spec historically referenced `tests/structural_validation/…`; this repo keeps one file per requirement at `tests/` root).
 //!
-//! **Tooling note:** `npx gitnexus status` failed in this environment (npm tree-sitter cleanup / npx bug); blast radius for
-//! [`validate_with_dfsp_activation`] was verified manually (SVL-001/002 integration tests + this file). SocratiCode MCP was
-//! not registered in the active session.
+//! **Tooling:** Per `docs/prompt/start.md`, run `npx gitnexus status` / `analyze` before changing [`L2BlockHeader::validate_with_dfsp_activation`]
+//! and use SocratiCode `codebase_search` when the MCP is wired. This suite only **consumes** the public validation API.
 
 use dig_block::{
     BlockError, Bytes32, L2BlockHeader, MAX_BLOCK_SIZE, MAX_COST_PER_BLOCK, VERSION_V1,

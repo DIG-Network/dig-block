@@ -27,21 +27,21 @@
 pub use chia_bls::{PublicKey, Signature};
 pub use chia_protocol::Bytes32;
 
-/// CLVM execution cost unit (alias of `u64`).
+/// CLVM execution cost unit (alias of `u64`) ([SPEC §2.1](docs/resources/SPEC.md)).
 ///
-/// Used for per-bundle and per-block budgets ([`crate::constants::MAX_COST_PER_BLOCK`], execution
-/// validation EXE-* requirements).
+/// Used for per-bundle and per-block budgets ([`crate::constants::MAX_COST_PER_BLOCK`] — [SPEC §2.11](docs/resources/SPEC.md),
+/// execution validation EXE-* — [SPEC §7.4.6](docs/resources/SPEC.md)).
 pub type Cost = u64;
 
-/// Protocol version for blocks strictly before DFSP activation height.
+/// Protocol version for blocks strictly before DFSP activation height ([SPEC §2.2](docs/resources/SPEC.md) version semantics).
 ///
-/// **Semantics:** See BLK-007 — when `height < DFSP_ACTIVATION_HEIGHT`, header version must be this
-/// value (and when [`crate::constants::DFSP_ACTIVATION_HEIGHT`] is `u64::MAX`, every practical height
-/// uses V1).
+/// **Semantics:** When `height < DFSP_ACTIVATION_HEIGHT`, header version must be this value. When
+/// [`DFSP_ACTIVATION_HEIGHT`](crate::constants::DFSP_ACTIVATION_HEIGHT) is `u64::MAX` (DFSP disabled),
+/// every practical height uses V1. See [SPEC §1.3 Decision 10](docs/resources/SPEC.md) (version auto-detection).
 pub const VERSION_V1: u16 = 1;
 
-/// Protocol version for blocks at or after DFSP activation height.
+/// Protocol version for blocks at or after DFSP activation height ([SPEC §2.2](docs/resources/SPEC.md) version semantics).
 ///
-/// **Semantics:** BLK-007 selects this when `height >= DFSP_ACTIVATION_HEIGHT` and activation is not
-/// permanently disabled.
+/// **Semantics:** Selected when `height >= DFSP_ACTIVATION_HEIGHT` and activation is not permanently
+/// disabled. V2 blocks MUST carry correct DFSP SMT roots ([SPEC §1.3 Decision 7](docs/resources/SPEC.md)).
 pub const VERSION_V2: u16 = 2;

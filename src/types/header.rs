@@ -13,7 +13,7 @@
 //! - [SVL-004](docs/requirements/domains/structural_validation/specs/SVL-004.md) — [`L2BlockHeader::timestamp`] vs wall clock + [`crate::MAX_FUTURE_TIMESTAMP_SECONDS`]; production [`validate`]/[`L2BlockHeader::validate_with_dfsp_activation`], tests [`L2BlockHeader::validate_with_dfsp_activation_at_unix`]
 //! - [HSH-001](docs/requirements/domains/hashing/specs/HSH-001.md) — header `hash()` (SPEC §3.1 field order;
 //!   preimage length [`L2BlockHeader::HASH_PREIMAGE_LEN`])
-//! - [SER-002](docs/requirements/domains/serialization/specs/SER-002.md) — [`Self::to_bytes`] / [`Self::from_bytes`] (SPEC §8.2; bincode + [`BlockError::InvalidData`](crate::BlockError::InvalidData) on decode)
+//! - [SER-002](docs/requirements/domains/serialization/specs/SER-002.md) — [`L2BlockHeader::to_bytes`] / [`L2BlockHeader::from_bytes`] (SPEC §8.2; bincode + [`BlockError::InvalidData`](crate::BlockError::InvalidData) on decode)
 //! - [SER-003](docs/requirements/domains/serialization/specs/SER-003.md) — [`L2BlockHeader::genesis`] deterministic bootstrap (SPEC §8.3; see NORMATIVE § SER-003)
 //! - [SPEC §2.2](docs/resources/SPEC.md), [SPEC §8.3 Genesis](docs/resources/SPEC.md#83-genesis-block)
 //!
@@ -27,7 +27,7 @@
 //! (BLD-005): [`L2BlockHeader::new`] leaves `timestamp` at **0** per SPEC’s derived-`new()` parameter list.
 //!
 //! Field order matches SPEC §2.2 so **bincode** layout stays deterministic (SER-001, HSH-001). Canonical
-//! encode/decode helpers live on [`Self::to_bytes`] / [`Self::from_bytes`] (SER-002).
+//! encode/decode helpers live on [`L2BlockHeader::to_bytes`] / [`L2BlockHeader::from_bytes`] (SER-002).
 //!
 //! ## Rationale
 //!

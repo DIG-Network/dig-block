@@ -95,7 +95,10 @@ fn hsh001_version_is_little_endian_in_preimage() {
 #[test]
 fn hsh001_preimage_length_is_constant() {
     let h = sample_filled_header();
-    assert_eq!(h.hash_preimage_bytes().len(), L2BlockHeader::HASH_PREIMAGE_LEN);
+    assert_eq!(
+        h.hash_preimage_bytes().len(),
+        L2BlockHeader::HASH_PREIMAGE_LEN
+    );
     assert_eq!(L2BlockHeader::HASH_PREIMAGE_LEN, 710);
 }
 

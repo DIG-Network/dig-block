@@ -137,12 +137,7 @@ pub fn test_header_at_height(height: u64) -> L2BlockHeader {
 
 /// Create a test L2Block containing a header and empty body.
 pub fn test_block() -> L2Block {
-    L2Block::new(
-        test_header(),
-        Vec::new(),
-        Vec::new(),
-        Signature::default(),
-    )
+    L2Block::new(test_header(), Vec::new(), Vec::new(), Signature::default())
 }
 
 /// Create a minimal but structurally complete SpendBundle for testing.

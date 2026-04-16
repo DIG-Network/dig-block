@@ -223,7 +223,10 @@ fn per_spend_all_relative_fields_collected() {
     assert!(kinds.contains(&AssertionKind::BeforeHeightRelative(3)));
     assert!(kinds.contains(&AssertionKind::BeforeSecondsRelative(4)));
     for a in assertions {
-        assert_eq!(a.coin_id, coin_id, "every relative assertion carries its coin_id");
+        assert_eq!(
+            a.coin_id, coin_id,
+            "every relative assertion carries its coin_id"
+        );
     }
 }
 
@@ -243,16 +246,10 @@ fn multiple_spends_each_contribute() {
 
     let assertions = collect_pending_assertions_from_conditions(&conds);
     assert_eq!(assertions.len(), 2);
-    let a_hits: Vec<_> = assertions
-        .iter()
-        .filter(|x| x.coin_id == id_a)
-        .collect();
+    let a_hits: Vec<_> = assertions.iter().filter(|x| x.coin_id == id_a).collect();
     assert_eq!(a_hits.len(), 1);
     assert_eq!(a_hits[0].kind, AssertionKind::HeightRelative(100));
-    let b_hits: Vec<_> = assertions
-        .iter()
-        .filter(|x| x.coin_id == id_b)
-        .collect();
+    let b_hits: Vec<_> = assertions.iter().filter(|x| x.coin_id == id_b).collect();
     assert_eq!(b_hits.len(), 1);
     assert_eq!(b_hits[0].kind, AssertionKind::SecondsRelative(50));
 }

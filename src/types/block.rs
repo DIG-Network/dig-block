@@ -10,7 +10,7 @@
 //!   additions/removals collectors, duplicate / double-spend probes, serialized size
 //! - [SVL-005](docs/requirements/domains/structural_validation/specs/SVL-005.md) — header/body **count agreement**
 //!   ([`L2Block::validate_structure`]; SPEC §5.2 steps 2, 4, 5, 13) before expensive Merkle checks ([SVL-006](docs/requirements/domains/structural_validation/specs/SVL-006.md))
-//! - [SER-002](docs/requirements/domains/serialization/specs/SER-002.md) — [`Self::to_bytes`] / [`Self::from_bytes`] (bincode + [`BlockError::InvalidData`](crate::BlockError::InvalidData) on decode)
+//! - [SER-002](docs/requirements/domains/serialization/specs/SER-002.md) — [`L2Block::to_bytes`] / [`L2Block::from_bytes`] (bincode + [`BlockError::InvalidData`](crate::BlockError::InvalidData) on decode)
 //! - [SPEC §2.3](docs/resources/SPEC.md), [SPEC §3.3–§3.6](docs/resources/SPEC.md) — body commitments + filter
 //!
 //! ## Usage
@@ -525,9 +525,11 @@ impl L2Block {
             // EXE-004: collect height / time pending assertions from this bundle's parsed
             // conditions (block-level absolutes + per-spend relatives). Tier-3 (STV-005)
             // evaluates them against chain context.
-            result.pending_assertions.extend(
-                crate::collect_pending_assertions_from_conditions(&spend_result.conditions),
-            );
+            result
+                .pending_assertions
+                .extend(crate::collect_pending_assertions_from_conditions(
+                    &spend_result.conditions,
+                ));
 
             // EXE-004 Pass 2 (announcement / concurrent-spend / self-assertions) + EXE-005
             // (BLS) run inside `dig_clvm::validate_spend_bundle` → `run_spendbundle`; rejection

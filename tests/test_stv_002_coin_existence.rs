@@ -236,7 +236,7 @@ fn first_failing_removal_is_reported() {
 
     let mut coins = Coins::new();
     coins.add(coin_a, Some(5)); // already spent
-    // coin_b not added -> would be CoinNotFound
+                                // coin_b not added -> would be CoinNotFound
 
     let exec = ExecutionResult {
         removals: vec![coin_a.coin_id(), coin_b.coin_id()],
@@ -251,6 +251,9 @@ fn first_failing_removal_is_reported() {
         BlockError::CoinAlreadySpent { coin_id, .. } => {
             assert_eq!(coin_id, coin_a.coin_id());
         }
-        other => panic!("expected CoinAlreadySpent for first-in-list, got {:?}", other),
+        other => panic!(
+            "expected CoinAlreadySpent for first-in-list, got {:?}",
+            other
+        ),
     }
 }
