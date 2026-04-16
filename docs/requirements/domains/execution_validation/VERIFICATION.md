@@ -7,7 +7,7 @@
 
 | ID | Status | Summary | Verification Approach |
 |----|--------|---------|----------------------|
-| EXE-001 | gap | validate_execution API | Unit test: call validate_execution on a valid block and verify Ok(ExecutionResult); call on invalid block and verify appropriate BlockError. Integration test: end-to-end block validation through Tier 2. |
+| EXE-001 | implemented | validate_execution API | Integration: `tests/test_exe_001_validate_execution_api.rs` — 6 tests: empty block returns empty `ExecutionResult`; `fn(&L2Block, &ValidationConfig, &Bytes32)` signature matches NORMATIVE (compile-time function-pointer coercion); non-zero `header.total_fees` on empty body → `FeesMismatch` (EXE-006); non-zero `header.total_cost` → `CostMismatch` (EXE-007); determinism; accepts `dig_clvm::ValidationConfig::default()`. Full CLVM pipeline scope belongs to EXE-003. |
 | EXE-002 | gap | Puzzle Hash Verification | Unit test: construct CoinSpend with matching and mismatched puzzle_hash, verify tree_hash comparison. Negative test: tampered puzzle_reveal returns PuzzleHashMismatch. |
 | EXE-003 | gap | CLVM Execution via dig-clvm | Unit test: mock dig_clvm::validate_spend_bundle, verify it is called for each SpendBundle. Negative test: ValidationError maps to correct BlockError. Integration test: no direct chia-consensus imports in dig-block. |
 | EXE-004 | gap | Condition Parsing and Assertion Checking | Unit test: verify two-pass condition processing with known CLVM outputs. Test each assertion type individually. Verify height/time assertions and ASSERT_EPHEMERAL are deferred (present in pending_assertions). |

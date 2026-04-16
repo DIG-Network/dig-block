@@ -335,6 +335,11 @@ path = "tests/test_exe_008_execution_result.rs"
 name = "exe_009_pending_assertion"
 path = "tests/test_exe_009_pending_assertion.rs"
 
+# EXE-001: L2Block::validate_execution API surface + block-level fee/cost consistency on empty block.
+[[test]]
+name = "exe_001_validate_execution_api"
+path = "tests/test_exe_001_validate_execution_api.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"

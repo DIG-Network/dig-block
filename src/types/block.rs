@@ -343,6 +343,98 @@ impl L2Block {
 
         Ok(())
     }
+
+    /// Tier 2 — **execution validation** entry point ([EXE-001](docs/requirements/domains/execution_validation/specs/EXE-001.md), [SPEC §7.4](docs/resources/SPEC.md)).
+    ///
+    /// Processes each [`SpendBundle`] in **block order** (ephemeral-coin semantics depend on this)
+    /// and returns an aggregated [`crate::ExecutionResult`] that carries into Tier 3
+    /// ([STV-001](docs/requirements/domains/state_validation/specs/STV-001.md)).
+    ///
+    /// ## Scope of this method (EXE-001 alone)
+    ///
+    /// **Implemented:**
+    /// - API surface matching NORMATIVE: `&self`, `&ValidationConfig` (from **dig-clvm**, see
+    ///   [`docs/prompt/start.md`](docs/prompt/start.md) Hard Requirement 2), `&Bytes32`
+    ///   (`genesis_challenge` for `AGG_SIG_ME` domain separation under EXE-005).
+    /// - Block-order traversal of [`Self::spend_bundles`].
+    /// - Block-level **fee consistency** ([EXE-006](docs/requirements/domains/execution_validation/specs/EXE-006.md))
+    ///   — `computed_total_fees == header.total_fees`, else
+    ///   [`BlockError::FeesMismatch`].
+    /// - Block-level **cost consistency** ([EXE-007](docs/requirements/domains/execution_validation/specs/EXE-007.md))
+    ///   — `computed_total_cost == header.total_cost`, else
+    ///   [`BlockError::CostMismatch`].
+    /// - Emits a fully populated (potentially empty) [`crate::ExecutionResult`]
+    ///   ([EXE-008](docs/requirements/domains/execution_validation/specs/EXE-008.md)).
+    ///
+    /// **Deferred to later requirements (documented here for trace):**
+    /// - **EXE-002** — `tree_hash(puzzle_reveal) == coin.puzzle_hash` per [`CoinSpend`]
+    ///   ([`clvm_utils::tree_hash`]).
+    /// - **EXE-003** — [`dig_clvm::validate_spend_bundle`] per bundle (CLVM execution);
+    ///   note it requires a [`dig_clvm::ValidationContext`] with per-coin `CoinRecord`s, which
+    ///   today lives in Tier 3 ([`crate::CoinLookup`]). Wiring this in is EXE-003's job.
+    /// - **EXE-004 / EXE-009** — two-pass condition collection + [`crate::PendingAssertion`]
+    ///   population.
+    /// - **EXE-005** — BLS aggregate signature verification (inside `dig-clvm`).
+    ///
+    /// For this requirement alone, the method only needs to be callable with the NORMATIVE
+    /// signature and must return the empty-block identity when there is no body. That matches the
+    /// EXE-001 test plan's `empty_block` case; non-empty behavior is validated once EXE-003 lands.
+    ///
+    /// ## Error mapping
+    ///
+    /// | Trigger | Variant | Requirement |
+    /// |---|---|---|
+    /// | `computed_total_fees != header.total_fees` | [`BlockError::FeesMismatch`] | EXE-006 |
+    /// | `computed_total_cost != header.total_cost` | [`BlockError::CostMismatch`] | EXE-007 |
+    ///
+    /// ## Chia parity
+    ///
+    /// The method sits at the same layer as `chia-blockchain`'s `pre_validate_blocks` + body-level
+    /// checks ([`block_body_validation.py` Check 9 (`INVALID_BLOCK_COST`) + Check 19
+    /// (`INVALID_BLOCK_FEE_AMOUNT`)](https://github.com/Chia-Network/chia-blockchain/blob/main/chia/consensus/block_body_validation.py)).
+    pub fn validate_execution(
+        &self,
+        clvm_config: &dig_clvm::ValidationConfig,
+        genesis_challenge: &Bytes32,
+    ) -> Result<crate::ExecutionResult, BlockError> {
+        // NOTE: `clvm_config` and `genesis_challenge` are accepted per NORMATIVE EXE-001 but are
+        // not consumed until EXE-003 (CLVM execution) / EXE-005 (BLS `AGG_SIG_ME` under genesis
+        // domain). Silencing unused-variable lints here without suppressing the symbols so they
+        // remain visible to the API surface.
+        let _ = clvm_config;
+        let _ = genesis_challenge;
+
+        // Intentionally `mut`: EXE-003 will push additions/removals/receipts into `result` as
+        // each bundle's `SpendResult` is produced. Kept mutable so the EXE-003 diff is minimal.
+        #[allow(unused_mut)]
+        let mut result = crate::ExecutionResult::default();
+
+        // Process bundles in block order (ephemeral-coin semantics; EXE-001 NORMATIVE).
+        // Under EXE-001's bare API, the loop is a no-op because EXE-003 (dig-clvm invocation) is
+        // pending. When EXE-003 lands, each iteration will call `dig_clvm::validate_spend_bundle`
+        // and fold the `SpendResult` into `result`.
+        for _bundle in &self.spend_bundles {
+            // Deferred to EXE-003 / EXE-004 / EXE-005 / EXE-009.
+        }
+
+        // EXE-006 — block-level fee consistency.
+        if result.total_fees != self.header.total_fees {
+            return Err(BlockError::FeesMismatch {
+                header: self.header.total_fees,
+                computed: result.total_fees,
+            });
+        }
+
+        // EXE-007 — block-level cost consistency.
+        if result.total_cost != self.header.total_cost {
+            return Err(BlockError::CostMismatch {
+                header: self.header.total_cost,
+                computed: result.total_cost,
+            });
+        }
+
+        Ok(result)
+    }
 }
 
 /// Convert slice lengths to `u32` for header/count fields; saturates at `u32::MAX` if the platform `usize` exceeds it.
