@@ -34,7 +34,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use chia_protocol::{Bytes32, CoinSpend, Program};
+use chia_protocol::Bytes32;
 use dig_clvm::{ValidationConfig, ValidationContext, ValidationError, DIG_TESTNET};
 
 use dig_block::{map_clvm_validation_error, BlockError, L2Block, L2BlockHeader, Signature};

@@ -44,8 +44,7 @@ mod common;
 
 use chia_protocol::{Bytes32, Coin, CoinState};
 use dig_block::{
-    AssertionKind, BlockError, ExecutionResult, L2Block, L2BlockHeader, PendingAssertion,
-    PublicKey, Signature,
+    AssertionKind, BlockError, ExecutionResult, L2Block, L2BlockHeader, PendingAssertion, Signature,
 };
 
 /// Build a CoinLookup with an explicit chain height/timestamp and optional per-coin entries.
@@ -298,11 +297,12 @@ fn before_height_relative_fail() {
 // Relative seconds — covered with estimate-based evaluation (see caveat above)
 // ---------------------------------------------------------------------------
 
-/// **STV-005 relative seconds behavior:** `ASSERT_SECONDS_RELATIVE(t)` passes if `chain_timestamp
-/// >= coin_ts_estimate + t`. The estimate uses `coin_ts_estimate = chain_timestamp -
-/// (chain_height - created_height) * AVG_BLOCK_SECONDS` with `AVG_BLOCK_SECONDS = 10`. For
-/// `chain=100`, `created=90`, `AVG=10`, `coin_ts_estimate ≈ chain_ts - 100`; `t=50` passes when
-/// `chain_ts >= (chain_ts - 100) + 50`, i.e. always true (equivalent to `100 >= 50`).
+/// **STV-005 relative seconds behavior:** `ASSERT_SECONDS_RELATIVE(t)` passes if
+/// `chain_timestamp >= coin_ts_estimate + t`. The estimate uses
+/// `coin_ts_estimate = chain_timestamp - (chain_height - created_height) * AVG_BLOCK_SECONDS`
+/// with `AVG_BLOCK_SECONDS = 10`. For `chain=100`, `created=90`, `AVG=10`,
+/// `coin_ts_estimate ≈ chain_ts - 100`; `t=50` passes when `chain_ts >= (chain_ts - 100) + 50`,
+/// i.e. always true (equivalent to `100 >= 50`).
 #[test]
 fn seconds_relative_pass_and_fail() {
     let mut chain = Chain::new(100, 1_000);

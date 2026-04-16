@@ -61,7 +61,7 @@ npx repomix@latest docs/requirements -o .repomix/pack-requirements.xml
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **dig-block** (2164 symbols, 4210 relationships, 38 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **dig-block** (2504 symbols, 5288 relationships, 53 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

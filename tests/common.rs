@@ -2,6 +2,14 @@
 //!
 //! Provides mock trait implementations and helper functions for constructing
 //! test fixtures. Used across all integration test files.
+//!
+//! Each integration test file (`tests/*.rs`) is a separate Rust crate that includes
+//! this module via `mod common;`. Any individual test crate uses only a subset of
+//! the helpers here, so the compiler's dead-code pass reports the unused helpers as
+//! warnings per-crate even though the union of all test crates uses every helper.
+//! `#![allow(dead_code)]` silences those false positives without hiding real dead
+//! code in the production `src/` tree.
+#![allow(dead_code)]
 
 use std::collections::HashMap;
 
