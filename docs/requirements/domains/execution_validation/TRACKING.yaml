@@ -70,7 +70,8 @@ items:
   - id: EXE-009
     section: "7.4.4, 7.4.7, 7.5.4"
     summary: "PendingAssertion Type Definition"
-    status: gap
+    status: implemented
     spec_ref: "SPEC Sections 7.4.4, 7.4.7, 7.5.4"
-    tests: []
-    notes: "Defines AssertionKind enum (8 variants) and PendingAssertion struct used by EXE-008 and STV-005"
+    tests:
+      - tests/test_exe_009_pending_assertion.rs
+    notes: "AssertionKind enum (8 height/time variants); PendingAssertion { kind, coin_id }; from_condition factory maps chia-sdk-types::Condition variants; None for CREATE_COIN and ASSERT_EPHEMERAL (latter handled separately in EXE-004); bincode serde."
