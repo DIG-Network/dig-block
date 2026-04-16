@@ -444,6 +444,106 @@ impl L2Block {
 
         Ok(result)
     }
+
+    /// Tier-2 execution with an explicit [`dig_clvm::ValidationContext`]
+    /// ([EXE-003](docs/requirements/domains/execution_validation/specs/EXE-003.md), [SPEC §7.4.3](docs/resources/SPEC.md)).
+    ///
+    /// ## Why this signature (not EXE-001's tight one)
+    ///
+    /// `dig_clvm::validate_spend_bundle` requires a [`dig_clvm::ValidationContext`] populated with
+    /// per-coin [`chia_sdk_coinset::CoinRecord`]s before it can run CLVM (structural coin-exists
+    /// check precedes execution). That state lives in Tier 3 ([`crate::CoinLookup`]). This method
+    /// is the integration entry point callers use when they have a context ready; the
+    /// NORMATIVE-pinned [`Self::validate_execution`] remains a thin wrapper over an **empty**
+    /// context and is only sound for empty bodies. When the Tier-2/Tier-3 bridge lands
+    /// (`validate_full`), the wrapper will build context from a provided `CoinLookup`.
+    ///
+    /// ## Pipeline
+    ///
+    /// 1. For each [`chia_protocol::SpendBundle`] in block order:
+    ///    1. For each [`chia_protocol::CoinSpend`]: [`crate::verify_coin_spend_puzzle_hash`]
+    ///       (EXE-002).
+    ///    2. [`dig_clvm::validate_spend_bundle`] (EXE-003) — CLVM + conditions + BLS
+    ///       aggregate verify + per-bundle conservation.
+    ///    3. Fold `SpendResult` into the running [`crate::ExecutionResult`].
+    /// 2. After all bundles:
+    ///    1. EXE-006 fee consistency (`computed_total_fees == header.total_fees`).
+    ///    2. EXE-007 cost consistency (`computed_total_cost == header.total_cost`).
+    ///
+    /// ## Error mapping
+    ///
+    /// All [`dig_clvm::ValidationError`] variants pass through [`crate::map_clvm_validation_error`]
+    /// (EXE-003 mapping table) so callers see only [`BlockError`].
+    ///
+    /// ## Rationale vs delegating directly
+    ///
+    /// Keeping the CLVM call gated by a puzzle-hash pre-check (EXE-002) preserves fail-fast on
+    /// tampered reveals without paying CLVM cost. Every other check runs inside dig-clvm.
+    pub fn validate_execution_with_context(
+        &self,
+        clvm_config: &dig_clvm::ValidationConfig,
+        genesis_challenge: &Bytes32,
+        context: &dig_clvm::ValidationContext,
+    ) -> Result<crate::ExecutionResult, BlockError> {
+        // `genesis_challenge` is part of the AGG_SIG_ME domain; dig-clvm currently reads this
+        // from `context.constants`, so the parameter is documentary here until EXE-005 uses it
+        // to override per-call.
+        let _ = genesis_challenge;
+
+        let mut result = crate::ExecutionResult::default();
+
+        for (idx, bundle) in self.spend_bundles.iter().enumerate() {
+            // EXE-002: puzzle-hash pre-check (fail-fast before CLVM cost).
+            for coin_spend in &bundle.coin_spends {
+                crate::verify_coin_spend_puzzle_hash(coin_spend)?;
+            }
+
+            // EXE-003: delegate to dig-clvm for full CLVM + conditions + BLS + conservation.
+            let spend_result = dig_clvm::validate_spend_bundle(bundle, context, clvm_config, None)
+                .map_err(|e| {
+                    // Rewrap bundle_index on signature failures; all other variants ignore it.
+                    let mapped = crate::map_clvm_validation_error(e);
+                    if let BlockError::SignatureFailed { .. } = mapped {
+                        BlockError::SignatureFailed {
+                            bundle_index: idx as u32,
+                        }
+                    } else {
+                        mapped
+                    }
+                })?;
+
+            // Aggregate per-bundle outputs into the block-level ExecutionResult (EXE-008 shape).
+            result.additions.extend(spend_result.additions);
+            result
+                .removals
+                .extend(spend_result.removals.iter().map(|c| c.coin_id()));
+            result.total_cost = result
+                .total_cost
+                .saturating_add(spend_result.conditions.cost);
+            result.total_fees = result.total_fees.saturating_add(spend_result.fee);
+            // EXE-004 / EXE-009 condition-to-PendingAssertion collection + per-bundle Receipt
+            // construction land in follow-on commits; leave collections untouched here so the
+            // struct shape stays truthful about what EXE-003 alone delivers.
+        }
+
+        // EXE-006 — block-level fee consistency.
+        if result.total_fees != self.header.total_fees {
+            return Err(BlockError::FeesMismatch {
+                header: self.header.total_fees,
+                computed: result.total_fees,
+            });
+        }
+
+        // EXE-007 — block-level cost consistency.
+        if result.total_cost != self.header.total_cost {
+            return Err(BlockError::CostMismatch {
+                header: self.header.total_cost,
+                computed: result.total_cost,
+            });
+        }
+
+        Ok(result)
+    }
 }
 
 /// Convert slice lengths to `u32` for header/count fields; saturates at `u32::MAX` if the platform `usize` exceeds it.

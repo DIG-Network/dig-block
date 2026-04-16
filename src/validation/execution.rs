@@ -181,6 +181,78 @@ pub struct ExecutionResult {
     pub receipts: Vec<crate::types::receipt::Receipt>,
 }
 
+/// Map a [`dig_clvm::ValidationError`] to the appropriate [`crate::BlockError`] variant
+/// ([EXE-003](docs/requirements/domains/execution_validation/specs/EXE-003.md),
+/// [SPEC §7.4.3](docs/resources/SPEC.md)).
+///
+/// ## Why this lives in dig-block
+///
+/// `dig-clvm` is a vendored CLVM consensus engine; it raises domain-specific errors (per-coin id,
+/// per-spend issues). dig-block exposes a single taxonomy ([`crate::BlockError`]) so downstream
+/// callers never see `dig_clvm` variants — matching NORMATIVE EXE-003 / ERR-002.
+///
+/// ## Mapping table
+///
+/// | `dig_clvm::ValidationError` | `dig_block::BlockError` |
+/// |---|---|
+/// | `PuzzleHashMismatch(coin_id)` | `PuzzleHashMismatch { coin_id, expected, computed }` (hashes echo coin id as a best-effort — caller may enrich) |
+/// | `SignatureFailed` | `SignatureFailed { bundle_index: 0 }` (caller with bundle loop context may rewrap with the correct index) |
+/// | `CostExceeded { limit, consumed }` | `ClvmCostExceeded { cost: consumed, remaining: limit, coin_id: default }` |
+/// | `ConservationViolation { input, output }` | `CoinMinting { removed: input, added: output }` |
+/// | `CoinNotFound(coin_id)` | `CoinNotFound { coin_id }` |
+/// | `AlreadySpent(coin_id)` | `CoinAlreadySpent { coin_id, spent_height: 0 }` |
+/// | `DoubleSpend(coin_id)` | `DoubleSpendInBlock { coin_id }` |
+/// | `Clvm(reason)` | `ClvmExecutionFailed { coin_id: default, reason }` |
+/// | `Driver(e)` | `InvalidData(e.to_string())` |
+///
+/// ## Rationale
+///
+/// `dig-clvm`'s error variants carry less context than dig-block's (e.g. no `expected` /
+/// `computed` hash split for puzzle-hash mismatches — that split is a dig-block ergonomic on top
+/// of `coin_id`). The `bundle_index` field on [`crate::BlockError::SignatureFailed`] is set to
+/// `0` here because `dig-clvm` operates on one bundle at a time; callers iterating bundles can
+/// rewrap with the correct index (see `L2Block::validate_execution_with_context`).
+///
+/// ## Chia parity
+///
+/// Aligns with [`block_body_validation.py` Checks 15–22](https://github.com/Chia-Network/chia-blockchain/blob/main/chia/consensus/block_body_validation.py)
+/// error codes.
+pub fn map_clvm_validation_error(err: dig_clvm::ValidationError) -> crate::error::BlockError {
+    use crate::error::BlockError;
+    match err {
+        dig_clvm::ValidationError::PuzzleHashMismatch(coin_id) => BlockError::PuzzleHashMismatch {
+            coin_id,
+            expected: coin_id,
+            computed: coin_id,
+        },
+        dig_clvm::ValidationError::SignatureFailed => BlockError::SignatureFailed { bundle_index: 0 },
+        dig_clvm::ValidationError::CostExceeded { limit, consumed } => BlockError::ClvmCostExceeded {
+            coin_id: Bytes32::default(),
+            cost: consumed,
+            remaining: limit,
+        },
+        dig_clvm::ValidationError::ConservationViolation { input, output } => {
+            BlockError::CoinMinting {
+                removed: input,
+                added: output,
+            }
+        }
+        dig_clvm::ValidationError::CoinNotFound(coin_id) => BlockError::CoinNotFound { coin_id },
+        dig_clvm::ValidationError::AlreadySpent(coin_id) => BlockError::CoinAlreadySpent {
+            coin_id,
+            spent_height: 0,
+        },
+        dig_clvm::ValidationError::DoubleSpend(coin_id) => {
+            BlockError::DoubleSpendInBlock { coin_id }
+        }
+        dig_clvm::ValidationError::Clvm(reason) => BlockError::ClvmExecutionFailed {
+            coin_id: Bytes32::default(),
+            reason,
+        },
+        dig_clvm::ValidationError::Driver(e) => BlockError::InvalidData(e.to_string()),
+    }
+}
+
 /// Verify that `tree_hash(coin_spend.puzzle_reveal) == coin_spend.coin.puzzle_hash`
 /// ([EXE-002](docs/requirements/domains/execution_validation/specs/EXE-002.md), [SPEC §7.4.2](docs/resources/SPEC.md)).
 ///
