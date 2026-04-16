@@ -706,12 +706,31 @@ impl L2Block {
         Ok(())
     }
 
-    /// STV-004 addition uniqueness — stub. No-op on empty additions.
+    /// STV-004 addition non-existence ([SPEC §7.5.3](docs/resources/SPEC.md)).
+    ///
+    /// For each coin in `exec.additions`:
+    /// - If [`crate::CoinLookup::get_coin_state`] returns `Some(_)`, the coin id already exists
+    ///   in persistent state — reject unless the coin id also appears in `exec.removals`
+    ///   (ephemeral exception: the addition is consumed in the same block).
+    ///
+    /// ## Why `removals` is treated as a HashSet
+    ///
+    /// The ephemeral check is O(n+m) rather than O(n*m) — we build the removal-id set once per
+    /// invocation. For realistic block sizes the allocation cost is negligible.
     fn check_addition_uniqueness_stub(
         &self,
-        _exec: &crate::ExecutionResult,
-        _coins: &dyn crate::CoinLookup,
+        exec: &crate::ExecutionResult,
+        coins: &dyn crate::CoinLookup,
     ) -> Result<(), BlockError> {
+        let removal_ids: std::collections::HashSet<Bytes32> =
+            exec.removals.iter().copied().collect();
+
+        for addition in &exec.additions {
+            let coin_id = addition.coin_id();
+            if coins.get_coin_state(&coin_id).is_some() && !removal_ids.contains(&coin_id) {
+                return Err(BlockError::CoinAlreadyExists { coin_id });
+            }
+        }
         Ok(())
     }
 

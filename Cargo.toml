@@ -385,6 +385,11 @@ path = "tests/test_stv_002_coin_existence.rs"
 name = "stv_003_puzzle_hash_cross_check"
 path = "tests/test_stv_003_puzzle_hash_cross_check.rs"
 
+# STV-004: addition non-existence (+ ephemeral exception) (SPEC §7.5.3).
+[[test]]
+name = "stv_004_addition_uniqueness"
+path = "tests/test_stv_004_addition_uniqueness.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"
