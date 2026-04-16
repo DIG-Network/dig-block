@@ -95,7 +95,7 @@ After completing a requirement: write tests, verify they pass, update TRACKING.y
 ## Phase 9: Execution Validation (Tier 2)
 
 - [x] EXE-001 — validate_execution() API and ValidationConfig integration
-- [ ] EXE-002 — Puzzle hash verification (tree_hash(puzzle_reveal) == coin.puzzle_hash)
+- [x] EXE-002 — Puzzle hash verification (tree_hash(puzzle_reveal) == coin.puzzle_hash)
 - [ ] EXE-003 — CLVM execution via dig_clvm::validate_spend_bundle()
 - [ ] EXE-004 — Condition parsing and assertion checking (announcements, concurrent spend, self-assertions)
 - [ ] EXE-005 — BLS aggregate signature verification (via dig-clvm)

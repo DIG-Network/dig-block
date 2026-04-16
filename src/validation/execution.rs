@@ -180,3 +180,50 @@ pub struct ExecutionResult {
     /// Per-bundle receipts ([`crate::Receipt`] / RCP-002) in insertion order.
     pub receipts: Vec<crate::types::receipt::Receipt>,
 }
+
+/// Verify that `tree_hash(coin_spend.puzzle_reveal) == coin_spend.coin.puzzle_hash`
+/// ([EXE-002](docs/requirements/domains/execution_validation/specs/EXE-002.md), [SPEC §7.4.2](docs/resources/SPEC.md)).
+///
+/// ## Rationale
+///
+/// A coin's `puzzle_hash` is committed on creation as the SHA-256-based Merkle tree hash of the
+/// spending puzzle. When the coin is spent, the spender reveals the full puzzle program in
+/// `CoinSpend.puzzle_reveal`. This function enforces the fundamental consensus rule that the
+/// revealed puzzle **must** hash to the committed value — otherwise the spender is substituting a
+/// different program (potentially with different conditions).
+///
+/// ## Implementation
+///
+/// Uses [`clvm_utils::tree_hash_from_bytes`] directly on the serialized CLVM bytes from
+/// [`chia_protocol::Program::as_slice`]. No allocator roundtrip is needed because the puzzle is
+/// already in canonical serialized form. NORMATIVE EXE-002 forbids custom tree-hash code.
+///
+/// ## Errors
+///
+/// - [`BlockError::PuzzleHashMismatch`] — the computed hash differs from `coin.puzzle_hash`.
+///   Carries the offending `coin_id`, the `expected` (committed) hash, and the `computed` hash
+///   so the caller can log / diagnose.
+/// - [`BlockError::InvalidData`] — `puzzle_reveal` is not well-formed CLVM bytes (rare; indicates
+///   a malformed upstream payload). Wraps the `clvm-utils` error message.
+///
+/// ## Chia parity
+///
+/// Matches [`block_body_validation.py` Check 20 (`WRONG_PUZZLE_HASH`)](https://github.com/Chia-Network/chia-blockchain/blob/main/chia/consensus/block_body_validation.py).
+/// `dig-clvm::validate_spend_bundle` also performs this check internally (EXE-003); this
+/// standalone helper exists so the Tier-2 entry point can short-circuit before invoking CLVM.
+pub fn verify_coin_spend_puzzle_hash(
+    coin_spend: &chia_protocol::CoinSpend,
+) -> Result<(), crate::error::BlockError> {
+    let bytes = coin_spend.puzzle_reveal.as_slice();
+    let computed: Bytes32 = clvm_utils::tree_hash_from_bytes(bytes)
+        .map_err(|e| crate::error::BlockError::InvalidData(format!("tree_hash_from_bytes: {e}")))?
+        .into();
+    if computed != coin_spend.coin.puzzle_hash {
+        return Err(crate::error::BlockError::PuzzleHashMismatch {
+            coin_id: coin_spend.coin.coin_id(),
+            expected: coin_spend.coin.puzzle_hash,
+            computed,
+        });
+    }
+    Ok(())
+}

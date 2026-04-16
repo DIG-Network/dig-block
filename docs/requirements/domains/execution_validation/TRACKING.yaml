@@ -14,10 +14,11 @@ items:
   - id: EXE-002
     section: "7.4.2"
     summary: "Puzzle Hash Verification"
-    status: gap
+    status: implemented
     spec_ref: "SPEC Section 7.4.2"
-    tests: []
-    notes: ""
+    tests:
+      - tests/test_exe_002_puzzle_hash_verification.rs
+    notes: "verify_coin_spend_puzzle_hash helper uses clvm_utils::tree_hash_from_bytes; PuzzleHashMismatch carries coin_id/expected/computed; wired into L2Block::validate_execution before CLVM (fail-fast). Chia parity: Check 20 WRONG_PUZZLE_HASH."
 
   - id: EXE-003
     section: "7.4.3"
