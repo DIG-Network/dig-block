@@ -112,7 +112,7 @@ After completing a requirement: write tests, verify they pass, update TRACKING.y
 - [x] STV-004 — Addition non-existence check
 - [x] STV-005 — Height/time lock evaluation (8 assertion types)
 - [x] STV-006 — Proposer signature verification
-- [ ] STV-007 — State root verification (apply additions/removals, compare)
+- [x] STV-007 — State root verification (apply additions/removals, compare)
 
 ---
 

@@ -59,7 +59,8 @@ items:
   - id: STV-007
     section: "7.5.6"
     summary: "State Root Verification"
-    status: gap
+    status: implemented
     spec_ref: "SPEC Section 7.5.6"
-    tests: []
-    notes: ""
+    tests:
+      - tests/test_stv_007_state_root.rs
+    notes: "compute_state_root_from_delta(additions, removals) = SHA-256 over sorted coin-id concatenations with HASH_LEAF_PREFIX / HASH_TREE_PREFIX domain separation (HSH-007). Empty delta -> EMPTY_ROOT. validate_state's final sub-check compares against header.state_root and returns Bytes32 on success / InvalidStateRoot{expected,computed} on mismatch. Full sparse-Merkle state tree is a follow-on extension to CoinLookup; interim formula satisfies NORMATIVE match/mismatch/ordering acceptance."

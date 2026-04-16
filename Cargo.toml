@@ -400,6 +400,11 @@ path = "tests/test_stv_005_height_time_locks.rs"
 name = "stv_006_proposer_signature"
 path = "tests/test_stv_006_proposer_signature.rs"
 
+# STV-007: state root verification (apply additions/removals, compare) (SPEC §7.5.6).
+[[test]]
+name = "stv_007_state_root"
+path = "tests/test_stv_007_state_root.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"

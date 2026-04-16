@@ -74,10 +74,19 @@ fn empty_block_with_pk() -> (L2Block, PublicKey) {
     (block, pk)
 }
 
+/// Align `block.header.state_root` to the STV-007 delta root for `exec` and re-sign, so tests
+/// focused on STV-004 aren't rejected by STV-007.
+fn align_state_root_to_delta(block: &mut L2Block, exec: &ExecutionResult) {
+    block.header.state_root =
+        dig_block::compute_state_root_from_delta(&exec.additions, &exec.removals);
+    let (sk, _) = common::stv_test_proposer_keypair();
+    common::stv_sign_proposer(block, &sk);
+}
+
 /// **STV-004 `new_coin_not_in_db`:** Addition not present in CoinLookup → passes.
 #[test]
 fn new_addition_not_in_db_passes() {
-    let (block, pk) = empty_block_with_pk();
+    let (mut block, pk) = empty_block_with_pk();
     let new_coin = Coin::new(Bytes32::new([1; 32]), Bytes32::new([2; 32]), 100);
     let coins = Coins::new();
 
@@ -85,6 +94,7 @@ fn new_addition_not_in_db_passes() {
         additions: vec![new_coin],
         ..Default::default()
     };
+    align_state_root_to_delta(&mut block, &exec);
 
     block
         .validate_state(&exec, &coins, &pk)
@@ -121,7 +131,7 @@ fn existing_non_ephemeral_addition_rejected() {
 /// allows it (the ephemeral coin is produced + consumed within this block).
 #[test]
 fn ephemeral_addition_is_allowed_even_when_id_in_db() {
-    let (block, pk) = empty_block_with_pk();
+    let (mut block, pk) = empty_block_with_pk();
     let eph = Coin::new(Bytes32::new([5; 32]), Bytes32::new([6; 32]), 10);
     let mut coins = Coins::new();
     coins.insert(eph); // pre-existing
@@ -131,6 +141,7 @@ fn ephemeral_addition_is_allowed_even_when_id_in_db() {
         removals: vec![eph.coin_id()],
         ..Default::default()
     };
+    align_state_root_to_delta(&mut block, &exec);
 
     block
         .validate_state(&exec, &coins, &pk)
@@ -140,7 +151,7 @@ fn ephemeral_addition_is_allowed_even_when_id_in_db() {
 /// **STV-004 `multiple_additions`:** Several new coins, none in database → all pass.
 #[test]
 fn multiple_new_additions_all_pass() {
-    let (block, pk) = empty_block_with_pk();
+    let (mut block, pk) = empty_block_with_pk();
     let a = Coin::new(Bytes32::new([7; 32]), Bytes32::new([8; 32]), 1);
     let b = Coin::new(Bytes32::new([9; 32]), Bytes32::new([0xA; 32]), 2);
     let c = Coin::new(Bytes32::new([0xB; 32]), Bytes32::new([0xC; 32]), 3);
@@ -150,6 +161,7 @@ fn multiple_new_additions_all_pass() {
         additions: vec![a, b, c],
         ..Default::default()
     };
+    align_state_root_to_delta(&mut block, &exec);
 
     block
         .validate_state(&exec, &coins, &pk)

@@ -82,6 +82,15 @@ fn block_with_spend(coin: Coin) -> (L2Block, PublicKey) {
     (block, pk)
 }
 
+/// Align `block.header.state_root` to the STV-007 delta root for `exec` and re-sign, so tests
+/// focused on STV-003 aren't rejected by STV-007.
+fn align_state_root_to_delta(block: &mut L2Block, exec: &ExecutionResult) {
+    block.header.state_root =
+        dig_block::compute_state_root_from_delta(&exec.additions, &exec.removals);
+    let (sk, _) = common::stv_test_proposer_keypair();
+    common::stv_sign_proposer(block, &sk);
+}
+
 /// **STV-003 `matching_puzzle_hash`:** Database and spend agree — passes.
 #[test]
 fn matching_puzzle_hash_passes() {
@@ -90,11 +99,12 @@ fn matching_puzzle_hash_passes() {
     let puzzle = Bytes32::new([0x22; 32]);
     let coin = coins.add_with_puzzle(parent, puzzle, 50);
 
-    let (block, pk) = block_with_spend(coin);
+    let (mut block, pk) = block_with_spend(coin);
     let exec = ExecutionResult {
         removals: vec![coin.coin_id()],
         ..Default::default()
     };
+    align_state_root_to_delta(&mut block, &exec);
 
     block
         .validate_state(&exec, &coins, &pk)
@@ -159,13 +169,14 @@ fn mismatched_puzzle_hash_rejected() {
 fn ephemeral_coin_not_checked_by_stv003() {
     let coins = Coins::new(); // empty
     let ephemeral = Coin::new(Bytes32::new([0x66; 32]), Bytes32::new([0x77; 32]), 10);
-    let (block, pk) = block_with_spend(ephemeral);
+    let (mut block, pk) = block_with_spend(ephemeral);
 
     let exec = ExecutionResult {
         additions: vec![ephemeral], // makes STV-002 treat it as ephemeral
         removals: vec![ephemeral.coin_id()],
         ..Default::default()
     };
+    align_state_root_to_delta(&mut block, &exec);
 
     // Should pass: STV-002 sees it as ephemeral; STV-003 skips when get_coin_state = None.
     block
