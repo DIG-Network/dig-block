@@ -7,7 +7,7 @@
 
 | ID | Status | Summary | Verification Approach |
 |----|--------|---------|----------------------|
-| STV-001 | gap | validate_state API | Unit test: call validate_state with valid ExecutionResult and CoinLookup, verify Ok(Bytes32). Integration test: validate_full() combines all 3 tiers successfully. Negative test: each tier failure propagates correctly. |
+| STV-001 | implemented | validate_state API | Integration: `tests/test_stv_001_validate_state_api.rs` — 9 tests: signatures of both methods (compile-time fn pointer coercion); empty-block `validate_state` returns `header.state_root`; `validate_full` happy path; tier-1 short-circuit via `SpendBundleCountMismatch`; tier-2 short-circuit via `FeesMismatch`; tier-2 output feeds tier-3 input; return type is `Bytes32`; object safety via `Box<dyn CoinLookup>`. Sub-checks STV-002..007 are stubs until their requirements land. |
 | STV-002 | gap | Coin Existence Checks | Unit test: coin exists and unspent passes. Coin missing returns CoinNotFound. Already-spent coin returns CoinAlreadySpent. Ephemeral coin (in additions) passes even without CoinLookup entry. |
 | STV-003 | gap | Puzzle Hash Cross-Check | Unit test: matching puzzle_hash passes. Mismatched puzzle_hash returns PuzzleHashMismatch. Verify comparison uses coin_state.coin.puzzle_hash from CoinLookup. |
 | STV-004 | gap | Addition Non-Existence | Unit test: new coin (not in CoinLookup) passes. Existing coin returns CoinAlreadyExists. Ephemeral coin created and spent in same block is allowed. |

@@ -370,6 +370,11 @@ path = "tests/test_exe_006_fee_consistency.rs"
 name = "exe_007_cost_consistency"
 path = "tests/test_exe_007_cost_consistency.rs"
 
+# STV-001: L2Block::validate_state + validate_full API surface (SPEC §7.5).
+[[test]]
+name = "stv_001_validate_state_api"
+path = "tests/test_stv_001_validate_state_api.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"

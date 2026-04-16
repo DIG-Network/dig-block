@@ -555,6 +555,133 @@ impl L2Block {
 
         Ok(result)
     }
+
+    /// Tier 3 — **state validation** entry point ([STV-001](docs/requirements/domains/state_validation/specs/STV-001.md), [SPEC §7.5](docs/resources/SPEC.md)).
+    ///
+    /// Consumes the [`crate::ExecutionResult`] produced by Tier 2, cross-references it against
+    /// the caller's [`crate::CoinLookup`] view of the coin set, verifies the proposer signature,
+    /// and returns the computed state-trie root for commitment.
+    ///
+    /// ## Sub-checks (each a follow-on STV-* requirement)
+    ///
+    /// | Step | Requirement | Purpose |
+    /// |---|---|---|
+    /// | 1 | [STV-002](docs/requirements/domains/state_validation/specs/STV-002.md) | Every `exec.removals` coin exists and is unspent (or is ephemeral — present in `exec.additions`). |
+    /// | 2 | [STV-003](docs/requirements/domains/state_validation/specs/STV-003.md) | `CoinState.coin.puzzle_hash` cross-check vs the spent coin's `puzzle_hash`. |
+    /// | 3 | [STV-004](docs/requirements/domains/state_validation/specs/STV-004.md) | Every `exec.additions` coin is not already in the coin set (ephemeral exception). |
+    /// | 4 | [STV-005](docs/requirements/domains/state_validation/specs/STV-005.md) | Evaluate each [`crate::PendingAssertion`] from Tier 2 against chain context. |
+    /// | 5 | [STV-006](docs/requirements/domains/state_validation/specs/STV-006.md) | `chia_bls::verify(proposer_pubkey, header.hash(), proposer_signature)`. |
+    /// | 6 | [STV-007](docs/requirements/domains/state_validation/specs/STV-007.md) | Apply additions / removals, recompute state root, compare to `header.state_root`, return it. |
+    ///
+    /// ## Scope of this commit (STV-001 only)
+    ///
+    /// Dispatcher with placeholder sub-check bodies. On empty inputs (zero additions / removals /
+    /// pending assertions) every sub-check is a no-op and the method returns
+    /// `self.header.state_root` directly — the boundary case needed for `validate_full` to
+    /// finish a genesis-style empty block end-to-end. STV-002..007 will harden each step
+    /// without changing this outer signature.
+    ///
+    /// ## Return value
+    ///
+    /// `Bytes32` — the computed state-trie root. For successful validation this equals
+    /// `self.header.state_root`; callers use it as the committed parent-state value for the next
+    /// block. This is why the return is not `()`.
+    pub fn validate_state(
+        &self,
+        exec: &crate::ExecutionResult,
+        coins: &dyn crate::CoinLookup,
+        proposer_pubkey: &crate::primitives::PublicKey,
+    ) -> Result<Bytes32, BlockError> {
+        // STV-002 — coin existence. (Stub: on empty removals, no-op.)
+        self.check_coin_existence_stub(exec, coins)?;
+        // STV-003 — puzzle hash cross-check. (Stub.)
+        self.check_puzzle_hashes_stub(exec, coins)?;
+        // STV-004 — addition non-existence. (Stub.)
+        self.check_addition_uniqueness_stub(exec, coins)?;
+        // STV-005 — height/time lock evaluation. (Stub: on empty pending_assertions, no-op.)
+        self.evaluate_pending_assertions_stub(exec, coins)?;
+        // STV-006 — proposer signature. (Stub.)
+        self.verify_proposer_signature_stub(proposer_pubkey)?;
+        // STV-007 — state root verification + computation.
+        self.compute_and_verify_state_root_stub(exec, coins)
+    }
+
+    /// Convenience wrapper: Tier 1 → Tier 2 → Tier 3 ([STV-001](docs/requirements/domains/state_validation/specs/STV-001.md)).
+    ///
+    /// Short-circuits on the first failing tier. On success returns the computed state root
+    /// (same semantics as [`Self::validate_state`]). Each tier can still be called independently
+    /// for partial validation or tests.
+    pub fn validate_full(
+        &self,
+        clvm_config: &dig_clvm::ValidationConfig,
+        genesis_challenge: &Bytes32,
+        coins: &dyn crate::CoinLookup,
+        proposer_pubkey: &crate::primitives::PublicKey,
+    ) -> Result<Bytes32, BlockError> {
+        // Tier 1 — structural validation.
+        self.validate_structure()?;
+        // Tier 2 — execution validation.
+        let exec = self.validate_execution(clvm_config, genesis_challenge)?;
+        // Tier 3 — state validation + compute state root.
+        self.validate_state(&exec, coins, proposer_pubkey)
+    }
+
+    // --- STV-002..007 stub sub-checks (STV-001 dispatcher shape) ---
+
+    /// STV-002 coin existence — stub. For empty `exec.removals` this is a no-op. Tightens in STV-002.
+    fn check_coin_existence_stub(
+        &self,
+        _exec: &crate::ExecutionResult,
+        _coins: &dyn crate::CoinLookup,
+    ) -> Result<(), BlockError> {
+        Ok(())
+    }
+
+    /// STV-003 puzzle-hash cross-check — stub. No-op on empty.
+    fn check_puzzle_hashes_stub(
+        &self,
+        _exec: &crate::ExecutionResult,
+        _coins: &dyn crate::CoinLookup,
+    ) -> Result<(), BlockError> {
+        Ok(())
+    }
+
+    /// STV-004 addition uniqueness — stub. No-op on empty additions.
+    fn check_addition_uniqueness_stub(
+        &self,
+        _exec: &crate::ExecutionResult,
+        _coins: &dyn crate::CoinLookup,
+    ) -> Result<(), BlockError> {
+        Ok(())
+    }
+
+    /// STV-005 height/time lock evaluation — stub. No-op on empty pending_assertions.
+    fn evaluate_pending_assertions_stub(
+        &self,
+        _exec: &crate::ExecutionResult,
+        _coins: &dyn crate::CoinLookup,
+    ) -> Result<(), BlockError> {
+        Ok(())
+    }
+
+    /// STV-006 proposer signature — stub. No-op until STV-006 wires `chia_bls::verify`.
+    fn verify_proposer_signature_stub(
+        &self,
+        _pubkey: &crate::primitives::PublicKey,
+    ) -> Result<(), BlockError> {
+        Ok(())
+    }
+
+    /// STV-007 state-root recomputation — stub. Returns `header.state_root` directly so the
+    /// outer method has a `Bytes32` to return. STV-007 will recompute from `exec` + `coins` and
+    /// compare.
+    fn compute_and_verify_state_root_stub(
+        &self,
+        _exec: &crate::ExecutionResult,
+        _coins: &dyn crate::CoinLookup,
+    ) -> Result<Bytes32, BlockError> {
+        Ok(self.header.state_root)
+    }
 }
 
 /// Convert slice lengths to `u32` for header/count fields; saturates at `u32::MAX` if the platform `usize` exceeds it.
