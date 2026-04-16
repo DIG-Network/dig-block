@@ -41,10 +41,11 @@ items:
   - id: EXE-005
     section: "7.4.5"
     summary: "BLS Aggregate Signature Verification"
-    status: gap
+    status: implemented
     spec_ref: "SPEC Section 7.4.5"
-    tests: []
-    notes: ""
+    tests:
+      - tests/test_exe_005_bls_delegation.rs
+    notes: "Fully delegated to dig_clvm::validate_spend_bundle -> chia_consensus::validate_clvm_and_signature. dig-block has no separate BLS verify code (architectural lint over src/ forbids aggregate_verify/BlsCache/chia_bls::sign). SignatureFailed maps with bundle_index in validate_execution_with_context. dig_clvm::BlsCache available for callers. Chia parity: Check 22 BAD_AGGREGATE_SIGNATURE."
 
   - id: EXE-006
     section: "7.4.6"

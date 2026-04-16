@@ -355,6 +355,11 @@ path = "tests/test_exe_003_clvm_delegation.rs"
 name = "exe_004_condition_parsing"
 path = "tests/test_exe_004_condition_parsing.rs"
 
+# EXE-005: BLS aggregate signature verification delegated to dig-clvm (SPEC §7.4.5).
+[[test]]
+name = "exe_005_bls_delegation"
+path = "tests/test_exe_005_bls_delegation.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"
