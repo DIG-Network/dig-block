@@ -390,6 +390,11 @@ path = "tests/test_stv_003_puzzle_hash_cross_check.rs"
 name = "stv_004_addition_uniqueness"
 path = "tests/test_stv_004_addition_uniqueness.rs"
 
+# STV-005: height/time lock evaluation for PendingAssertion (SPEC §7.5.4 / Chia Check 21).
+[[test]]
+name = "stv_005_height_time_locks"
+path = "tests/test_stv_005_height_time_locks.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"

@@ -734,12 +734,153 @@ impl L2Block {
         Ok(())
     }
 
-    /// STV-005 height/time lock evaluation — stub. No-op on empty pending_assertions.
+    /// STV-005 height / time lock evaluation ([SPEC §7.5.4](docs/resources/SPEC.md), Chia Check 21).
+    ///
+    /// For each [`crate::PendingAssertion`] from Tier 2 (EXE-004 / EXE-009), compare its
+    /// threshold to chain context from [`crate::CoinLookup`].
+    ///
+    /// ## Chain context
+    ///
+    /// - `chain_height` — [`crate::CoinLookup::get_chain_height`].
+    /// - `chain_timestamp` — [`crate::CoinLookup::get_chain_timestamp`].
+    ///
+    /// ## Relative assertions
+    ///
+    /// Require the owning coin's `created_height` from [`crate::CoinLookup::get_coin_state`].
+    /// A missing coin rejects with [`BlockError::CoinNotFound`] (no reference point).
+    ///
+    /// ## Relative-seconds caveat
+    ///
+    /// `chia_protocol::CoinState` has no per-coin timestamp. Implementation estimates
+    /// `coin_timestamp ≈ chain_timestamp - (chain_height - created_height) * AVG_BLOCK_SECONDS`
+    /// with `AVG_BLOCK_SECONDS = 10`. Extension of [`crate::CoinLookup`] with per-coin creation
+    /// timestamps is a future improvement.
+    ///
+    /// ## Error mapping
+    ///
+    /// Failed assertions → [`BlockError::AssertionFailed { condition, reason }`] with the opcode
+    /// name and expected / actual context for logs.
     fn evaluate_pending_assertions_stub(
         &self,
-        _exec: &crate::ExecutionResult,
-        _coins: &dyn crate::CoinLookup,
+        exec: &crate::ExecutionResult,
+        coins: &dyn crate::CoinLookup,
     ) -> Result<(), BlockError> {
+        /// Average L2 block interval (seconds) for per-coin timestamp estimation.
+        const AVG_BLOCK_SECONDS: u64 = 10;
+
+        let chain_height = coins.get_chain_height();
+        let chain_timestamp = coins.get_chain_timestamp();
+
+        for assertion in &exec.pending_assertions {
+            match &assertion.kind {
+                crate::AssertionKind::HeightAbsolute(h) => {
+                    if chain_height < *h {
+                        return Err(BlockError::AssertionFailed {
+                            condition: "ASSERT_HEIGHT_ABSOLUTE".into(),
+                            reason: format!("expected >= {h}, actual {chain_height}"),
+                        });
+                    }
+                }
+                crate::AssertionKind::HeightRelative(h) => {
+                    let state = coins.get_coin_state(&assertion.coin_id).ok_or(
+                        BlockError::CoinNotFound {
+                            coin_id: assertion.coin_id,
+                        },
+                    )?;
+                    let confirmed = u64::from(state.created_height.unwrap_or(0));
+                    let threshold = confirmed.saturating_add(*h);
+                    if chain_height < threshold {
+                        return Err(BlockError::AssertionFailed {
+                            condition: "ASSERT_HEIGHT_RELATIVE".into(),
+                            reason: format!(
+                                "expected >= {threshold} (confirmed {confirmed} + h {h}), actual {chain_height}"
+                            ),
+                        });
+                    }
+                }
+                crate::AssertionKind::SecondsAbsolute(t) => {
+                    if chain_timestamp < *t {
+                        return Err(BlockError::AssertionFailed {
+                            condition: "ASSERT_SECONDS_ABSOLUTE".into(),
+                            reason: format!("expected >= {t}, actual {chain_timestamp}"),
+                        });
+                    }
+                }
+                crate::AssertionKind::SecondsRelative(t) => {
+                    let state = coins.get_coin_state(&assertion.coin_id).ok_or(
+                        BlockError::CoinNotFound {
+                            coin_id: assertion.coin_id,
+                        },
+                    )?;
+                    let confirmed = u64::from(state.created_height.unwrap_or(0));
+                    let delta_blocks = chain_height.saturating_sub(confirmed);
+                    let coin_ts_estimate = chain_timestamp
+                        .saturating_sub(delta_blocks.saturating_mul(AVG_BLOCK_SECONDS));
+                    let threshold = coin_ts_estimate.saturating_add(*t);
+                    if chain_timestamp < threshold {
+                        return Err(BlockError::AssertionFailed {
+                            condition: "ASSERT_SECONDS_RELATIVE".into(),
+                            reason: format!(
+                                "expected >= {threshold} (coin_ts_estimate {coin_ts_estimate} + t {t}), actual {chain_timestamp}"
+                            ),
+                        });
+                    }
+                }
+                crate::AssertionKind::BeforeHeightAbsolute(h) => {
+                    if chain_height >= *h {
+                        return Err(BlockError::AssertionFailed {
+                            condition: "ASSERT_BEFORE_HEIGHT_ABSOLUTE".into(),
+                            reason: format!("expected < {h}, actual {chain_height}"),
+                        });
+                    }
+                }
+                crate::AssertionKind::BeforeHeightRelative(h) => {
+                    let state = coins.get_coin_state(&assertion.coin_id).ok_or(
+                        BlockError::CoinNotFound {
+                            coin_id: assertion.coin_id,
+                        },
+                    )?;
+                    let confirmed = u64::from(state.created_height.unwrap_or(0));
+                    let threshold = confirmed.saturating_add(*h);
+                    if chain_height >= threshold {
+                        return Err(BlockError::AssertionFailed {
+                            condition: "ASSERT_BEFORE_HEIGHT_RELATIVE".into(),
+                            reason: format!(
+                                "expected < {threshold} (confirmed {confirmed} + h {h}), actual {chain_height}"
+                            ),
+                        });
+                    }
+                }
+                crate::AssertionKind::BeforeSecondsAbsolute(t) => {
+                    if chain_timestamp >= *t {
+                        return Err(BlockError::AssertionFailed {
+                            condition: "ASSERT_BEFORE_SECONDS_ABSOLUTE".into(),
+                            reason: format!("expected < {t}, actual {chain_timestamp}"),
+                        });
+                    }
+                }
+                crate::AssertionKind::BeforeSecondsRelative(t) => {
+                    let state = coins.get_coin_state(&assertion.coin_id).ok_or(
+                        BlockError::CoinNotFound {
+                            coin_id: assertion.coin_id,
+                        },
+                    )?;
+                    let confirmed = u64::from(state.created_height.unwrap_or(0));
+                    let delta_blocks = chain_height.saturating_sub(confirmed);
+                    let coin_ts_estimate = chain_timestamp
+                        .saturating_sub(delta_blocks.saturating_mul(AVG_BLOCK_SECONDS));
+                    let threshold = coin_ts_estimate.saturating_add(*t);
+                    if chain_timestamp >= threshold {
+                        return Err(BlockError::AssertionFailed {
+                            condition: "ASSERT_BEFORE_SECONDS_RELATIVE".into(),
+                            reason: format!(
+                                "expected < {threshold} (coin_ts_estimate {coin_ts_estimate} + t {t}), actual {chain_timestamp}"
+                            ),
+                        });
+                    }
+                }
+            }
+        }
         Ok(())
     }
 
