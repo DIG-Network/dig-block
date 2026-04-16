@@ -313,6 +313,11 @@ path = "tests/test_ser_002_to_from_bytes.rs"
 name = "ser_003_genesis_header"
 path = "tests/test_ser_003_genesis_header.rs"
 
+# SER-004: serde defaults for post-v1 fields — backwards compat round-trip (SPEC §8.2, NORMATIVE § SER-004).
+[[test]]
+name = "ser_004_serde_defaults"
+path = "tests/test_ser_004_serde_defaults.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"

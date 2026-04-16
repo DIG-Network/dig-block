@@ -32,10 +32,11 @@ items:
   - id: SER-004
     section: "8.2"
     summary: "Serde Default Attributes"
-    status: gap
+    status: implemented
     spec_ref: "SPEC Section 8.2"
-    tests: []
-    notes: ""
+    tests:
+      - tests/test_ser_004_serde_defaults.rs
+    notes: "L1 proof Option<Bytes32> fields carry #[serde(default)]; DFSP roots / extension_data / slash fields retain spec-defined defaults (EMPTY_ROOT / ZERO_HASH / 0) preserved through bincode round-trip."
 
   - id: SER-005
     section: "12.1"
