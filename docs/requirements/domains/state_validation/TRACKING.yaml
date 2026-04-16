@@ -41,10 +41,11 @@ items:
   - id: STV-005
     section: "7.5.4"
     summary: "Height/Time Lock Evaluation"
-    status: gap
+    status: implemented
     spec_ref: "SPEC Section 7.5.4"
-    tests: []
-    notes: ""
+    tests:
+      - tests/test_stv_005_height_time_locks.rs
+    notes: "All 8 PendingAssertion variants evaluated against CoinLookup chain_height/chain_timestamp. Relative-height uses coin.created_height. Relative-seconds estimated from (chain_ts - delta_blocks * AVG_BLOCK_SECONDS=10) since chia-protocol CoinState has no per-coin timestamp. Failed -> AssertionFailed{condition,reason}. Missing relative coin -> CoinNotFound. Chia parity Check 21."
 
   - id: STV-006
     section: "7.5.5"
