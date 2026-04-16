@@ -127,23 +127,56 @@ impl PendingAssertion {
     }
 }
 
-/// Validated output from Tier 2 execution, carrying data forward to Tier 3 (state validation).
+/// Validated output from Tier 2 execution, bridging to Tier 3 state validation
+/// ([EXE-008](docs/requirements/domains/execution_validation/specs/EXE-008.md), [SPEC §7.4.7](docs/resources/SPEC.md)).
 ///
-/// ## Fields (EXE-008)
+/// ## Field semantics
 ///
-/// When fully implemented, this struct will contain:
-/// - `additions: Vec<Coin>` — coins created by `CREATE_COIN` conditions
-/// - `removals: Vec<Bytes32>` — coin IDs consumed (spent) in this block
-/// - `pending_assertions: Vec<PendingAssertion>` — height/time locks deferred to Tier 3 (EXE-009)
-/// - `total_cost: Cost` — sum of CLVM execution costs across all bundles
-/// - `total_fees: u64` — sum of per-bundle fees (input value - output value)
-/// - `receipts: Vec<Receipt>` — per-SpendBundle execution receipts
+/// - **`additions`** — Flat list of [`Coin`] outputs created by all `CREATE_COIN` conditions across
+///   every [`chia_protocol::SpendBundle`] in the block, in block order (SPEC §3.4 grouping applies to
+///   the Merkle root; this vector is raw). STV-004 checks non-existence against [`crate::CoinLookup`].
+/// - **`removals`** — Coin IDs of every spent coin in the block, in block order. STV-002 looks these
+///   up to verify existence and "unspent" status; STV-003 cross-checks the puzzle hash against
+///   [`chia_protocol::CoinState`].
+/// - **`pending_assertions`** — Height / time lock assertions deferred from Tier 2 to Tier 3
+///   (EXE-009; evaluated by STV-005). Includes the eight `ASSERT_HEIGHT_*` / `ASSERT_SECONDS_*`
+///   variants plus their `BEFORE_*` counterparts.
+/// - **`total_cost`** — Sum of `SpendResult.conditions.cost` across every bundle; EXE-007 asserts
+///   `== header.total_cost`.
+/// - **`total_fees`** — Sum of per-bundle fees (input value − output value); EXE-006 asserts
+///   `== header.total_fees`.
+/// - **`receipts`** — One [`Receipt`] per included bundle for logging / indexing (RCP-002).
+///   Length equals `header.spend_bundle_count` on success.
 ///
-/// Placeholder until EXE-008 implementation.
+/// ## Usage
 ///
-/// **`Default` / `PartialEq`:** Exposed so integration tests (SER-001 bincode round-trip) can construct and compare
-/// placeholders without reaching private fields; removed or narrowed when real fields land ([EXE-008](docs/requirements/domains/execution_validation/specs/EXE-008.md)).
+/// Produced by `L2Block::validate_execution` (EXE-001, [SPEC §7.4](docs/resources/SPEC.md)) and
+/// consumed by `L2Block::validate_state` (STV-001, [SPEC §7.5](docs/resources/SPEC.md)). The
+/// struct is freely cloneable / serializable (SER-001) so Tier-2 outputs can be cached or shipped
+/// between tiers separated by a process boundary.
+///
+/// ## Field shape rationale
+///
+/// - **`Vec<Coin>` vs `Vec<Bytes32>` asymmetry:** Additions need the full coin record (parent id,
+///   puzzle hash, amount) for STV-004 / state-root recompute in STV-007; removals only need the id
+///   because Tier 3 resolves the full record through [`crate::CoinLookup`]. This matches SPEC §3.4 / §3.5
+///   where additions_root groups by `puzzle_hash` and removals_root is a Merkle set of ids.
+/// - **Pending assertions separate from receipts:** Receipts are per-bundle summary; pending
+///   assertions are per-spend condition decisions. Keeping them in distinct vectors avoids forcing
+///   Tier-3 code to walk receipts for condition data (EXE-004 collector semantics).
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExecutionResult {
-    _placeholder: (),
+    /// Coins created by `CREATE_COIN` conditions across all bundles in block order
+    /// ([SPEC §2.3](docs/resources/SPEC.md), EXE-004).
+    pub additions: Vec<chia_protocol::Coin>,
+    /// Coin IDs consumed (spent) across all bundles in block order (STV-002 target).
+    pub removals: Vec<Bytes32>,
+    /// Height / time lock assertions collected in Tier 2, evaluated in Tier 3 (EXE-009 / STV-005).
+    pub pending_assertions: Vec<PendingAssertion>,
+    /// Aggregate CLVM cost across all bundles ([`crate::primitives::Cost`]; EXE-007 consistency check).
+    pub total_cost: crate::primitives::Cost,
+    /// Aggregate fees across all bundles (EXE-006 consistency check).
+    pub total_fees: u64,
+    /// Per-bundle receipts ([`crate::Receipt`] / RCP-002) in insertion order.
+    pub receipts: Vec<crate::types::receipt::Receipt>,
 }

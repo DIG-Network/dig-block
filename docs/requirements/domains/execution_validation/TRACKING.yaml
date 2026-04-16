@@ -61,10 +61,11 @@ items:
   - id: EXE-008
     section: "7.4.7"
     summary: "ExecutionResult Output Type"
-    status: gap
+    status: implemented
     spec_ref: "SPEC Section 7.4.7"
-    tests: []
-    notes: ""
+    tests:
+      - tests/test_exe_008_execution_result.rs
+    notes: "Six public fields (additions: Vec<Coin>, removals: Vec<Bytes32>, pending_assertions: Vec<PendingAssertion>, total_cost: Cost, total_fees: u64, receipts: Vec<Receipt>); Default + PartialEq + serde; Tier-2 -> Tier-3 bridge shape."
 
   - id: EXE-009
     section: "7.4.4, 7.4.7, 7.5.4"
