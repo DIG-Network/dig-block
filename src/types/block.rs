@@ -410,11 +410,20 @@ impl L2Block {
         let mut result = crate::ExecutionResult::default();
 
         // Process bundles in block order (ephemeral-coin semantics; EXE-001 NORMATIVE).
-        // Under EXE-001's bare API, the loop is a no-op because EXE-003 (dig-clvm invocation) is
-        // pending. When EXE-003 lands, each iteration will call `dig_clvm::validate_spend_bundle`
-        // and fold the `SpendResult` into `result`.
-        for _bundle in &self.spend_bundles {
-            // Deferred to EXE-003 / EXE-004 / EXE-005 / EXE-009.
+        //
+        // EXE-002: For every CoinSpend, tree_hash(puzzle_reveal) MUST equal coin.puzzle_hash
+        // before CLVM execution. This is cheap (pure SHA-256 over serialized CLVM bytes) and
+        // fails fast on tampered puzzle reveals, so it runs first per Chia parity with Check 20.
+        // See [`crate::verify_coin_spend_puzzle_hash`].
+        //
+        // EXE-003 (dig-clvm invocation) remains deferred — CLVM execution requires a
+        // [`dig_clvm::ValidationContext`] seeded with coin_records from Tier 3 ([`crate::CoinLookup`]).
+        // Will land alongside the Tier-2/Tier-3 bridge.
+        for bundle in &self.spend_bundles {
+            for coin_spend in &bundle.coin_spends {
+                crate::verify_coin_spend_puzzle_hash(coin_spend)?;
+            }
+            // EXE-003 / EXE-004 / EXE-005 / EXE-009 deferred.
         }
 
         // EXE-006 — block-level fee consistency.

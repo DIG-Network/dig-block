@@ -340,6 +340,11 @@ path = "tests/test_exe_009_pending_assertion.rs"
 name = "exe_001_validate_execution_api"
 path = "tests/test_exe_001_validate_execution_api.rs"
 
+# EXE-002: per-CoinSpend puzzle hash verification via clvm-utils::tree_hash (SPEC §7.4.2).
+[[test]]
+name = "exe_002_puzzle_hash_verification"
+path = "tests/test_exe_002_puzzle_hash_verification.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"
