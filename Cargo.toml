@@ -380,6 +380,11 @@ path = "tests/test_stv_001_validate_state_api.rs"
 name = "stv_002_coin_existence"
 path = "tests/test_stv_002_coin_existence.rs"
 
+# STV-003: puzzle hash cross-check (state vs CoinSpend) (SPEC §7.5.2 / Chia Check 20).
+[[test]]
+name = "stv_003_puzzle_hash_cross_check"
+path = "tests/test_stv_003_puzzle_hash_cross_check.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"
