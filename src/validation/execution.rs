@@ -181,6 +181,107 @@ pub struct ExecutionResult {
     pub receipts: Vec<crate::types::receipt::Receipt>,
 }
 
+/// Collect the height / time / before-height / before-time assertions carried by a
+/// [`chia_consensus::owned_conditions::OwnedSpendBundleConditions`] into a flat
+/// [`Vec<PendingAssertion>`] for Tier-3 evaluation
+/// ([EXE-004](docs/requirements/domains/execution_validation/specs/EXE-004.md), [SPEC §7.4.4](docs/resources/SPEC.md)).
+///
+/// ## Ordering
+///
+/// 1. **Block-level absolutes** (in this order): `height_absolute`, `seconds_absolute`,
+///    `before_height_absolute`, `before_seconds_absolute`. These have no owning spend — `coin_id`
+///    is [`Bytes32::default`] (all zeros). A block-level scalar of `0` means "no constraint" and
+///    is **not** emitted (absence vs explicit-zero disambiguation).
+/// 2. **Per-spend relatives** (in spend order): for each
+///    [`chia_consensus::owned_conditions::OwnedSpendConditions`], its `height_relative` /
+///    `seconds_relative` / `before_height_relative` / `before_seconds_relative` Options (when
+///    `Some`) become [`PendingAssertion`]s tagged with the spend's `coin_id`.
+///
+/// ## Why two-pass condition processing lives in `dig-clvm`
+///
+/// NORMATIVE EXE-004 describes a two-pass walk (collect outputs → validate assertions), but
+/// Implementation Notes explicitly allow delegation: "This logic may be partially inside
+/// dig-clvm." Announcement / concurrent-spend / self-assertion checks (Pass 2) run inside
+/// `chia_consensus::run_spendbundle` (called via [`dig_clvm::validate_spend_bundle`]); failures
+/// surface as [`dig_clvm::ValidationError::Clvm`] → [`crate::BlockError::ClvmExecutionFailed`]
+/// per EXE-003 mapping. Height / time / ASSERT_BEFORE_* conditions are **deferred** to Tier 3
+/// (STV-005) because they require chain context; this helper is the bridge.
+///
+/// ## ASSERT_EPHEMERAL
+///
+/// Not emitted here — ASSERT_EPHEMERAL is carried in spend `flags` inside
+/// `OwnedSpendConditions` and handled by Tier 3 (STV-002) against
+/// [`crate::ExecutionResult::additions`]. There is no dedicated `Ephemeral` variant on
+/// [`AssertionKind`]; the EXE-009 enum is intentionally limited to the 8 height/time opcodes.
+///
+/// ## Chia parity
+///
+/// `OwnedSpendBundleConditions` is the parsed form Chia's `run_spendbundle` produces
+/// ([`chia-consensus/src/owned_conditions.rs`](https://github.com/Chia-Network/chia_rs)). This
+/// helper walks it without duplicating any parse / CLVM logic.
+pub fn collect_pending_assertions_from_conditions(
+    conditions: &chia_consensus::owned_conditions::OwnedSpendBundleConditions,
+) -> Vec<PendingAssertion> {
+    let mut out = Vec::new();
+
+    // Block-level absolute assertions. A `0` for `height_absolute` / `seconds_absolute` means
+    // "no constraint" (chia-consensus aggregates the most strict value; 0 is the identity).
+    if conditions.height_absolute != 0 {
+        out.push(PendingAssertion {
+            kind: AssertionKind::HeightAbsolute(u64::from(conditions.height_absolute)),
+            coin_id: Bytes32::default(),
+        });
+    }
+    if conditions.seconds_absolute != 0 {
+        out.push(PendingAssertion {
+            kind: AssertionKind::SecondsAbsolute(conditions.seconds_absolute),
+            coin_id: Bytes32::default(),
+        });
+    }
+    if let Some(h) = conditions.before_height_absolute {
+        out.push(PendingAssertion {
+            kind: AssertionKind::BeforeHeightAbsolute(u64::from(h)),
+            coin_id: Bytes32::default(),
+        });
+    }
+    if let Some(t) = conditions.before_seconds_absolute {
+        out.push(PendingAssertion {
+            kind: AssertionKind::BeforeSecondsAbsolute(t),
+            coin_id: Bytes32::default(),
+        });
+    }
+
+    // Per-spend relative assertions, in spend order.
+    for spend in &conditions.spends {
+        if let Some(h) = spend.height_relative {
+            out.push(PendingAssertion {
+                kind: AssertionKind::HeightRelative(u64::from(h)),
+                coin_id: spend.coin_id,
+            });
+        }
+        if let Some(t) = spend.seconds_relative {
+            out.push(PendingAssertion {
+                kind: AssertionKind::SecondsRelative(t),
+                coin_id: spend.coin_id,
+            });
+        }
+        if let Some(h) = spend.before_height_relative {
+            out.push(PendingAssertion {
+                kind: AssertionKind::BeforeHeightRelative(u64::from(h)),
+                coin_id: spend.coin_id,
+            });
+        }
+        if let Some(t) = spend.before_seconds_relative {
+            out.push(PendingAssertion {
+                kind: AssertionKind::BeforeSecondsRelative(t),
+                coin_id: spend.coin_id,
+            });
+        }
+    }
+
+    out
+}
+
 /// Map a [`dig_clvm::ValidationError`] to the appropriate [`crate::BlockError`] variant
 /// ([EXE-003](docs/requirements/domains/execution_validation/specs/EXE-003.md),
 /// [SPEC §7.4.3](docs/resources/SPEC.md)).

@@ -32,10 +32,11 @@ items:
   - id: EXE-004
     section: "7.4.4"
     summary: "Condition Parsing and Assertion Checking"
-    status: gap
+    status: implemented
     spec_ref: "SPEC Section 7.4.4"
-    tests: []
-    notes: ""
+    tests:
+      - tests/test_exe_004_condition_parsing.rs
+    notes: "Pass 1 (create-coin / announcements / reserve-fee collection) and Pass 2 (announcement / concurrent-spend / self-assertion checks) execute inside dig-clvm (via chia-consensus::run_spendbundle). Height/time ASSERT_* / ASSERT_BEFORE_* are deferred to Tier-3 via collect_pending_assertions_from_conditions helper walking OwnedSpendBundleConditions; wired into validate_execution_with_context. ASSERT_EPHEMERAL handled directly by STV-002 (spend flags + ExecutionResult.additions check)."
 
   - id: EXE-005
     section: "7.4.5"

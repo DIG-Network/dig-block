@@ -350,6 +350,11 @@ path = "tests/test_exe_002_puzzle_hash_verification.rs"
 name = "exe_003_clvm_delegation"
 path = "tests/test_exe_003_clvm_delegation.rs"
 
+# EXE-004: condition parsing — pending-assertion collection from OwnedSpendBundleConditions (SPEC §7.4.4).
+[[test]]
+name = "exe_004_condition_parsing"
+path = "tests/test_exe_004_condition_parsing.rs"
+
 # STR-*: one integration test binary per requirement (`autotests = false`).
 [[test]]
 name = "str_001_cargo_dependencies"
