@@ -176,6 +176,21 @@ cargo test --release
 Runs ~600 tests against the public API (no unit tests reach into private modules). Property-based
 coverage via `proptest` in `tests/test_ser_005_roundtrip_integrity.rs`.
 
+### Coverage
+
+Line coverage is measured with [`cargo-llvm-cov`](https://github.com/taiki-e/cargo-llvm-cov) and
+**gated in CI at ≥80%** (current: ~96% lines). Reproduce the gate locally:
+
+```bash
+cargo install cargo-llvm-cov            # once
+cargo llvm-cov --all-features --workspace --fail-under-lines 80 -- --test-threads=1
+```
+
+The gate runs in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) on every push/PR to `main`
+and in the release pipeline ([`.github/workflows/publish.yml`](.github/workflows/publish.yml)); a
+change that drops coverage below 80% fails the build. `--test-threads=1` matches the serial run the
+integration suite assumes.
+
 ## Specification
 
 All behavior is derived from the authoritative crate specification:
