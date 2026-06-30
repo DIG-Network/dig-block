@@ -434,3 +434,9 @@ path = "tests/test_str_005_test_infrastructure.rs"
 [[test]]
 name = "public_api_smoke"
 path = "tests/test_public_api_smoke.rs"
+
+# Coverage-fill: genuinely-reachable own-logic edge branches (empty-list predicates,
+# bitmap out-of-range / short-tail reads + lazy resize, Default impls, bincode decode errors).
+[[test]]
+name = "cov_edge_cases"
+path = "tests/test_cov_edge_cases.rs"
