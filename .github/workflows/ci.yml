@@ -70,9 +70,13 @@ jobs:
 
       # Measure line coverage and FAIL the build if it drops below 80%.
       # `cargo llvm-cov nextest` runs the flaky-aware nextest runner under
-      # coverage instrumentation; `--test-threads=1` mirrors the serial run
-      # used by the test suite (some integration tests assume serial
-      # execution). A summary report is printed; the gate is enforced by
+      # coverage instrumentation so coverage is still collected (running
+      # `cargo nextest run` and `cargo llvm-cov` as separate steps collects
+      # zero coverage and always fails the gate). `--test-threads 1` mirrors
+      # the serial run used by the test suite (some integration tests assume
+      # serial execution) — passed as a native nextest flag, NOT after `--`
+      # (nextest rejects `--test-threads=1` forwarded to the test binary). A
+      # summary report is printed; the gate is enforced by
       # `--fail-under-lines 80`.
       - name: Run coverage with 80% line gate
-        run: cargo llvm-cov nextest --all-features --workspace --fail-under-lines 80 --retries 2 -- --test-threads=1
+        run: cargo llvm-cov nextest --all-features --workspace --fail-under-lines 80 --retries 2 --test-threads 1
