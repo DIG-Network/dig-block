@@ -1,6 +1,6 @@
 [package]
 name = "dig-block"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 rust-version = "1.75.0"
 description = "DIG L2 block format, production, and validation"
@@ -33,7 +33,7 @@ chia-sdk-types = "0.30"
 chia-sdk-signer = "0.30"
 
 # DIG ecosystem
-dig-clvm = "0.1"
+dig-clvm = "0.2"
 
 # Serialization
 bincode = "1"
