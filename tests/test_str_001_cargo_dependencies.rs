@@ -4,7 +4,7 @@
 //!
 //! - **Dependency closure:** The 13 protocol/build crates listed in STR-001 are present so `dig-block` can use Chia types,
 //!   CLVM (`dig-clvm`), and serde/bincode without ad hoc forks ([SPEC §1.2](docs/resources/SPEC.md)).
-//! - **Version floor:** Pinned minor versions match the repo’s supported ecosystem (chia0.26, sdk 0.30, etc.) — drift breaks CI early.
+//! - **Version floor:** Pinned minor versions match the repo’s supported ecosystem (chia 0.26, sdk 0.30, dig-clvm 0.2, etc.) — drift breaks CI early.
 //! - **Serde:** The `derive` feature is enabled so block types can use `#[derive(Serialize, Deserialize)]`.
 //! - **Linkability:** Importing representative types from `chia-protocol` / `chia-bls` in this binary proves the graph resolves (`cargo check`).
 
@@ -82,10 +82,10 @@ fn dep_versions_chia_ecosystem_at_minimum() {
         "clvmr must be at version 0.14"
     );
 
-    // dig-clvm must be >= 0.1
+    // dig-clvm must be >= 0.2
     assert!(
-        cargo_toml.contains("dig-clvm = \"0.1\""),
-        "dig-clvm must be at version 0.1"
+        cargo_toml.contains("dig-clvm = \"0.2\""),
+        "dig-clvm must be at version 0.2"
     );
 }
 
